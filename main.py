@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
+
+# Project Title: Auto Synced Translated Dubs (https://github.com/ThioJoe/Auto-Synced-Translated-Dubs)
+# Author / Project Owner: "ThioJoe" (https://github.com/ThioJoe)
+# License: GPLv3
+# NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
+
 # Import other files
 import TTS
 import audio_builder
@@ -8,7 +16,6 @@ import configparser
 import os
 # Import other modules
 import ffprobe
-
 
 # EXTERNAL REQUIREMENTS:
 # rubberband binaries: https://breakfastquay.com/rubberband/ - Put rubberband.exe and sndfile.dll in the same folder as this script

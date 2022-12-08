@@ -1,0 +1,7 @@
+google-cloud-texttospeech
+google_api_python_client
+google_auth_oauthlib
+pydub
+librosa
+pyrubberband
+ffprobe-python

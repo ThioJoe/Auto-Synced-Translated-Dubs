@@ -16,7 +16,7 @@ If you already have a human-made SRT subtitles file for a video, this will:
 - This works best with subtitles that do not remove gaps between sentences and lines.
 - Right now it only supports Google Cloud API because that's what I'm most familiar with. But I plan to add support for Azure neural voices, because I think they sound better.
 - This script was written with my own personal workflow in mind. That is:
-    - I use **OpenAI Whisper** to transcribe the videos locally, then use **Descript** to sync that transcription and touch it up with corrections.
+    - I use [**OpenAI Whisper**](https://github.com/openai/whisper) to transcribe the videos locally, then use [**Descript**](https://www.descript.com/) to sync that transcription and touch it up with corrections.
     - Then I export the SRT file with Descript, which is ideal because it does not just butt the start and end times of each subtitle line next to each other. This means the resulting dub will preserve the pauses between sentences from the original speech. If you use subtitles from another program, you might find the pauses between lines are too short.
     - The SRT export settings in Descript that seem to work decently for dubbing are *150 max characters per line*, and *1 max line per card*. 
 

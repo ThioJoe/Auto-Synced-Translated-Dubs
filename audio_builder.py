@@ -3,14 +3,25 @@ import librosa
 import numpy as np
 import soundfile
 import pyrubberband
+import configparser
+import pathlib
+import os
 
 from pydub import AudioSegment
 from pydub.silence import detect_leading_silence
 
 # Set working folder
 workingFolder = "workingFolder"
-# Native Sample Rate of TTS
-nativeSampleRate = 24000
+
+# Read config file
+config = configparser.ConfigParser()
+config.read('config.ini')
+# Get variables from config
+nativeSampleRate = int(config['SETTINGS']['synth_sample_rate'])
+originalVideoFile = os.path.abspath(config['SETTINGS']['original_video_file_path'].strip("\""))
+
+# Use video file name to use in the name of the output file
+outputFileName = pathlib.Path(originalVideoFile).stem + " - Output.wav"
 
 def trim_clip(inputSound):
     trim_leading_silence: AudioSegment = lambda x: x[detect_leading_silence(x) :]
@@ -65,6 +76,6 @@ def build_audio(subsDict, totalAudioLength, highQualityMode=False):
         # Print progress and overwrite line next time
         print(f" Processed Audio: {key} of {len(subsDict)}", end="\r")
 
-    canvas.export("final.wav", format="wav")
+    canvas.export(outputFileName, format="wav")
 
     return subsDict

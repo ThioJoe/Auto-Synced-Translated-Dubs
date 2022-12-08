@@ -14,6 +14,7 @@ import auth
 import re
 import configparser
 import os
+import pathlib
 # Import other modules
 import ffprobe
 
@@ -90,7 +91,7 @@ for lineNum, line in enumerate(lines):
         lineWithTimestamps = lines[lineNum + 1].strip()
         lineWithSubtitleText = lines[lineNum + 2].strip()
         # Create empty dictionary with keys for start and end times and subtitle text
-        subsDict[line] = {'start_ms': '', 'end_ms': '', 'duration_ms': '', 'text': '', 'break_until_next': ''}
+        subsDict[line] = {'start_ms': '', 'end_ms': '', 'duration_ms': '', 'text': '', 'break_until_next': '', 'srt_timestamps_line': lineWithTimestamps}
 
         time = lineWithTimestamps.split(' --> ')
         time1 = time[0].split(':')
@@ -137,6 +138,17 @@ def translate_dictionary(inputDict, skipTranslation=False):
         else:
             subsDict[key]['translated_text'] = inputDict[key]['text'] # Skips translating, such as for testing
     print("                                                  ")
+
+    if skipTranslation == False:
+        # Use video file name to use in the name of the translate srt file
+        translatedSrtFileName = pathlib.Path(originalVideoFile).stem + f" - {targetLanguage}.srt"
+        # Write new srt file with translated text
+        with open(translatedSrtFileName, 'w') as f:
+            for key in inputDict:
+                f.write(key + '\n')
+                f.write(inputDict[key]['srt_timestamps_line'] + '\n')
+                f.write(inputDict[key]['translated_text'] + '\n\n')
+
     return inputDict
 
 subsDict = translate_dictionary(subsDict, skipTranslation)

@@ -7,6 +7,9 @@ import configparser
 import pathlib
 import os
 
+import TTS
+from utils import parseBool
+
 from pydub import AudioSegment
 from pydub.silence import detect_leading_silence
 
@@ -19,6 +22,8 @@ config.read('config.ini')
 # Get variables from config
 nativeSampleRate = int(config['SETTINGS']['synth_sample_rate'])
 originalVideoFile = os.path.abspath(config['SETTINGS']['original_video_file_path'].strip("\""))
+skipSynthesize = parseBool(config['SETTINGS']['skip_synthesize'])
+forceTwoPassStretch = parseBool(config['SETTINGS']['force_stretch_with_twopass'])
 
 # Use video file name to use in the name of the output file
 outputFileName = pathlib.Path(originalVideoFile).stem + " - Output.wav"
@@ -44,37 +49,69 @@ def create_canvas(canvasDuration, frame_rate=nativeSampleRate):
     canvas = AudioSegment.silent(duration=canvasDuration, frame_rate=frame_rate)
     return canvas
 
-
-def stretch_audio(subsDict, audioFileToStretch, desiredDuration, num):
-    rawDuration = librosa.get_duration(filename=audioFileToStretch)
-    # Calculate the stretch factor
+def get_speed_factor(subsDict, trimmedAudioPath, desiredDuration, num):
+    rawDuration = librosa.get_duration(filename=trimmedAudioPath)
+    # Calculate the speed factor, put into dictionary
     desiredDuration = float(desiredDuration)
     speedFactor = (rawDuration*1000) / desiredDuration
-    subsDict[num]['speedFactor'] = speedFactor
+    subsDict[num]['speed_factor'] = speedFactor
+    return subsDict
 
+def stretch_audio(audioFileToStretch, speedFactor, num):
     y, sampleRate = soundfile.read(audioFileToStretch)
     streched_audio = pyrubberband.time_stretch(y, sampleRate, speedFactor, rbargs={'--fine': '--fine'}) # Need to add rbarges in weird way because it demands a dictionary of two values
     soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
     #soundfile.write(f'{workingFolder}\\{num}_s.wav', streched_audio, sampleRate) # For debugging, saves the stretched audio files
-    return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav"), subsDict
+    return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
 
-def build_audio(subsDict, totalAudioLength, highQualityMode=False):
-    canvas = create_canvas(totalAudioLength)
+
+def build_audio(subsDict, totalAudioLength, twoPassVoiceSynth=False):
+    # First trim silence off the audio files
     for key, value in subsDict.items():
-        filePathMp3 = value['TTS_FilePath']
-        filePathWav = workingFolder + "\\" + key + ".wav"
+        filePathTrimmed = workingFolder + "\\" + key + "_t.wav"
+        subsDict[key]['TTS_FilePath_Trimmed'] = filePathTrimmed
 
         # Trim the clip and re-write file
-        rawClip = AudioSegment.from_file(filePathMp3, format="mp3", frame_rate=nativeSampleRate)
+        rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)
         trimmedClip = trim_clip(rawClip)
-        trimmedClip.export(filePathWav, format="wav")
+        trimmedClip.export(filePathTrimmed, format="wav")
+        print(f" Trimmed Audio: {key} of {len(subsDict)}", end="\r")
+    print("\n")
 
-        # Stretch the clip to the desired duration
-        stretchedClip, subsDict = stretch_audio(subsDict, filePathWav, value['duration_ms'], num=key)
+    # Calculate speed factors for each clip, aka how much to stretch the audio
+    for key, value in subsDict.items():
+        subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
+        print(f" Calculated Speed Factor: {key} of {len(subsDict)}", end="\r")
+    print("\n")
+
+    # If two pass voice synth is enabled, have API re-synthesize the clips at the new speed
+    if twoPassVoiceSynth == True:
+        subsDict = TTS.synthesize_dictionary(subsDict, skipSynthesize=skipSynthesize, secondPass=True)
+        for key, value in subsDict.items():
+            # Trim the clip and re-write file
+            rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)
+            trimmedClip = trim_clip(rawClip)
+            trimmedClip.export(value['TTS_FilePath_Trimmed'], format="wav")
+            print(f" Trimmed Audio (2nd Pass): {key} of {len(subsDict)}", end="\r")
+        print("\n")
+        for key, value in subsDict.items():
+            subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
+            print(f" Calculated Speed Factor (2nd Pass): {key} of {len(subsDict)}", end="\r")
+        print("\n")
+
+    # Create canvas to overlay audio onto
+    canvas = create_canvas(totalAudioLength)    
+
+    # Stretch audio and insert into canvas
+    for key, value in subsDict.items():
+        if not twoPassVoiceSynth or forceTwoPassStretch == True:
+            stretchedClip = stretch_audio(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'], num=key)
+        else:
+            stretchedClip = AudioSegment.from_file(value['TTS_FilePath_Trimmed'], format="wav")
+
         canvas = insert_audio(canvas, stretchedClip, value['start_ms'])
-
-        # Print progress and overwrite line next time
-        print(f" Processed Audio: {key} of {len(subsDict)}", end="\r")
+        print(f" Stretched Audio: {key} of {len(subsDict)}", end="\r")
+    print("\n")
 
     canvas.export(outputFileName, format="wav")
 

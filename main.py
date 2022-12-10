@@ -10,6 +10,7 @@
 import TTS
 import audio_builder
 import auth
+from utils import parseBool
 # Import built in modules
 import re
 import configparser
@@ -30,14 +31,6 @@ import ffprobe
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-def parseBool(string):
-    if string.lower() == 'true':
-        return True
-    elif string.lower() == 'false':
-        return False
-    else:
-        raise ValueError('Not a boolean string')
-
 googleProjectID = config['SETTINGS']['google_project_id']
 originalVideoFile = os.path.abspath(config['SETTINGS']['original_video_file_path'].strip("\""))
 srtFile = os.path.abspath(config['SETTINGS']['srt_file_path'].strip("\""))
@@ -50,7 +43,7 @@ targetLanguage = config['SETTINGS']['target_language']
 
 # Note! Setting this to true will make it so instead of just stretching the audio clips, it will have the API generate new audio clips with adjusted speaking rates
 # This can't be done on the first pass because we don't know how long the audio clips will be until we generate them
-highQualityMode = parseBool(config['SETTINGS']['high_quality_mode'])  # Still under development, doesn't work yet
+twoPassVoiceSynth = parseBool(config['SETTINGS']['two_pass_voice_synth'])
 
 
 #======================================== Get Total Duration ================================================
@@ -160,5 +153,5 @@ subsDict = TTS.synthesize_dictionary(subsDict, skipSynthesize=skipSynthesize)
 #subsDict = Test.sampleDict
 
 # Build Audio File
-subsDict = audio_builder.build_audio(subsDict, totalAudioLength, highQualityMode)
+subsDict = audio_builder.build_audio(subsDict, totalAudioLength, twoPassVoiceSynth)
 

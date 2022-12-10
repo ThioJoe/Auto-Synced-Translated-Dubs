@@ -7,6 +7,7 @@ If you already have a human-made SRT subtitles file for a video, this will:
 2. Create text-to-speech audio clips of the translated text (using more realistic neural voices)
 3. Use the timings of the subtitle lines to calculate the correct duration of each spoken audio clip
 4. Stretch or shrink the translated audio clip to be exactly the same length as the original speech, and inserted at the same point in the audio. Therefore the translated speech will remain perfectly in sync with the original video.
+    - Optional: Instead of stretching the audio clips, you have the option to instead do a second pass at synthesizing each clip through the API using the proper speaking speed calculated during the first pass. This drastically improves audio quality.
 
 ### External Requirements:
 - ffmpeg must be installed (https://ffmpeg.org/download.html)

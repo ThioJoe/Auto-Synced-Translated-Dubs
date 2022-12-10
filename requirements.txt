@@ -5,3 +5,4 @@ pydub
 librosa
 pyrubberband
 ffprobe-python
+azure-cognitiveservices-speech

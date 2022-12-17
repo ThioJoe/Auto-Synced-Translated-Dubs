@@ -9,18 +9,19 @@ from googleapiclient.errors import HttpError
 import auth
 TTS_API, TRANSLATE_API = auth.first_authentication()
 
-# Read config file
+# Read config files
 config = configparser.ConfigParser()
 config.read('config.ini')
+cloudConfig = configparser.ConfigParser()
+cloudConfig.read('cloud_service_settings.ini')
+
 # Get variables from config
-ttsService = config['SETTINGS']['tts_service'].lower()
+ttsService = cloudConfig['CLOUD']['tts_service'].lower()
 audioEncoding = config['SETTINGS']['synth_audio_encoding'].upper()
-languageCode = config['SETTINGS']['synth_language_code']
-voiceName = config['SETTINGS']['synth_voice_name']
-voiceGender = config['SETTINGS']['synth_voice_gender'].upper()
+
 # Get Azure variables if applicable
-AZURE_SPEECH_KEY = config['SETTINGS']['azure_speech_key']
-AZURE_SPEECH_REGION = config['SETTINGS']['azure_speech_region']
+AZURE_SPEECH_KEY = cloudConfig['CLOUD']['azure_speech_key']
+AZURE_SPEECH_REGION = cloudConfig['CLOUD']['azure_speech_region']
 
 # Get List of Voices Available
 def get_voices():
@@ -29,7 +30,7 @@ def get_voices():
     return voices_json
 
 # Build API request for google text to speech, then execute
-def synthesize_text_google(text, speedFactor, audioEncoding=audioEncoding, languageCode=languageCode, voiceName=voiceName, voiceGender=voiceGender):
+def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCode, audioEncoding=audioEncoding):
     # Keep speedFactor between 0.25 and 4.0
     if speedFactor < 0.25:
         speedFactor = 0.25
@@ -73,7 +74,7 @@ def synthesize_text_google(text, speedFactor, audioEncoding=audioEncoding, langu
     decoded_audio = base64.b64decode(response['audioContent'])
     return decoded_audio
 
-def synthesize_text_azure(text, speedFactor):
+def synthesize_text_azure(text, speedFactor, voiceName, languageCode):
     # Determine speedFactor value for Azure TTS. It should be either 'default' or a relative change.
     if speedFactor == 1.0:
         rate = 'default'
@@ -106,7 +107,7 @@ def synthesize_text_azure(text, speedFactor):
     return stream
 
 
-def synthesize_dictionary(subsDict, skipSynthesize=False, secondPass=False):
+def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=False):
     for key, value in subsDict.items():
         # TTS each subtitle text, write to file, write filename into dictionary
         filePath = f"workingFolder\\{key}.mp3"
@@ -127,14 +128,14 @@ def synthesize_dictionary(subsDict, skipSynthesize=False, secondPass=False):
 
             # If Google TTS, use Google API
             if ttsService == "google":
-                audio = synthesize_text_google(value['translated_text'], speedFactor)
+                audio = synthesize_text_google(value['translated_text'], speedFactor, langDict['voiceName'], langDict['voiceGender'], langDict['languageCode'])
                 with open(filePath, "wb") as out:
                     out.write(audio)
 
             # If Azure TTS, use Azure API
             elif ttsService == "azure":
                 # Audio variable is an AudioDataStream object
-                audio = synthesize_text_azure(value['translated_text'], speedFactor)
+                audio = synthesize_text_azure(value['translated_text'], speedFactor, langDict['voiceName'], langDict['languageCode'])
                 # Save to file using save_to_wav_file method of audio object
                 audio.save_to_wav_file(filePath)
 

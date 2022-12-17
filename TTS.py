@@ -135,7 +135,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
             # If Google TTS, use Google API
             if ttsService == "google":
                 audio = synthesize_text_google(value['translated_text'], speedFactor, langDict['voiceName'], langDict['voiceGender'], langDict['languageCode'])
-                with open(filePath, "wb") as out:
+                with open(filePath, "wb", encoding='utf-8') as out:
                     out.write(audio)
 
             # If Azure TTS, use Azure API

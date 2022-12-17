@@ -104,7 +104,7 @@ totalAudioLength = get_duration(originalVideoFile)
 
 #======================================== Parse SRT File ================================================
 # Open an srt file and read the lines into a list
-with open(srtFile, 'r') as f:
+with open(srtFile, 'r', encoding='utf-8') as f:
     lines = f.readlines()
 
 # Matches the following example with regex:    00:00:20,130 --> 00:00:23,419
@@ -179,7 +179,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
         # Set path to save translated srt file
         translatedSrtFileName = os.path.join(outputFolder, translatedSrtFileName)
         # Write new srt file with translated text
-        with open(translatedSrtFileName, 'w') as f:
+        with open(translatedSrtFileName, 'w', encoding='utf-8') as f:
             for key in inputSubsDict:
                 f.write(key + '\n')
                 f.write(inputSubsDict[key]['srt_timestamps_line'] + '\n')
@@ -202,6 +202,9 @@ for langNum, value in batchSettings.items():
 
     # Create subs dict to use for this language
     individualLanguageSubsDict = dict(subsDict)
+
+    # Print language being processed
+    print(f"\n----- Beginning Processing of Language: {langDict['languageCode']} -----")
 
     # Translate
     individualLanguageSubsDict = translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=skipTranslation)

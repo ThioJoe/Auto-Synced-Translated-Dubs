@@ -25,7 +25,8 @@ import ffprobe
 
 
 # ====================================== SET CONFIGS ================================================
-# Don't forget set all the variables below in the config.ini file!
+# MOVE THIS INTO A DICTIONARY VARIABLE AT SOME POINT
+outputFolder = "output"
 
 # Read config file
 config = configparser.ConfigParser()
@@ -175,6 +176,8 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
     if skipTranslation == False:
         # Use video file name to use in the name of the translate srt file
         translatedSrtFileName = pathlib.Path(originalVideoFile).stem + f" - {targetLanguage}.srt"
+        # Set path to save translated srt file
+        translatedSrtFileName = os.path.join(outputFolder, translatedSrtFileName)
         # Write new srt file with translated text
         with open(translatedSrtFileName, 'w') as f:
             for key in inputSubsDict:

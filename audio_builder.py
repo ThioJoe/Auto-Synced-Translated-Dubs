@@ -13,6 +13,9 @@ from utils import parseBool
 from pydub import AudioSegment
 from pydub.silence import detect_leading_silence
 
+# MOVE THIS INTO A VARIABLE AT SOME POINT
+outputFolder = "output"
+
 # Set working folder
 workingFolder = "workingFolder"
 
@@ -116,7 +119,9 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     print("\n")
 
     # Use video file name to use in the name of the output file
-    outputFileName = pathlib.Path(originalVideoFile).stem + " - Output." # For some reason this must be defined in here, otherwise unbound local error, despite outputFormat working fine
+    outputFileName = pathlib.Path(originalVideoFile).stem + f" - {langDict['languageCode']}." # For some reason this must be defined in here, otherwise unbound local error, despite outputFormat working fine
+    # Set output path
+    outputFileName = os.path.join(outputFolder, outputFileName)
 
     # Determine string to use for output format and file extension based on config setting
     if outputFormat == "mp3":

@@ -6,3 +6,5 @@ librosa
 pyrubberband
 ffprobe-python
 azure-cognitiveservices-speech
+langcodes
+language_data

@@ -69,6 +69,12 @@ def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCo
             time.sleep(65)
             print("Trying again...")
             response = send_request()
+        else:
+            input("Press Enter to continue...")
+    except Exception as ex:
+        print("Error Message: " + str(ex))
+        input("Press Enter to continue...")
+
 
     # The response's audioContent is base64. Must decode to selected audio format
     decoded_audio = base64.b64decode(response['audioContent'])

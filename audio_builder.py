@@ -1,11 +1,11 @@
 import pydub
-import librosa
 import numpy as np
 import soundfile
 import pyrubberband
 import configparser
 import pathlib
 import os
+import io
 
 import TTS
 from utils import parseBool
@@ -54,8 +54,10 @@ def create_canvas(canvasDuration, frame_rate=nativeSampleRate):
     canvas = AudioSegment.silent(duration=canvasDuration, frame_rate=frame_rate)
     return canvas
 
-def get_speed_factor(subsDict, trimmedAudioPath, desiredDuration, num):
-    rawDuration = librosa.get_duration(filename=trimmedAudioPath)
+def get_speed_factor(subsDict, trimmedAudio, desiredDuration, num):
+    virtualTempFile = AudioSegment.from_file(trimmedAudio, format="wav")
+    rawDuration = virtualTempFile.duration_seconds
+    trimmedAudio.seek(0) # This MUST be done to reset the file pointer to the start of the file, otherwise will get errors next time try to access the virtual files
     # Calculate the speed factor, put into dictionary
     desiredDuration = float(desiredDuration)
     speedFactor = (rawDuration*1000) / desiredDuration
@@ -63,14 +65,20 @@ def get_speed_factor(subsDict, trimmedAudioPath, desiredDuration, num):
     return subsDict
 
 def stretch_audio(audioFileToStretch, speedFactor, num):
+    virtualTempAudioFile = io.BytesIO()
+    # Write the raw string to virtualtempaudiofile
     y, sampleRate = soundfile.read(audioFileToStretch)
+
     streched_audio = pyrubberband.time_stretch(y, sampleRate, speedFactor, rbargs={'--fine': '--fine'}) # Need to add rbarges in weird way because it demands a dictionary of two values
-    soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
+    #soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
+    soundfile.write(virtualTempAudioFile, streched_audio, sampleRate, format='wav')
     #soundfile.write(f'{workingFolder}\\{num}_s.wav', streched_audio, sampleRate) # For debugging, saves the stretched audio files
-    return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
+    #return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
+    return AudioSegment.from_file(virtualTempAudioFile, format="wav")
 
 
 def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
+    virtualTrimmedFileDict = {}
     # First trim silence off the audio files
     for key, value in subsDict.items():
         filePathTrimmed = workingFolder + "\\" + key + "_t.wav"
@@ -79,13 +87,19 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         # Trim the clip and re-write file
         rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)
         trimmedClip = trim_clip(rawClip)
-        trimmedClip.export(filePathTrimmed, format="wav")
+        #trimmedClip.export(filePathTrimmed, format="wav")
+
+        # Create virtual file in dictionary with audio to be read later
+        tempTrimmedFile = io.BytesIO()
+        trimmedClip.export(tempTrimmedFile, format="wav")
+        virtualTrimmedFileDict[key] = tempTrimmedFile
         print(f" Trimmed Audio: {key} of {len(subsDict)}", end="\r")
     print("\n")
 
     # Calculate speed factors for each clip, aka how much to stretch the audio
     for key, value in subsDict.items():
-        subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
+        #subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
+        subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
         print(f" Calculated Speed Factor: {key} of {len(subsDict)}", end="\r")
     print("\n")
 
@@ -96,11 +110,12 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             # Trim the clip and re-write file
             rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)
             trimmedClip = trim_clip(rawClip)
-            trimmedClip.export(value['TTS_FilePath_Trimmed'], format="wav")
+            #trimmedClip.export(value['TTS_FilePath_Trimmed'], format="wav")
+            trimmedClip.export(virtualTrimmedFileDict[key], format="wav")
             print(f" Trimmed Audio (2nd Pass): {key} of {len(subsDict)}", end="\r")
         print("\n")
         for key, value in subsDict.items():
-            subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
+            subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
             print(f" Calculated Speed Factor (2nd Pass): {key} of {len(subsDict)}", end="\r")
         print("\n")
 
@@ -110,16 +125,19 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     # Stretch audio and insert into canvas
     for key, value in subsDict.items():
         if not twoPassVoiceSynth or forceTwoPassStretch == True:
-            stretchedClip = stretch_audio(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'], num=key)
+            #stretchedClip = stretch_audio(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'], num=key)
+            stretchedClip = stretch_audio(virtualTrimmedFileDict[key], speedFactor=subsDict[key]['speed_factor'], num=key)
         else:
-            stretchedClip = AudioSegment.from_file(value['TTS_FilePath_Trimmed'], format="wav")
+            #stretchedClip = AudioSegment.from_file(value['TTS_FilePath_Trimmed'], format="wav")
+            stretchedClip = AudioSegment.from_file(virtualTrimmedFileDict[key], format="wav")
+            virtualTrimmedFileDict[key].seek(0) # Not 100% sure if this is necessary but it was in the other place it is used
 
         canvas = insert_audio(canvas, stretchedClip, value['start_ms'])
         print(f" Final Audio Processed: {key} of {len(subsDict)}", end="\r")
     print("\n")
 
     # Use video file name to use in the name of the output file
-    outputFileName = pathlib.Path(originalVideoFile).stem + f" - {langDict['languageCode']}." # For some reason this must be defined in here, otherwise unbound local error, despite outputFormat working fine
+    outputFileName = pathlib.Path(originalVideoFile).stem + f" - {langDict['languageCode']}."
     # Set output path
     outputFileName = os.path.join(outputFolder, outputFileName)
 

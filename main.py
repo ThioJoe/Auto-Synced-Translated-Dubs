@@ -128,6 +128,17 @@ for lineNum, line in enumerate(lines):
     if line.isdigit() and subtitleTimeLineRegex.match(lines[lineNum + 1]):
         lineWithTimestamps = lines[lineNum + 1].strip()
         lineWithSubtitleText = lines[lineNum + 2].strip()
+
+        # If there are more lines after the subtitle text, add them to the text
+        count = 3
+        while True:
+            # Check if the next line is blank or not
+            if lines[lineNum + count].strip():
+                lineWithSubtitleText += ' ' + lines[lineNum + count].strip()
+                count += 1
+            else:
+                break
+
         # Create empty dictionary with keys for start and end times and subtitle text
         subsDict[line] = {'start_ms': '', 'end_ms': '', 'duration_ms': '', 'text': '', 'break_until_next': '', 'srt_timestamps_line': lineWithTimestamps}
 

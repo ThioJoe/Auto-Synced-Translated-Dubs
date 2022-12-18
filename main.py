@@ -158,7 +158,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
             response = auth.TRANSLATE_API.projects().translateText(
                 parent='projects/' + googleProjectID,
                 body={
-                    'contents':[originalText, 'hello this is a test'],
+                    'contents':[originalText],
                     'sourceLanguageCode': originalLanguage,
                     'targetLanguageCode': targetLanguage,
                     'mimeType': 'text/plain',

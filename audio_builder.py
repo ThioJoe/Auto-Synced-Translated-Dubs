@@ -24,6 +24,8 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 batchConfig = configparser.ConfigParser()
 batchConfig.read('batch.ini')
+cloudConfig = configparser.ConfigParser()
+cloudConfig.read('cloud_service_settings.ini')
 
 # Get variables from configs
 nativeSampleRate = int(config['SETTINGS']['synth_sample_rate'])
@@ -31,7 +33,8 @@ originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file
 skipSynthesize = parseBool(config['SETTINGS']['skip_synthesize'])
 forceTwoPassStretch = parseBool(config['SETTINGS']['force_stretch_with_twopass'])
 outputFormat = config['SETTINGS']['output_format'].lower()
-
+batchSynthesize = parseBool(cloudConfig['CLOUD']['batch_tts_synthesize'])
+tts_service = cloudConfig['CLOUD']['tts_service']
 
 def trim_clip(inputSound):
     trim_leading_silence: AudioSegment = lambda x: x[detect_leading_silence(x) :]
@@ -105,7 +108,11 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
 
     # If two pass voice synth is enabled, have API re-synthesize the clips at the new speed
     if twoPassVoiceSynth == True:
-        subsDict = TTS.synthesize_dictionary(subsDict, langDict, skipSynthesize=skipSynthesize, secondPass=True)
+        if batchSynthesize == True and tts_service == 'azure':
+            subsDict = TTS.synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=skipSynthesize, secondPass=True)
+        else:
+            subsDict = TTS.synthesize_dictionary(subsDict, langDict, skipSynthesize=skipSynthesize, secondPass=True)
+            
         for key, value in subsDict.items():
             # Trim the clip and re-write file
             rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)

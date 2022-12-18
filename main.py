@@ -46,8 +46,9 @@ twoPassVoiceSynth = parseBool(config['SETTINGS']['two_pass_voice_synth'])
 # Get auth and project settings for Azure or Google Cloud
 cloudConfig = configparser.ConfigParser()
 cloudConfig.read('cloud_service_settings.ini')
-
+tts_service = cloudConfig['CLOUD']['tts_service']
 googleProjectID = cloudConfig['CLOUD']['google_project_id']
+batchSynthesize = parseBool(cloudConfig['CLOUD']['batch_tts_synthesize'])
 
 #---------------------------------------- Batch File Processing ----------------------------------------
 
@@ -208,7 +209,12 @@ for langNum, value in batchSettings.items():
 
     # Translate
     individualLanguageSubsDict = translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=skipTranslation)
+
     # Synthesize
-    individualLanguageSubsDict = TTS.synthesize_dictionary(individualLanguageSubsDict, langDict, skipSynthesize=skipSynthesize)
+    if batchSynthesize == True and tts_service == 'azure':
+        individualLanguageSubsDict = TTS.synthesize_dictionary_batch(individualLanguageSubsDict, langDict, skipSynthesize=skipSynthesize)
+    else:
+        individualLanguageSubsDict = TTS.synthesize_dictionary(individualLanguageSubsDict, langDict, skipSynthesize=skipSynthesize)
+
     # Build audio
     individualLanguageSubsDict = audio_builder.build_audio(individualLanguageSubsDict, langDict, totalAudioLength, twoPassVoiceSynth)

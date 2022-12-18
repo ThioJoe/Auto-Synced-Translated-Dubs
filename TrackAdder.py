@@ -8,7 +8,7 @@ import langcodes
 
 #--------------------------------------------------------------------------------------------------------------
 # Settings
-tracksFolder = "output" # Relative to this script file
+tracksFolder = r"output" # Relative to this script file
 
 videoToProcess = r"whatever\path\here"
 

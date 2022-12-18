@@ -44,6 +44,9 @@ originalLanguage = config['SETTINGS']['original_language']
 # This can't be done on the first pass because we don't know how long the audio clips will be until we generate them
 twoPassVoiceSynth = parseBool(config['SETTINGS']['two_pass_voice_synth'])
 
+# Will add this many milliseconds of extra silence before and after each audio clip / spoken subtitle line
+addBufferMilliseconds = int(config['SETTINGS']['add_line_buffer_milliseconds'])
+
 #---------------------------------------- Parse Cloud Service Settings ----------------------------------------
 # Get auth and project settings for Azure or Google Cloud
 cloudConfig = configparser.ConfigParser()
@@ -137,6 +140,12 @@ for lineNum, line in enumerate(lines):
         processedTime2 = int(time2[0]) * 3600000 + int(time2[1]) * 60000 + int(time2[2].split(',')[0]) * 1000 + int(time2[2].split(',')[1]) #/ 1000 #Uncomment to turn into seconds
         timeDifferenceMs = str(processedTime2 - processedTime1)
 
+        # Adjust times with buffer
+        if addBufferMilliseconds > 0:
+            processedTime1 = processedTime1 + addBufferMilliseconds
+            processedTime2 = processedTime2 - addBufferMilliseconds
+            timeDifferenceMs = str(processedTime2 - processedTime1)
+        
         # Set the keys in the dictionary to the values
         subsDict[line]['start_ms'] = str(processedTime1)
         subsDict[line]['end_ms'] = str(processedTime2)

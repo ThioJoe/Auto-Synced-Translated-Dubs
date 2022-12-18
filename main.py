@@ -16,6 +16,7 @@ import re
 import configparser
 import os
 import pathlib
+import copy
 # Import other modules
 import ffprobe
 
@@ -148,17 +149,63 @@ for lineNum, line in enumerate(lines):
 
 
 #======================================== Translate Text ================================================
+# Note: This function was almost entirely written by GPT-3 after feeding it my original code and asking it to change it so it
+# would break up the text into chunks if it was too long. It appears to work
+
 # Translate the text entries of the dictionary
 def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
     targetLanguage = langDict['targetLanguage']
 
+    # Create a container for all the text to be translated
+    textToTranslate = []
+
     for key in inputSubsDict:
         originalText = inputSubsDict[key]['text']
-        if skipTranslation == False:
+        textToTranslate.append(originalText)
+    
+    # Calculate the total number of utf-8 codepoints
+    codepoints = 0
+    for text in textToTranslate:
+        codepoints += len(text.encode("utf-8"))
+    
+    # If the codepoints are greater than 28000, split the request into multiple
+    # Google's API limit is 30000 Utf-8 codepoints per request, but we leave some room just in case
+    if skipTranslation == False:
+        if codepoints > 27000:
+            # GPT-3 Description of what the following line does:
+            # Splits the list of text to be translated into smaller chunks of 100 texts.
+            # It does this by looping over the list in steps of 100, and slicing out each chunk from the original list. 
+            # Each chunk is appended to a new list, chunkedTexts, which then contains the text to be translated in chunks.
+            chunkedTexts = [textToTranslate[x:x+100] for x in range(0, len(textToTranslate), 100)]
+            
+            # Send and receive the batch requests
+            for chunk in chunkedTexts:
+                response = auth.TRANSLATE_API.projects().translateText(
+                    parent='projects/' + googleProjectID,
+                    body={
+                        'contents': chunk,
+                        'sourceLanguageCode': originalLanguage,
+                        'targetLanguageCode': targetLanguage,
+                        'mimeType': 'text/plain',
+                        #'model': 'nmt',
+                        #'glossaryConfig': {}
+                    }
+                ).execute()
+                
+                # Extract the translated texts from the response
+                translatedTexts = [response['translations'][i]['translatedText'] for i in range(len(response['translations']))]
+                
+                # Add the translated texts to the dictionary
+                for i, key in enumerate(inputSubsDict):
+                    inputSubsDict[key]['translated_text'] = translatedTexts[i]
+                    # Print progress, ovwerwrite the same line
+                    print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
+        
+        else:
             response = auth.TRANSLATE_API.projects().translateText(
                 parent='projects/' + googleProjectID,
                 body={
-                    'contents':[originalText],
+                    'contents':textToTranslate,
                     'sourceLanguageCode': originalLanguage,
                     'targetLanguageCode': targetLanguage,
                     'mimeType': 'text/plain',
@@ -166,12 +213,14 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     #'glossaryConfig': {}
                 }
             ).execute()
-            translatedText = response['translations'][0]['translatedText']
-            inputSubsDict[key]['translated_text'] = translatedText
-            # Print progress, ovwerwrite the same line
-            print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
-        else:
-            subsDict[key]['translated_text'] = inputSubsDict[key]['text'] # Skips translating, such as for testing
+            translatedTexts = [response['translations'][i]['translatedText'] for i in range(len(response['translations']))]
+            for i, key in enumerate(inputSubsDict):
+                inputSubsDict[key]['translated_text'] = translatedTexts[i]
+                # Print progress, ovwerwrite the same line
+                print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
+    else:
+        for key in inputSubsDict:
+            inputSubsDict[key]['translated_text'] = inputSubsDict[key]['text'] # Skips translating, such as for testing
     print("                                                  ")
 
     if skipTranslation == False:
@@ -202,7 +251,7 @@ for langNum, value in batchSettings.items():
         }
 
     # Create subs dict to use for this language
-    individualLanguageSubsDict = dict(subsDict)
+    individualLanguageSubsDict = copy.deepcopy(subsDict)
 
     # Print language being processed
     print(f"\n----- Beginning Processing of Language: {langDict['languageCode']} -----")

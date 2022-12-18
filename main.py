@@ -19,6 +19,7 @@ import pathlib
 import copy
 # Import other modules
 import ffprobe
+import langcodes
 
 # EXTERNAL REQUIREMENTS:
 # rubberband binaries: https://breakfastquay.com/rubberband/ - Put rubberband.exe and sndfile.dll in the same folder as this script
@@ -180,6 +181,10 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
             
             # Send and receive the batch requests
             for chunk in chunkedTexts:
+                # Print status with progress
+                print(f'Translating text group {chunkedTexts.index(chunk)+1} of {len(chunkedTexts)}')
+                
+                # Send the request
                 response = auth.TRANSLATE_API.projects().translateText(
                     parent='projects/' + googleProjectID,
                     body={
@@ -202,6 +207,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
         
         else:
+            print("Translating text...")
             response = auth.TRANSLATE_API.projects().translateText(
                 parent='projects/' + googleProjectID,
                 body={
@@ -224,8 +230,9 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
     print("                                                  ")
 
     if skipTranslation == False:
-        # Use video file name to use in the name of the translate srt file
-        translatedSrtFileName = pathlib.Path(originalVideoFile).stem + f" - {targetLanguage}.srt"
+        # Use video file name to use in the name of the translate srt file, also display regular language name
+        lang = langcodes.get(targetLanguage).display_name()
+        translatedSrtFileName = pathlib.Path(originalVideoFile).stem + f" - {lang} - {targetLanguage}.srt"
         # Set path to save translated srt file
         translatedSrtFileName = os.path.join(outputFolder, translatedSrtFileName)
         # Write new srt file with translated text

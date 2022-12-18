@@ -12,6 +12,7 @@ from utils import parseBool
 
 from pydub import AudioSegment
 from pydub.silence import detect_leading_silence
+import langcodes
 
 # MOVE THIS INTO A VARIABLE AT SOME POINT
 outputFolder = "output"
@@ -143,8 +144,10 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         print(f" Final Audio Processed: {key} of {len(subsDict)}", end="\r")
     print("\n")
 
-    # Use video file name to use in the name of the output file
-    outputFileName = pathlib.Path(originalVideoFile).stem + f" - {langDict['languageCode']}."
+    # Use video file name to use in the name of the output file. Add language name and language code
+    lang = langcodes.get(langDict['languageCode'])
+    langName = langcodes.get(langDict['languageCode']).get(lang.to_alpha3()).display_name()
+    outputFileName = pathlib.Path(originalVideoFile).stem + f" - {langName} - {langDict['languageCode']}."
     # Set output path
     outputFileName = os.path.join(outputFolder, outputFileName)
 

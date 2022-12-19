@@ -1,3 +1,26 @@
+
+#========================================= USER SETTINGS ===============================================
+
+# REMEMBER: Unlike the .ini config files, the variable values here must be surrounded by "quotation" marks
+
+# The folder (or path relative to this script file) containing the audio track files to add to the video
+# Note: ALL audio tracks in the folder will be added, so ensure only the tracks you want are in there
+# A resulting copy of the original video, now with all tracks added, will also be placed in this folder
+tracksFolder = r"output" 
+
+
+# The video can be anywhere as long as you use the full absolute filepath. Or you can use a relative path.
+# The original will remain the same, and a copy with "MultiTrack" added to the name will be created in the output folder
+# This script assumes the video is an mp4 file. I'm not sure if it will work with other formats/containers.
+videoToProcess = r"whatever\path\here"
+
+
+# The three letter language code for the default track. English = eng, Spanish = spa, etc
+defaultLanguage = "eng" 
+
+#========================================================================================================
+
+
 import subprocess as sp
 import os
 import pathlib
@@ -5,18 +28,6 @@ import sys
 # Note: Require ffmpepg to be installed and in the PATH environment variable
 from pydub import AudioSegment
 import langcodes
-
-#--------------------------------------------------------------------------------------------------------------
-# Settings
-tracksFolder = r"output" # Relative to this script file
-
-videoToProcess = r"whatever\path\here"
-
-defaultLanguage = "eng" # The three letter language code for the default track. English = eng, Spanish = spa, etc
-
-# tracksToAddDict = {
-#     'spa': "Shortened Video - Spanish Track aac.aac",
-# }
 
 # Auto fetch tracks from tracksFolder
 tracksToAddDict = {}

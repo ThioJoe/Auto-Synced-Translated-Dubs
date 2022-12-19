@@ -27,6 +27,7 @@ cloudConfig.read('cloud_service_settings.ini')
 # Get variables from config
 ttsService = cloudConfig['CLOUD']['tts_service'].lower()
 audioEncoding = config['SETTINGS']['synth_audio_encoding'].upper()
+azureSentencePause = config['SETTINGS']['azure_sentence_pause'].lower().strip("\"").strip("\'")
 
 # Get Azure variables if applicable
 AZURE_SPEECH_KEY = cloudConfig['CLOUD']['azure_speech_key']
@@ -102,10 +103,16 @@ def synthesize_text_azure(text, speedFactor, voiceName, languageCode):
         # Convert speedFactor float value to a relative percentage    
         rate = percentSign + str(round((speedFactor - 1.0) * 100, 5)) + '%'
 
+    # Create string for sentence pauses, if not default
+    if not azureSentencePause == 'default' and azureSentencePause.isnumeric():
+        pauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{azureSentencePause}ms"/>'
+    else:
+        pauseTag = ''    
+
     # Create SSML syntax for Azure TTS
     ssml = f"<speak version='1.0' xml:lang='{languageCode}' xmlns='http://www.w3.org/2001/10/synthesis' " \
         "xmlns:mstts='http://www.w3.org/2001/mstts'>" \
-        f"<voice name='{voiceName}'>" \
+        f"<voice name='{voiceName}{pauseTag}'>" \
         f"<prosody rate='{rate}'>{text}</prosody></voice></speak>"
 
     speech_config = speechsdk.SpeechConfig(subscription=AZURE_SPEECH_KEY, region=AZURE_SPEECH_REGION)
@@ -164,10 +171,16 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                 pOpenTag = f"<prosody rate='{rate}'>"
                 pCloseTag = '</prosody>'
 
+            # Create string for sentence pauses, if not default
+            if not azureSentencePause == 'default' and azureSentencePause.isnumeric():
+                pauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{azureSentencePause}ms"/>'
+            else:
+                pauseTag = ''
+
             # Create the SSML for each subtitle
             ssml = f"<speak version='1.0' xml:lang='{language}' xmlns='http://www.w3.org/2001/10/synthesis' " \
             "xmlns:mstts='http://www.w3.org/2001/mstts'>" \
-            f"<voice name='{voice}'>" \
+            f"<voice name='{voice}'>{pauseTag}" \
             f"{pOpenTag}{text}{pCloseTag}</voice></speak>"
             ssmlJson.append({"text": ssml})
 

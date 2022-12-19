@@ -14,6 +14,7 @@ If you already have a human-made SRT subtitles file for a video, this will:
 - Batch processing of multiple languages in sequence
 - Config files to save translation, synthesis, and language settings for re-use
 - Included script for adding all language audio tracks to a video file
+   - With ability to merge a sound effects track into each language track
 - Included script for translating a YouTube video Title and Description to multiple languages
 
 

@@ -9,7 +9,7 @@ If you already have a human-made SRT subtitles file for a video, this will:
 4. Stretch or shrink the translated audio clip to be exactly the same length as the original speech, and inserted at the same point in the audio. Therefore the translated speech will remain perfectly in sync with the original video.
     - Optional (On by Default): Instead of stretching the audio clips, you can instead do a second pass at synthesizing each clip through the API using the proper speaking speed calculated during the first pass. This drastically improves audio quality.
     
-### Additional Key Features:
+### Additional Key Features
 - Creates translated versions of the SRT subtitle file
 - Batch processing of multiple languages in sequence
 - Config files to save translation, synthesis, and language settings for re-use
@@ -19,13 +19,13 @@ If you already have a human-made SRT subtitles file for a video, this will:
 
 ----
 
-# Instructions:
+# Instructions
 
 ### External Requirements:
 - ffmpeg must be installed (https://ffmpeg.org/download.html)
 - You'll need the binaries for a program called 'rubberband' ( https://breakfastquay.com/rubberband/ ) . Doesn't need to be installed, just put both exe's and the dll file in the same directory as the scripts.
 
-### Setup & Configuration
+## Setup & Configuration
 1. Download or clone the repo and install the requirements using `pip install -r requirements.txt`
    - I wrote this using Python 3.9 but it will probably work with earlier versions too
 2. Install the programs mentioned in the 'External Requirements' above.

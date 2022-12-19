@@ -97,14 +97,16 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         tempTrimmedFile = io.BytesIO()
         trimmedClip.export(tempTrimmedFile, format="wav")
         virtualTrimmedFileDict[key] = tempTrimmedFile
-        print(f" Trimmed Audio: {key} of {len(subsDict)}", end="\r")
+        keyIndex = list(subsDict.keys()).index(key)
+        print(f" Trimmed Audio: {keyIndex+1} of {len(subsDict)}", end="\r")
     print("\n")
 
     # Calculate speed factors for each clip, aka how much to stretch the audio
     for key, value in subsDict.items():
         #subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
         subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
-        print(f" Calculated Speed Factor: {key} of {len(subsDict)}", end="\r")
+        keyIndex = list(subsDict.keys()).index(key)
+        print(f" Calculated Speed Factor: {keyIndex+1} of {len(subsDict)}", end="\r")
     print("\n")
 
     # If two pass voice synth is enabled, have API re-synthesize the clips at the new speed
@@ -120,11 +122,13 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             trimmedClip = trim_clip(rawClip)
             #trimmedClip.export(value['TTS_FilePath_Trimmed'], format="wav")
             trimmedClip.export(virtualTrimmedFileDict[key], format="wav")
-            print(f" Trimmed Audio (2nd Pass): {key} of {len(subsDict)}", end="\r")
+            keyIndex = list(subsDict.keys()).index(key)
+            print(f" Trimmed Audio (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
         print("\n")
         for key, value in subsDict.items():
             subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
-            print(f" Calculated Speed Factor (2nd Pass): {key} of {len(subsDict)}", end="\r")
+            keyIndex = list(subsDict.keys()).index(key)
+            print(f" Calculated Speed Factor (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
         print("\n")
 
     # Create canvas to overlay audio onto
@@ -141,7 +145,8 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             virtualTrimmedFileDict[key].seek(0) # Not 100% sure if this is necessary but it was in the other place it is used
 
         canvas = insert_audio(canvas, stretchedClip, value['start_ms'])
-        print(f" Final Audio Processed: {key} of {len(subsDict)}", end="\r")
+        keyIndex = list(subsDict.keys()).index(key)
+        print(f" Final Audio Processed: {keyIndex+1} of {len(subsDict)}", end="\r")
     print("\n")
 
     # Use video file name to use in the name of the output file. Add language name and language code

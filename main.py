@@ -47,6 +47,9 @@ twoPassVoiceSynth = parseBool(config['SETTINGS']['two_pass_voice_synth'])
 # Will add this many milliseconds of extra silence before and after each audio clip / spoken subtitle line
 addBufferMilliseconds = int(config['SETTINGS']['add_line_buffer_milliseconds'])
 
+# Will combine subtitles into one audio clip if they are less than this many characters
+combineMaxChars = int(config['SETTINGS']['combine_subtitles_max_chars'])  
+
 #---------------------------------------- Parse Cloud Service Settings ----------------------------------------
 # Get auth and project settings for Azure or Google Cloud
 cloudConfig = configparser.ConfigParser()
@@ -153,9 +156,13 @@ for lineNum, line in enumerate(lines):
 
         # Adjust times with buffer
         if addBufferMilliseconds > 0:
-            processedTime1 = processedTime1 + addBufferMilliseconds
-            processedTime2 = processedTime2 - addBufferMilliseconds
-            timeDifferenceMs = str(processedTime2 - processedTime1)
+            subsDict[line]['start_ms_buffered'] = str(processedTime1 + addBufferMilliseconds)
+            subsDict[line]['end_ms_buffered'] = str(processedTime2 - addBufferMilliseconds)
+            subsDict[line]['duration_ms_buffered'] = str((processedTime2 - addBufferMilliseconds) - (processedTime1 + addBufferMilliseconds))
+        else:
+            subsDict[line]['start_ms_buffered'] = str(processedTime1)
+            subsDict[line]['end_ms_buffered'] = str(processedTime2)
+            subsDict[line]['duration_ms_buffered'] = str(processedTime2 - processedTime1)
         
         # Set the keys in the dictionary to the values
         subsDict[line]['start_ms'] = str(processedTime1)
@@ -168,6 +175,47 @@ for lineNum, line in enumerate(lines):
         else:
             subsDict[line]['break_until_next'] = '0'
 
+
+# Concatonates text subtitles that start and end at the same time, with maximum of 150 characters, and attempts to split on periods on puncutation
+def combine_subtitle_entries(inputDict, maxCharacters=200):
+    tempDict = copy.deepcopy(inputDict)
+    for key, value in tempDict.items():
+        try:
+            # Check if combining the current and next subtitle would be within the max characters
+            # Automatically handles last entry scenario because the break_until_next value is None, not zero
+            if inputDict[key]['break_until_next'] == '0' and len(value['text']+inputDict[str(int(key) + 1)]['text']) < maxCharacters:
+
+                # Combine the text into current entry
+                inputDict[key]['text'] = value['text'] + ' ' + inputDict[str(int(key) + 1)]['text']
+
+                # Set the current entry's end time to the next entry's end time
+                inputDict[key]['end_ms'] = inputDict[str(int(key) + 1)]['end_ms']
+                inputDict[key]['end_ms_buffered'] = inputDict[str(int(key) + 1)]['end_ms_buffered']
+
+                # Combine the current entry's duration with the next entry's duration
+                inputDict[key]['duration_ms'] = str(int(inputDict[key]['duration_ms']) + int(inputDict[str(int(key) + 1)]['duration_ms']))
+                # When combining, need to add 2x the buffer to account for the buffer time that was applied between them
+                inputDict[key]['duration_ms_buffered'] = str(int(inputDict[key]['duration_ms_buffered']) + int(inputDict[str(int(key) + 1)]['duration_ms_buffered']) + 2*addBufferMilliseconds)
+                
+
+                # Delete the next entry after combining
+                del inputDict[str(int(key) + 1)]
+
+        except KeyError as kx:
+            # Expect KeyError when trying next entry that has been deleted
+            if key == kx.args[0]:
+                continue
+
+    return inputDict
+
+subsDict = combine_subtitle_entries(subsDict, combineMaxChars)
+
+# Apply the buffer to the start and end times by setting copying over the buffer values to main values
+for key, value in subsDict.items():
+    if addBufferMilliseconds > 0:
+        subsDict[key]['start_ms'] = value['start_ms_buffered']
+        subsDict[key]['end_ms'] = value['end_ms_buffered']
+        subsDict[key]['duration_ms'] = value['duration_ms_buffered']
 
 #======================================== Translate Text ================================================
 # Note: This function was almost entirely written by GPT-3 after feeding it my original code and asking it to change it so it

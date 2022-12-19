@@ -334,8 +334,10 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
 
         # Print progress and overwrite line next time
         if not secondPass:
-            print(f" Synthesizing TTS Line: {key} of {len(subsDict)}", end="\r")
+            # Get key index
+            keyIndex = list(subsDict.keys()).index(key)
+            print(f" Synthesizing TTS Line: {keyIndex+1} of {len(subsDict)}", end="\r")
         else:
-            print(f" Synthesizing TTS Line (2nd Pass): {key} of {len(subsDict)}", end="\r")
+            print(f" Synthesizing TTS Line (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
     print("                                               ") # Clear the line
     return subsDict

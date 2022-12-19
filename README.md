@@ -9,11 +9,39 @@ If you already have a human-made SRT subtitles file for a video, this will:
 4. Stretch or shrink the translated audio clip to be exactly the same length as the original speech, and inserted at the same point in the audio. Therefore the translated speech will remain perfectly in sync with the original video.
     - Optional: Instead of stretching the audio clips, you have the option to instead do a second pass at synthesizing each clip through the API using the proper speaking speed calculated during the first pass. This drastically improves audio quality.
 
+----
+
+# Instructions:
+
 ### External Requirements:
 - ffmpeg must be installed (https://ffmpeg.org/download.html)
 - You'll need the binaries for a program called 'rubberband' ( https://breakfastquay.com/rubberband/ ) . Doesn't need to be installed, just put both exe's and the dll file in the same directory as the scripts.
 
-### Notes:
+### Setup & Configuration
+1. Download or clone the repo and install the requirements using `pip install -r requirements.txt`
+   - I wrote this using Python 3.9 but it will probably work with earlier versions too
+2. Install the programs mentioned in the 'External Requirements' above.
+3. Setup your Google Cloud (See Wiki) and/or Microsoft Azure API access, and set the variables in `cloud_service_settings.ini`. 
+   - I recommend Azure for the TTS voice synthesizing because they have newer and better voices in my opinion, and in higher quality (Azure supports sample rate up to 48KHz vs 24KHz with Google). 
+   - Google Cloud is currently the only option for the text translation part.
+4. Set up your configuration settings in `config.ini`. The default settings should work in most cases, but read through them especially if you are using Azure for TTS because there are more applicable options you may want to customize.
+   - This config includes options such as the ability to skip text translation, setting formats and sample rate, and using two-pass voice synthesizing
+5. Finally open `batch.ini` to set the language and voice settings that will be used for each run. 
+   - In the top `[SETTINGS]` section you will enter the path to the original video file (used to get the correct audio length), and the original subtitle file path
+   - Also you can use the `enabled_languages` variable to list all the languages that will be translated and synthesized at once. The numbers will correspond to the `[LANGUAGE-#]` sections in the same config file. The program will process only the languages listed in this variable.
+   - This lets you add as many language presets as you want (such as the preferred voice per language), and can choose which languages you want to use (or not use) for any given run.
+
+## Usage Instructions
+- **How to Run:** After configuring the config files, simply run the main.py script using `python main.py` and let it run to completion
+   - Resulting translated subtitle files and dubbed audio tracks will be placed in a folder called 'output'
+- **Optional:** You can use the separate `TrackAdder.py` script to automatically add the resulting language tracks to an mp4 video file. Requires ffmpeg to be installed.
+   - Open the script file with a text editor and change the values in the "User Settings" section at the top.
+   - This will label the tracks so the video file is ready to be uploaded to YouTube. HOWEVER, the multiple audio tracks feature is only available to a limited number of channels. You will most likely need to contact YouTube creator support to ask for access, but there is no guarantee they will grant it.
+- **Optional:** You can use the separate `TitleTranslator.py` script if uploading to YouTube, which lets you enter a video's Title and Description, and the text will be translated into all the languages enabled in `batch.ini`. They wil be placed together in a single text file in the "output" folder.
+
+----
+
+## Additional Notes:
 - This works best with subtitles that do not remove gaps between sentences and lines.
 - For now the process only assumes there is one speaker. However, if you can make separate SRT files for each speaker, you could generate each TTS track separately using different voices, then combine them afterwards.
 - It only supports Google Translate API for text translation, but it supports both Google and Azure for Text-To-Speech with neural voices.

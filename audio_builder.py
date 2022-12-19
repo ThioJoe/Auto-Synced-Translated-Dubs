@@ -125,11 +125,13 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             keyIndex = list(subsDict.keys()).index(key)
             print(f" Trimmed Audio (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
         print("\n")
-        for key, value in subsDict.items():
-            subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
-            keyIndex = list(subsDict.keys()).index(key)
-            print(f" Calculated Speed Factor (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
-        print("\n")
+
+        if forceTwoPassStretch == True:
+            for key, value in subsDict.items():
+                subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
+                keyIndex = list(subsDict.keys()).index(key)
+                print(f" Calculated Speed Factor (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
+            print("\n")
 
     # Create canvas to overlay audio onto
     canvas = create_canvas(totalAudioLength)

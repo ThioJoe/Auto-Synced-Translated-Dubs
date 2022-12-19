@@ -196,6 +196,9 @@ def combine_subtitle_entries(inputDict, maxCharacters=200):
                 inputDict[key]['duration_ms'] = str(int(inputDict[key]['duration_ms']) + int(inputDict[str(int(key) + 1)]['duration_ms']))
                 # When combining, need to add 2x the buffer to account for the buffer time that was applied between them
                 inputDict[key]['duration_ms_buffered'] = str(int(inputDict[key]['duration_ms_buffered']) + int(inputDict[str(int(key) + 1)]['duration_ms_buffered']) + 2*addBufferMilliseconds)
+
+                # Rewrite srt_timestamps_line to include the new end time
+                inputDict[key]['srt_timestamps_line'] = inputDict[key]['srt_timestamps_line'].split(' --> ')[0] + ' --> ' + inputDict[str(int(key) + 1)]['srt_timestamps_line'].split(' --> ')[1]
                 
 
                 # Delete the next entry after combining

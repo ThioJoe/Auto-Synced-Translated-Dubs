@@ -225,10 +225,11 @@ mapList = "-map 0"
 metadataCombined = f'-metadata:s:a:0 language={defaultLanguage} -metadata:s:a:0 title="{defaultLanguage}" -metadata:s:a:0 handler_name="{defaultLanguage}"'
 count = 1
 for langcode, filePath in tracksToAddDict.items():
+    languageDisplayName = langcodes.get(langcode).display_name()
     trackStringsCombined += f' -i "{filePath}"'
     metadataCombined += f' -metadata:s:a:{count} language={langcode}'
-    metadataCombined += f' -metadata:s:a:{count} handler_name={langcode}' # Handler shows as the track title in MPC-HC
-    metadataCombined += f' -metadata:s:a:{count} title="{langcode}"' # This is the title that will show up in the audio track selection menu
+    metadataCombined += f' -metadata:s:a:{count} handler_name={languageDisplayName}' # Handler shows as the track title in MPC-HC
+    metadataCombined += f' -metadata:s:a:{count} title="{languageDisplayName}"' # This is the title that will show up in the audio track selection menu
     mapList += f' -map {count}'
     count+=1
 

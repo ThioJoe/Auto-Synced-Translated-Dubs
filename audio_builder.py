@@ -1,18 +1,16 @@
-import pydub
-import numpy as np
-import soundfile
-import pyrubberband
+from typing import Any
 import configparser
 import pathlib
 import os
 import io
-
-import TTS
-from utils import parseBool
-
-from pydub import AudioSegment
-from pydub.silence import detect_leading_silence
+import soundfile
+import pyrubberband
 import langcodes
+from pydub.silence import detect_leading_silence
+from pydub import AudioSegment
+import TTS
+from utils import parse_bool
+
 
 # MOVE THIS INTO A VARIABLE AT SOME POINT
 outputFolder = "output"

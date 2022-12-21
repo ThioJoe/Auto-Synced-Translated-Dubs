@@ -1,3 +1,8 @@
+
+# PLEASE ONLY SUBMIT PULL REQUESTS FOR BUG FIXES OR LEGITIMATELY USEFUL ADDITIONAL FUNCTIONALITY
+## I know many of you are enthusiastic to help but I don't want this project to become bloated
+
+----------
 ### Type of change
 
 <!-- Please delete options that are not relevant. -->
@@ -22,4 +27,4 @@
 - [ ] I have tested that the code works
 
 ## Required:
-- [ ] By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
+- By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.

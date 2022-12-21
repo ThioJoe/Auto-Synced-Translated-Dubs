@@ -40,6 +40,7 @@ import os
 import configparser
 import textwrap
 import re
+import html
 
 description = textwrap.dedent(description).strip("\n")
 
@@ -105,8 +106,9 @@ def translate(originalLanguage, targetLanguage, translationList):
 
     # Remove the span tags from the translated text, and convert the html formatting for special symbols
     for i, line in enumerate(translatedTexts):
-        translatedTexts[i] = line.replace('<span class="notranslate">', '').replace('</span>', '')
-        translatedTexts[i] = line.replace('&quot;', '"').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>').replace('&#39;', '\'')
+        newText = line.replace('<span class="notranslate">', '').replace('</span>', '')
+        newText = html.unescape(newText)
+        translatedTexts[i] = newText
 
     return translatedTexts # Returns a list of translated texts
 #--------------------------------------------------------------------------------

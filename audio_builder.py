@@ -83,11 +83,12 @@ def get_speed_factor(audio: AudioSegment, desired_duration: float) -> float:
     Returns:
         float: Multiplication speed factor
     """
+    raw_duration: AudioSegment = AudioSegment.from_file(audio, format="wav").duration_seconds
+    # This MUST be done to reset the file pointer to the start of the file, otherwise will get errors
+    # next time try to access the virtual files
+    audio.seek(0)
     # Calculate the speed factor, put into dictionary
-    desiredDuration = float(desiredDuration)
-    speedFactor = (rawDuration*1000) / desiredDuration
-    subsDict[num]['speed_factor'] = speedFactor
-    return subsDict
+    return (raw_duration*1000) / float(desired_duration)
 
 def stretch_audio(audio_file_to_stretch: Any, speed_factor: float,) -> AudioSegment:
     """Function to stretch audio to a specific duration

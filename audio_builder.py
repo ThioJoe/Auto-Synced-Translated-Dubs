@@ -100,7 +100,19 @@ def stretch_audio(audio_file_to_stretch: Any, speed_factor: float,) -> AudioSegm
     Returns:
         AudioSegment: Stretched audio
     """
+    virtual_temp_audio_file = io.BytesIO()
+    # Write the raw string to virtual temp audio file
+    data, sample_rate = soundfile.read(audio_file_to_stretch)
+    # Need to add rbarges in weird way because it demands a dictionary of two values
+    stretched_audio = pyrubberband.time_stretch(y=data, sr=sample_rate, rate=speed_factor, rbargs={'--fine': '--fine'})
+    # soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
+    soundfile.write(virtual_temp_audio_file, stretched_audio, sample_rate, format='wav')
+    # For debugging, saves the stretched audio files
+    # soundfile.write(f'{workingFolder}\\{num}_s.wav', streched_audio, sampleRate)
+    # return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
+    return AudioSegment.from_file(virtual_temp_audio_file, format="wav")
 
+def build_audio(subs_dict, langDict, totalAudioLength, use_two_pass: bool):
     """Function to build the final audio file
 
     Args:

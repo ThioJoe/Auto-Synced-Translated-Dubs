@@ -12,27 +12,27 @@ import TTS
 from utils import parse_bool
 
 # TODO: MOVE THIS INTO A VARIABLE AT SOME POINT
-output_folder = "output"
+OUTPUT_FOLDER = "output"
 
 # Set working folder
-working_folder = "workingFolder"
+WORKING_FOLDER = "workingFolder"
 
 # Read config files
-config = configparser.ConfigParser()
-config.read('config.ini')
-batch_config = configparser.ConfigParser()
-batch_config.read('batch.ini')
-cloud_config = configparser.ConfigParser()
-cloud_config.read('cloud_service_settings.ini')
+CONFIG = configparser.ConfigParser()
+CONFIG.read('config.ini')
+BATCH_CONFIG = configparser.ConfigParser()
+BATCH_CONFIG.read('batch.ini')
+CLOUD_CONFIG = configparser.ConfigParser()
+CLOUD_CONFIG.read('cloud_service_settings.ini')
 
 # Get variables from configs
-native_sample_rate = int(config['SETTINGS']['synth_sample_rate'])
-original_video_file = os.path.abspath(batch_config['SETTINGS']['original_video_file_path'].strip("\""))
-skip_synthesize = parse_bool(config['SETTINGS']['skip_synthesize'])
-force_two_pass_stretch = parse_bool(config['SETTINGS']['force_stretch_with_twopass'])
-output_format = config['SETTINGS']['output_format'].lower()
-batch_synthesize = parse_bool(cloud_config['CLOUD']['batch_tts_synthesize'])
-tts_service = cloud_config['CLOUD']['tts_service']
+NATIVE_SAMPLE_RATE = int(CONFIG['SETTINGS']['synth_sample_rate'])
+ORIGINAL_VIDEO_FILE = os.path.abspath(BATCH_CONFIG['SETTINGS']['original_video_file_path'].strip("\""))
+SKIP_SYNTHESIZE = parse_bool(CONFIG['SETTINGS']['skip_synthesize'])
+FORCE_TWO_PASS = parse_bool(CONFIG['SETTINGS']['force_stretch_with_twopass'])
+OUTPUT_FORMAT = CONFIG['SETTINGS']['output_format'].lower()
+BATCH_SYNTHESIZE = parse_bool(CLOUD_CONFIG['CLOUD']['batch_tts_synthesize'])
+TTS_SERVICE = CLOUD_CONFIG['CLOUD']['tts_service']
 
 def trim_clip(input_sound: AudioSegment) -> AudioSegment:
     """Trims leading and trailing silence from audio clip
@@ -61,7 +61,7 @@ def insert_audio(canvas: AudioSegment, audio_to_overlay: AudioSegment, start_tim
     """
     return canvas.overlay(audio_to_overlay, position=int(start_time_ms))
 
-def create_canvas(canvas_duration: int, frame_rate: int = native_sample_rate ) -> AudioSegment:
+def create_canvas(canvas_duration: int, frame_rate: int = NATIVE_SAMPLE_RATE ) -> AudioSegment:
     """Function to create a canvas of a specific duration in milliseconds
 
     Args:

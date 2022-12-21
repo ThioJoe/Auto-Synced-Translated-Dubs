@@ -35,51 +35,78 @@ batch_synthesize = parse_bool(cloud_config['CLOUD']['batch_tts_synthesize'])
 tts_service = cloud_config['CLOUD']['tts_service']
 
 def trim_clip(input_sound: AudioSegment) -> AudioSegment:
+    """Trims leading and trailing silence from audio clip
+
+    Args:
+        input_sound (AudioSegment): Input audio clip
+
+    Returns:
+        AudioSegment: Input audio clip with leading and trailing silence removed
+    """
     trim_leading_silence: AudioSegment = lambda x: x[detect_leading_silence(x) :]
     trim_trailing_silence: AudioSegment = lambda x: trim_leading_silence(x.reverse()).reverse()
     strip_silence: AudioSegment = lambda x: trim_trailing_silence(trim_leading_silence(x))
     strippedSound = strip_silence(inputSound)
     return strippedSound
 
-# Function to insert audio into canvas at specific point
-def insert_audio(canvas, audioToOverlay, startTimeMs):
-    # Create a copy of the canvas
-    canvasCopy = canvas
-    # Overlay the audio onto the copy
-    canvasCopy = canvasCopy.overlay(audioToOverlay, position=int(startTimeMs))
-    # Return the copy
-    return canvasCopy
+    """Function to insert audio into canvas at specific point
 
-# Function to create a canvas of a specific duration in miliseconds
-def create_canvas(canvasDuration, frame_rate=nativeSampleRate):
-    canvas = AudioSegment.silent(duration=canvasDuration, frame_rate=frame_rate)
-    return canvas
+    Args:
+        canvas (AudioSegment): Base audio to insert into
+        audio_to_overlay (AudioSegment): Audio to insert into canvas
+        start_time_ms (int): Point in milliseconds to insert audio
 
-def get_speed_factor(subsDict, trimmedAudio, desiredDuration, num):
-    virtualTempFile = AudioSegment.from_file(trimmedAudio, format="wav")
-    rawDuration = virtualTempFile.duration_seconds
-    trimmedAudio.seek(0) # This MUST be done to reset the file pointer to the start of the file, otherwise will get errors next time try to access the virtual files
+    Returns:
+        AudioSegment: Base with inserted audio
+    """
+    """Function to create a canvas of a specific duration in milliseconds
+
+    Args:
+        canvas_duration (int): Length of canvas in milliseconds
+        frame_rate (int, optional): Sample rate for canvas. Defaults to native_sample_rate.
+
+    Returns:
+        AudioSegment: Canvas of specified duration
+    """
+    """Function to calculate the speed factor for stretching audio
+
+    Args:
+        trimmed_audio (AudioSegment): Audio to calculate speed factor for
+        desired_duration (float): Desired duration of audio in milliseconds
+
+    Returns:
+        float: Multiplication speed factor
+    """
     # Calculate the speed factor, put into dictionary
     desiredDuration = float(desiredDuration)
     speedFactor = (rawDuration*1000) / desiredDuration
     subsDict[num]['speed_factor'] = speedFactor
     return subsDict
 
-def stretch_audio(audioFileToStretch, speedFactor, num):
-    virtualTempAudioFile = io.BytesIO()
-    # Write the raw string to virtualtempaudiofile
-    y, sampleRate = soundfile.read(audioFileToStretch)
+    """Function to stretch audio to a specific duration
 
-    streched_audio = pyrubberband.time_stretch(y, sampleRate, speedFactor, rbargs={'--fine': '--fine'}) # Need to add rbarges in weird way because it demands a dictionary of two values
-    #soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
-    soundfile.write(virtualTempAudioFile, streched_audio, sampleRate, format='wav')
-    #soundfile.write(f'{workingFolder}\\{num}_s.wav', streched_audio, sampleRate) # For debugging, saves the stretched audio files
-    #return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
-    return AudioSegment.from_file(virtualTempAudioFile, format="wav")
+    Args:
+        audio_file_to_stretch (Any): Audio file to stretch
+        speed_factor (float): Factor to stretch audio by
 
+    Returns:
+        AudioSegment: Stretched audio
+    """
 
-def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
-    virtualTrimmedFileDict = {}
+    """Function to build the final audio file
+
+    Args:
+        subs_dict (_type_): _description_
+        langDict (_type_): _description_
+        totalAudioLength (_type_): _description_
+        use_two_pass (bool): _description_
+
+    Raises:
+        Exception: _description_
+
+    Returns:
+        _type_: _description_
+    """
     # First trim silence off the audio files
     for key, value in subsDict.items():
         filePathTrimmed = workingFolder + "\\" + key + "_t.wav"

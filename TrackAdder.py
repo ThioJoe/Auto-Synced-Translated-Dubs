@@ -41,7 +41,7 @@ import shutil
 # Note: Require ffmpepg to be installed and in the PATH environment variable
 from pydub import AudioSegment
 import langcodes
-from utils import parseBool
+from utils import parse_bool
 
 # Auto fetch tracks from tracksFolder
 tracksToAddDict = {}
@@ -133,7 +133,7 @@ def convert_to_stereo(tracksDict):
             tracksDict[langcode] = tempFilePath
 
             # Add to list of files to delete later when done, unless need to save merged tracks
-            if parseBool(useSoundEffectsTrack) and parseBool(saveMergedTracks) and langcode != "effects":
+            if parse_bool(useSoundEffectsTrack) and parse_bool(saveMergedTracks) and langcode != "effects":
                 pass
             else:
                 tempFilesToDelete.append(tempFilePath)
@@ -147,7 +147,7 @@ print("\nChecking if tracks are stereo...")
 tracksToAddDict = convert_to_stereo(tracksToAddDict)
 
 # Use pydub to combine the sound effects track with each audio track
-if parseBool(useSoundEffectsTrack):
+if parse_bool(useSoundEffectsTrack):
     # Ensure the sound effects track is stereo, if not make it stereo
     soundEffectsDict = convert_to_stereo(soundEffectsDict)
 
@@ -166,7 +166,7 @@ if parseBool(useSoundEffectsTrack):
             shutil.copy(filePath, tempFilePath)
             tracksToAddDict[langcode] = tempFilePath
             # Add to list of files to delete later when done, unless set to save merged tracks
-            if not parseBool(saveMergedTracks):
+            if not parse_bool(saveMergedTracks):
                 tempFilesToDelete.append(tempFilePath)
 
     # Merge the sound effects into temporary track files
@@ -192,7 +192,7 @@ if parseBool(useSoundEffectsTrack):
             sys.exit()
         
         # If set to save merged tracks, move the temporary file to the tracks folder
-        if parseBool(saveMergedTracks):
+        if parse_bool(saveMergedTracks):
             # If the merged tracks directory does not exist, create it
             if not os.path.exists(mergedTracksDir):
                 os.makedirs(mergedTracksDir)

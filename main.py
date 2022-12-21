@@ -10,7 +10,7 @@
 import TTS
 import audio_builder
 import auth
-from utils import parseBool
+from utils import parse_bool
 # Import built in modules
 import re
 import configparser
@@ -34,15 +34,15 @@ outputFolder = "output"
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-skipSynthesize = parseBool(config['SETTINGS']['skip_synthesize'])  # Set to true if you don't want to synthesize the audio. For example, you already did that and are testing
+skipSynthesize = parse_bool(config['SETTINGS']['skip_synthesize'])  # Set to true if you don't want to synthesize the audio. For example, you already did that and are testing
 
 # Translation Settings
-skipTranslation = parseBool(config['SETTINGS']['skip_translation'])  # Set to true if you don't want to translate the subtitles. If so, ignore the following two variables
+skipTranslation = parse_bool(config['SETTINGS']['skip_translation'])  # Set to true if you don't want to translate the subtitles. If so, ignore the following two variables
 originalLanguage = config['SETTINGS']['original_language']
 
 # Note! Setting this to true will make it so instead of just stretching the audio clips, it will have the API generate new audio clips with adjusted speaking rates
 # This can't be done on the first pass because we don't know how long the audio clips will be until we generate them
-twoPassVoiceSynth = parseBool(config['SETTINGS']['two_pass_voice_synth'])
+twoPassVoiceSynth = parse_bool(config['SETTINGS']['two_pass_voice_synth'])
 
 # Will add this many milliseconds of extra silence before and after each audio clip / spoken subtitle line
 addBufferMilliseconds = int(config['SETTINGS']['add_line_buffer_milliseconds'])
@@ -56,7 +56,7 @@ cloudConfig = configparser.ConfigParser()
 cloudConfig.read('cloud_service_settings.ini')
 tts_service = cloudConfig['CLOUD']['tts_service']
 googleProjectID = cloudConfig['CLOUD']['google_project_id']
-batchSynthesize = parseBool(cloudConfig['CLOUD']['batch_tts_synthesize'])
+batchSynthesize = parse_bool(cloudConfig['CLOUD']['batch_tts_synthesize'])
 
 #---------------------------------------- Batch File Processing ----------------------------------------
 

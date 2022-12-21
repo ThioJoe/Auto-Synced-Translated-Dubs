@@ -29,7 +29,7 @@ originalLanguage = 'en'
 #===============================================================================================================
 
 import auth
-from utils import parseBool
+from utils import parse_bool
 TTS_API, TRANSLATE_API = auth.first_authentication()
 
 outputFolder = "output"

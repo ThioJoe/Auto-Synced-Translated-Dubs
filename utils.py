@@ -1,13 +1,12 @@
-def parseBool(string):
-    if type(string) == str:
-        if string.lower() == 'true':
+from typing import Any
+
+def parse_bool(is_bool: Any):
+    if type(is_bool) == str:
+        if is_bool.lower() == 'true':
             return True
-        elif string.lower() == 'false':
+        elif is_bool.lower() == 'false':
             return False
-    elif type(string) == bool:
-        if string == True:
-            return True
-        elif string == False:
-            return False
+    elif type(is_bool) == bool:
+        return is_bool
     else:
         raise ValueError('Not a valid boolean string')

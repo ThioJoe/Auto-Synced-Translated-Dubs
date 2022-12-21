@@ -6,10 +6,11 @@
 
 
 # SET THE TITLE AND DESCRIPTION TEXT, AND VARIABLES IN THIS SECTION
+# Note: Make sure to keep the triple quotes around the text, don't remove the "r" before them
 #===============================================================================================================
-title = "Title of the video here"
+title = r"""Title of the video here"""
 
-description = """
+description = r"""
 You can put the description here
 Just paste it as is, in the lines between the triple quotes
 
@@ -102,9 +103,10 @@ def translate(originalLanguage, targetLanguage, translationList):
     ).execute()
     translatedTexts = [response['translations'][i]['translatedText'] for i in range(len(response['translations']))]
 
-    # Remove the span tags from the translated text
+    # Remove the span tags from the translated text, and convert the html formatting for special symbols
     for i, line in enumerate(translatedTexts):
         translatedTexts[i] = line.replace('<span class="notranslate">', '').replace('</span>', '')
+        translatedTexts[i] = line.replace('&quot;', '"').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
 
     return translatedTexts # Returns a list of translated texts
 #--------------------------------------------------------------------------------

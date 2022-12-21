@@ -11,31 +11,30 @@ from pydub import AudioSegment
 import TTS
 from utils import parse_bool
 
-
-# MOVE THIS INTO A VARIABLE AT SOME POINT
-outputFolder = "output"
+# TODO: MOVE THIS INTO A VARIABLE AT SOME POINT
+output_folder = "output"
 
 # Set working folder
-workingFolder = "workingFolder"
+working_folder = "workingFolder"
 
 # Read config files
 config = configparser.ConfigParser()
 config.read('config.ini')
-batchConfig = configparser.ConfigParser()
-batchConfig.read('batch.ini')
-cloudConfig = configparser.ConfigParser()
-cloudConfig.read('cloud_service_settings.ini')
+batch_config = configparser.ConfigParser()
+batch_config.read('batch.ini')
+cloud_config = configparser.ConfigParser()
+cloud_config.read('cloud_service_settings.ini')
 
 # Get variables from configs
-nativeSampleRate = int(config['SETTINGS']['synth_sample_rate'])
-originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))
-skipSynthesize = parseBool(config['SETTINGS']['skip_synthesize'])
-forceTwoPassStretch = parseBool(config['SETTINGS']['force_stretch_with_twopass'])
-outputFormat = config['SETTINGS']['output_format'].lower()
-batchSynthesize = parseBool(cloudConfig['CLOUD']['batch_tts_synthesize'])
-tts_service = cloudConfig['CLOUD']['tts_service']
+native_sample_rate = int(config['SETTINGS']['synth_sample_rate'])
+original_video_file = os.path.abspath(batch_config['SETTINGS']['original_video_file_path'].strip("\""))
+skip_synthesize = parse_bool(config['SETTINGS']['skip_synthesize'])
+force_two_pass_stretch = parse_bool(config['SETTINGS']['force_stretch_with_twopass'])
+output_format = config['SETTINGS']['output_format'].lower()
+batch_synthesize = parse_bool(cloud_config['CLOUD']['batch_tts_synthesize'])
+tts_service = cloud_config['CLOUD']['tts_service']
 
-def trim_clip(inputSound):
+def trim_clip(input_sound: AudioSegment) -> AudioSegment:
     trim_leading_silence: AudioSegment = lambda x: x[detect_leading_silence(x) :]
     trim_trailing_silence: AudioSegment = lambda x: trim_leading_silence(x.reverse()).reverse()
     strip_silence: AudioSegment = lambda x: trim_trailing_silence(trim_leading_silence(x))

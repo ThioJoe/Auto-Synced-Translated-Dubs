@@ -172,6 +172,6 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         formatString = "adts" # Pydub doesn't accept "aac" as a format, so we have to use "mp4" instead. Alternatively, could use "adts" with file extension "aac"
 
     canvas = canvas.set_channels(2) # Change from mono to stereo
-    canvas.export(outputFileName, format=formatString, bitrate="128k")
+    canvas.export(outputFileName, format=formatString, bitrate="192k")
 
     return subsDict

@@ -171,7 +171,7 @@ if parseBool(useSoundEffectsTrack):
 
     # Merge the sound effects into temporary track files
     print("\nMerging sound effects...")
-    for _, trackFilePath in tracksToAddDict.items():
+    for langcode, trackFilePath in tracksToAddDict.items():
         soundEffects = AudioSegment.from_file(soundEffectsDict['effects'])
         audio = AudioSegment.from_file(trackFilePath)
         combined = audio.overlay(soundEffects)

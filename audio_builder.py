@@ -46,9 +46,9 @@ def trim_clip(input_sound: AudioSegment) -> AudioSegment:
     trim_leading_silence: AudioSegment = lambda x: x[detect_leading_silence(x) :]
     trim_trailing_silence: AudioSegment = lambda x: trim_leading_silence(x.reverse()).reverse()
     strip_silence: AudioSegment = lambda x: trim_trailing_silence(trim_leading_silence(x))
-    strippedSound = strip_silence(inputSound)
-    return strippedSound
+    return strip_silence(input_sound)
 
+def insert_audio(canvas: AudioSegment, audio_to_overlay: AudioSegment, start_time_ms: int) -> AudioSegment:
     """Function to insert audio into canvas at specific point
 
     Args:
@@ -59,6 +59,9 @@ def trim_clip(input_sound: AudioSegment) -> AudioSegment:
     Returns:
         AudioSegment: Base with inserted audio
     """
+    return canvas.overlay(audio_to_overlay, position=int(start_time_ms))
+
+def create_canvas(canvas_duration: int, frame_rate: int = native_sample_rate ) -> AudioSegment:
     """Function to create a canvas of a specific duration in milliseconds
 
     Args:
@@ -68,6 +71,9 @@ def trim_clip(input_sound: AudioSegment) -> AudioSegment:
     Returns:
         AudioSegment: Canvas of specified duration
     """
+    return AudioSegment.silent(duration=canvas_duration, frame_rate=frame_rate)
+
+def get_speed_factor(audio: AudioSegment, desired_duration: float) -> float:
     """Function to calculate the speed factor for stretching audio
 
     Args:
@@ -83,6 +89,7 @@ def trim_clip(input_sound: AudioSegment) -> AudioSegment:
     subsDict[num]['speed_factor'] = speedFactor
     return subsDict
 
+def stretch_audio(audio_file_to_stretch: Any, speed_factor: float,) -> AudioSegment:
     """Function to stretch audio to a specific duration
 
     Args:

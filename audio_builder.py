@@ -29,7 +29,7 @@ CLOUD_CONFIG.read('cloud_service_settings.ini')
 NATIVE_SAMPLE_RATE = int(CONFIG['SETTINGS']['synth_sample_rate'])
 ORIGINAL_VIDEO_FILE = os.path.abspath(BATCH_CONFIG['SETTINGS']['original_video_file_path'].strip("\""))
 SKIP_SYNTHESIZE = parse_bool(CONFIG['SETTINGS']['skip_synthesize'])
-FORCE_TWO_PASS = parse_bool(CONFIG['SETTINGS']['force_stretch_with_twopass'])
+FORCE_STRETCH = parse_bool(CONFIG['SETTINGS']['force_stretch_with_twopass'])
 OUTPUT_FORMAT = CONFIG['SETTINGS']['output_format'].lower()
 BATCH_SYNTHESIZE = parse_bool(CLOUD_CONFIG['CLOUD']['batch_tts_synthesize'])
 TTS_SERVICE = CLOUD_CONFIG['CLOUD']['tts_service']
@@ -112,7 +112,61 @@ def stretch_audio(audio_file_to_stretch: Any, speed_factor: float,) -> AudioSegm
     # return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
     return AudioSegment.from_file(virtual_temp_audio_file, format="wav")
 
-def build_audio(subs_dict, langDict, totalAudioLength, use_two_pass: bool):
+def generate_virtual_audio_file(path: str, file_format: str = "mp3", frame_rate: int = NATIVE_SAMPLE_RATE) -> bytes:
+    """Trims audio file and returns a virtual file
+
+    Args:
+        path (str): Path to audio file
+
+    Returns:
+        bytes: Virtual file 
+    """
+    clip: AudioSegment = trim_clip(AudioSegment.from_file(file=path, format=file_format, frame_rate=frame_rate))
+    buffer: bytes = io.BytesIO()
+    # Create virtual file with audio to be read later
+    clip.export(buffer, format="wav")
+    return buffer
+
+def generate_filename(lang_dict: dict, original_video_file: str, output_folder: str) -> str:
+    """Use video file name to use in the name of the output file. Add language name and language code
+
+    Args:
+        lang_dict (dict): dictionary containing language code and language name
+        original_video_file (str): location of original video file
+        output_folder (str): location of folder to save output file
+
+    Raises:
+        Exception: Invalid output format. Must be mp3, wav, or aac
+
+    Returns:
+        str: Absolute destination path for output file
+    """
+    if OUTPUT_FORMAT not in ["mp3", "wav", "aac"]:
+        raise Exception("Invalid output format. Must be mp3, wav, or aac")
+    
+    lang = langcodes.get(lang_dict['languageCode'])
+    lang_name = langcodes.get(lang_dict['languageCode']).get(lang.to_alpha3()).display_name()
+
+    output_file = f"{pathlib.Path(original_video_file).stem} - {lang_name} - {lang_dict['languageCode']}.{OUTPUT_FORMAT}"
+    
+    return os.path.join(output_folder, output_file)
+
+def synthesize(all_clips: dict, lang_dict: dict) -> dict:
+    """Synthesize audio for all clips
+
+    Args:
+        all_clips (dict): All clips to synthesize
+        lang_dict (dict): Dict containing language code and language name
+
+    Returns:
+        dict: Dict containing all clips with synthesized audio
+    """
+    if BATCH_SYNTHESIZE and TTS_SERVICE == 'azure':
+        return TTS.synthesize_dictionary_batch(all_clips, lang_dict, skipSynthesize=SKIP_SYNTHESIZE, secondPass=True)
+    else:
+        return TTS.synthesize_dictionary(all_clips, lang_dict, skipSynthesize=SKIP_SYNTHESIZE, secondPass=True)
+
+def build_audio(all_clips: dict, lang_dict: dict, total_length: int, use_two_pass: bool) -> AudioSegment:
     """Function to build the final audio file
 
     Args:
@@ -127,95 +181,44 @@ def build_audio(subs_dict, langDict, totalAudioLength, use_two_pass: bool):
     Returns:
         _type_: _description_
     """
-    # First trim silence off the audio files
-    for key, value in subsDict.items():
-        filePathTrimmed = workingFolder + "\\" + key + "_t.wav"
-        subsDict[key]['TTS_FilePath_Trimmed'] = filePathTrimmed
-
-        # Trim the clip and re-write file
-        rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)
-        trimmedClip = trim_clip(rawClip)
-        #trimmedClip.export(filePathTrimmed, format="wav")
-
-        # Create virtual file in dictionary with audio to be read later
-        tempTrimmedFile = io.BytesIO()
-        trimmedClip.export(tempTrimmedFile, format="wav")
-        virtualTrimmedFileDict[key] = tempTrimmedFile
-        keyIndex = list(subsDict.keys()).index(key)
-        print(f" Trimmed Audio: {keyIndex+1} of {len(subsDict)}", end="\r")
-    print("\n")
-
-    # Calculate speed factors for each clip, aka how much to stretch the audio
-    for key, value in subsDict.items():
-        #subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
-        subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
-        keyIndex = list(subsDict.keys()).index(key)
-        print(f" Calculated Speed Factor: {keyIndex+1} of {len(subsDict)}", end="\r")
-    print("\n")
-
-    # If two pass voice synth is enabled, have API re-synthesize the clips at the new speed
-    if twoPassVoiceSynth == True:
-        if batchSynthesize == True and tts_service == 'azure':
-            subsDict = TTS.synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=skipSynthesize, secondPass=True)
-        else:
-            subsDict = TTS.synthesize_dictionary(subsDict, langDict, skipSynthesize=skipSynthesize, secondPass=True)
-            
-        for key, value in subsDict.items():
-            # Trim the clip and re-write file
-            rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)
-            trimmedClip = trim_clip(rawClip)
-            #trimmedClip.export(value['TTS_FilePath_Trimmed'], format="wav")
-            trimmedClip.export(virtualTrimmedFileDict[key], format="wav")
-            keyIndex = list(subsDict.keys()).index(key)
-            print(f" Trimmed Audio (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
-        print("\n")
-
-        if forceTwoPassStretch == True:
-            for key, value in subsDict.items():
-                subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
-                keyIndex = list(subsDict.keys()).index(key)
-                print(f" Calculated Speed Factor (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
-            print("\n")
-
+    # item counter for keeping track of progress
+    count: int = 0
     # Create canvas to overlay audio onto
-    canvas = create_canvas(totalAudioLength)
+    canvas: AudioSegment = create_canvas(total_length)
+    for _, value in all_clips.items():
+        value['TTS_FilePath_Trimmed'] = os.path.join(WORKING_FOLDER, f"{_}_t.wav")
+        # First trim silence off the audio files
+        clip: bytes = generate_virtual_audio_file(value['TTS_FilePath'])
+        print(f"  Trimming Silence: {count} of {len(all_clips)}")
+        # Calculate speed factors for each clip, aka how much to stretch the audio
+        value['speed_factor'] = get_speed_factor(clip, value['duration_ms'])
+        print(f"  Calculated Speed Factor: {count} of {len(all_clips)}")
 
-    # Stretch audio and insert into canvas
-    for key, value in subsDict.items():
-        if not twoPassVoiceSynth or forceTwoPassStretch == True:
-            #stretchedClip = stretch_audio(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'], num=key)
-            stretchedClip = stretch_audio(virtualTrimmedFileDict[key], speedFactor=subsDict[key]['speed_factor'], num=key)
-        else:
-            #stretchedClip = AudioSegment.from_file(value['TTS_FilePath_Trimmed'], format="wav")
-            stretchedClip = AudioSegment.from_file(virtualTrimmedFileDict[key], format="wav")
-            virtualTrimmedFileDict[key].seek(0) # Not 100% sure if this is necessary but it was in the other place it is used
+        # If two pass voice synth is enabled, have API re-synthesize the clips at the new speed
+        if use_two_pass:
+            all_clips = synthesize(all_clips, lang_dict)
+            # Trim the clip and re-write file
+            clip = generate_virtual_audio_file(value['TTS_FilePath'])
+            
+            if FORCE_STRETCH:
+                value['speed_factor'] = get_speed_factor(clip, value['duration_ms'])
+                #stretchedClip = stretch_audio(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'])
+                clip = stretch_audio(clip, value['speed_factor'])
+                print(f"  Calculated Speed Factor (2nd Pass): {count} of {len(all_clips)}")
+                #stretchedClip = AudioSegment.from_file(value['TTS_FilePath_Trimmed'], format="wav")
+            else:
+                clip = AudioSegment.from_file(clip, format="wav")
 
-        canvas = insert_audio(canvas, stretchedClip, value['start_ms'])
-        keyIndex = list(subsDict.keys()).index(key)
-        print(f" Final Audio Processed: {keyIndex+1} of {len(subsDict)}", end="\r")
-    print("\n")
+            print(f"  Trimmed Audio (2nd Pass): {count} of {len(all_clips)}")
 
-    # Use video file name to use in the name of the output file. Add language name and language code
-    lang = langcodes.get(langDict['languageCode'])
-    langName = langcodes.get(langDict['languageCode']).get(lang.to_alpha3()).display_name()
-    outputFileName = pathlib.Path(originalVideoFile).stem + f" - {langName} - {langDict['languageCode']}."
-    # Set output path
-    outputFileName = os.path.join(outputFolder, outputFileName)
+        canvas = insert_audio(canvas, clip, value['start_ms'])
+        print(f" Final Audio Insert: {count} of {len(all_clips)}")
 
-    # Determine string to use for output format and file extension based on config setting
-    if outputFormat == "mp3":
-        outputFileName += "mp3"
-        formatString = "mp3"
-    elif outputFormat == "wav":
-        outputFileName += "wav"
-        formatString = "wav"
-    elif outputFormat == "aac":
-        #outputFileName += "m4a"
-        #formatString = "mp4" # Pydub doesn't accept "aac" as a format, so we have to use "mp4" instead. Alternatively, could use "adts" with file extension "aac"
-        outputFileName += "aac"
-        formatString = "adts" # Pydub doesn't accept "aac" as a format, so we have to use "mp4" instead. Alternatively, could use "adts" with file extension "aac"
-
+    filename = generate_filename(lang_dict, ORIGINAL_VIDEO_FILE, OUTPUT_FOLDER)
+    # Pydub doesn't accept "aac" as a format, so we have to use "mp4" instead.
+    # Alternatively, could use "adts" with file extension "aac"
+    file_format = OUTPUT_FORMAT if OUTPUT_FORMAT is not "aac" else "adts"
     canvas = canvas.set_channels(2) # Change from mono to stereo
-    canvas.export(outputFileName, format=formatString, bitrate="192k")
+    canvas.export(filename=filename, format=file_format, bitrate="192k")
 
-    return subsDict
+    return canvas

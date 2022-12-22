@@ -1,5 +1,4 @@
 import pydub
-import numpy as np
 import soundfile
 import pyrubberband
 import configparser

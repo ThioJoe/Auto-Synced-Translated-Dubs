@@ -112,7 +112,7 @@ def synthesize_text_azure(text, speedFactor, voiceName, languageCode):
     # Create SSML syntax for Azure TTS
     ssml = f"<speak version='1.0' xml:lang='{languageCode}' xmlns='http://www.w3.org/2001/10/synthesis' " \
         "xmlns:mstts='http://www.w3.org/2001/mstts'>" \
-        f"<voice name='{voiceName}{pauseTag}'>" \
+        f"<voice name='{voiceName}'>{pauseTag}" \
         f"<prosody rate='{rate}'>{text}</prosody></voice></speak>"
 
     speech_config = speechsdk.SpeechConfig(subscription=AZURE_SPEECH_KEY, region=AZURE_SPEECH_REGION)
@@ -351,6 +351,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
             keyIndex = list(subsDict.keys()).index(key)
             print(f" Synthesizing TTS Line: {keyIndex+1} of {len(subsDict)}", end="\r")
         else:
+            keyIndex = list(subsDict.keys()).index(key)
             print(f" Synthesizing TTS Line (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
     print("                                               ") # Clear the line
     return subsDict

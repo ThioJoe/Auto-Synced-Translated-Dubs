@@ -136,7 +136,7 @@ for lineNum, line in enumerate(lines):
         count = 3
         while True:
             # Check if the next line is blank or not
-            if lines[lineNum + count].strip():
+            if (lineNum+count) < len(lines) and lines[lineNum + count].strip():
                 lineWithSubtitleText += ' ' + lines[lineNum + count].strip()
                 count += 1
             else:

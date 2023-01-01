@@ -315,6 +315,17 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
 
     return inputSubsDict
 
+#============================================= Directory Validation =====================================================
+
+# Check if the output folder exists, if not, create it
+if not os.path.exists(outputFolder):
+    os.makedirs(outputFolder)
+
+# Checks if the working folder exists, if it has files, prompt user to continue
+# if not, create it
+if not os.path.exists('workingFolder'):
+    os.makedirs('workingFolder')
+
 #======================================== Translation and Text-To-Speech ================================================    
 
 # Create dictionary to store settings for the language to pass into functions

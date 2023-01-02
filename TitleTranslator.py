@@ -35,8 +35,6 @@ TTS_API, TRANSLATE_API = auth.first_authentication()
 outputFolder = "output"
 
 import langcodes
-import sys
-import os
 import configparser
 import textwrap
 import re

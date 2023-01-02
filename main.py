@@ -18,7 +18,6 @@ import os
 import pathlib
 import copy
 # Import other modules
-import ffprobe
 import langcodes
 
 # EXTERNAL REQUIREMENTS:

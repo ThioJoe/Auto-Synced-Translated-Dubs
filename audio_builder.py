@@ -84,7 +84,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     virtualTrimmedFileDict = {}
     # First trim silence off the audio files
     for key, value in subsDict.items():
-        filePathTrimmed = workingFolder + "\\" + key + "_t.wav"
+        filePathTrimmed = workingFolder + "\\" + str(key) + "_t.wav"
         subsDict[key]['TTS_FilePath_Trimmed'] = filePathTrimmed
 
         # Trim the clip and re-write file

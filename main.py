@@ -171,19 +171,19 @@ for lineNum, line in enumerate(lines):
         subsDict[line]['text'] = lineWithSubtitleText
         if lineNum > 0:
             # Goes back to previous line's dictionary and writes difference in time to current line
-            subsDict[str(int(line)-1)]['break_until_next'] = str(processedTime1 - int(subsDict[str(int(line) - 1)]['end_ms']))
+            subsDict[str(int(line)-1)]['break_until_next'] = processedTime1 - int(subsDict[str(int(line) - 1)]['end_ms'])
         else:
-            subsDict[line]['break_until_next'] = '0'
+            subsDict[line]['break_until_next'] = 0
 
 
-# Concatonates text subtitles that start and end at the same time, with maximum of 150 characters, and attempts to split on periods on puncutation
+# Concatonates text subtitles that start and end at the same time, with maximum of 150 characters
 def combine_subtitle_entries(inputDict, maxCharacters=200):
     tempDict = copy.deepcopy(inputDict)
     for key, value in tempDict.items():
         try:
             # Check if combining the current and next subtitle would be within the max characters
             # Automatically handles last entry scenario because the break_until_next value is None, not zero
-            if inputDict[key]['break_until_next'] == '0' and len(value['text']+inputDict[str(int(key) + 1)]['text']) < maxCharacters:
+            if inputDict[key]['break_until_next'] == 0 and len(value['text']+inputDict[str(int(key) + 1)]['text']) < maxCharacters:
 
                 # Combine the text into current entry
                 inputDict[key]['text'] = value['text'] + ' ' + inputDict[str(int(key) + 1)]['text']
@@ -193,13 +193,12 @@ def combine_subtitle_entries(inputDict, maxCharacters=200):
                 inputDict[key]['end_ms_buffered'] = inputDict[str(int(key) + 1)]['end_ms_buffered']
 
                 # Combine the current entry's duration with the next entry's duration
-                inputDict[key]['duration_ms'] = str(int(inputDict[key]['duration_ms']) + int(inputDict[str(int(key) + 1)]['duration_ms']))
+                inputDict[key]['duration_ms'] = int(inputDict[key]['duration_ms']) + int(inputDict[str(int(key) + 1)]['duration_ms'])
                 # When combining, need to add 2x the buffer to account for the buffer time that was applied between them
-                inputDict[key]['duration_ms_buffered'] = str(int(inputDict[key]['duration_ms_buffered']) + int(inputDict[str(int(key) + 1)]['duration_ms_buffered']) + 2*addBufferMilliseconds)
+                inputDict[key]['duration_ms_buffered'] = int(inputDict[key]['duration_ms_buffered']) + int(inputDict[str(int(key) + 1)]['duration_ms_buffered']) + 2*addBufferMilliseconds
 
                 # Rewrite srt_timestamps_line to include the new end time
                 inputDict[key]['srt_timestamps_line'] = inputDict[key]['srt_timestamps_line'].split(' --> ')[0] + ' --> ' + inputDict[str(int(key) + 1)]['srt_timestamps_line'].split(' --> ')[1]
-                
 
                 # Delete the next entry after combining
                 del inputDict[str(int(key) + 1)]
@@ -211,7 +210,170 @@ def combine_subtitle_entries(inputDict, maxCharacters=200):
 
     return inputDict
 
-subsDict = combine_subtitle_entries(subsDict, combineMaxChars)
+
+#----------------------------------------------------------------------
+def combine_subtitles_advanced(inputDict, maxCharacters=200):
+    upperCharRateExtreme = 25 #25
+    upperCharRate = 22 #22
+    lowerCharRate = 18 #18
+    lowerCharRateExtreme = 15 #15
+    gapThreshold = 100 # The maximum gap between subtitles to combine
+
+    # Convert dictionary to list of dictionaries of the values
+    entryList = []
+    for key, value in inputDict.items():
+        entryList.append(value)
+    
+    def combine_single_pass(entryListLocal, upper, lower):
+        # Want to restart the loop if a change is made, otherwise break only if the end is reached
+        reachedEndOfList = False
+
+        while not reachedEndOfList:
+            # Need to calculate the char_rate for each entry, any time something changes, so put it at the top of this loop
+            entryListLocal = calc_list_speaking_rates(entryListLocal)
+            # If the char_rate is outside the upper and lower bounds combine it with either the previous or next entry
+            for i, data in enumerate(entryListLocal):
+                
+                # Check if last entry, and therefore will end loop when done with this iteration
+                if i == len(entryListLocal) - 1:
+                    reachedEndOfList = True
+
+                # Check if the current entry is outside the upper and lower bounds
+                if (data['char_rate'] > upper or data['char_rate'] < lower):
+
+                    # Set flags for whether to consider the next and previous entries
+                    considerNext = True
+                    considerPrev = True
+
+                    # Get the char_rate of the next and previous entries, if they exist, and calculate the difference
+                    # If the diff is positive, then it is lower than the current char_rate
+                    try:
+                        nextCharRate = entryListLocal[i+1]['char_rate']
+                        nextDiff = data['char_rate'] - nextCharRate
+                    except IndexError:
+                        considerNext = False
+                        nextCharRate = None
+                        nextDiff = None
+                        reachedEndOfList = True
+                    try:
+                        # If first entry, set values manually. If try to use i-1, will wrap back and use last entry
+                        if i == 0:
+                            considerPrev = False
+                            prevCharRate = None
+                            prevDiff = None
+                        else:
+                            prevCharRate = entryListLocal[i-1]['char_rate']
+                            prevDiff = data['char_rate'] - prevCharRate
+                    except IndexError:
+                        considerPrev = False
+                        prevCharRate = None
+                        prevDiff = None
+                        
+                else:
+                    continue
+
+                # Define functions for combining with previous or next entries - Generated with coPilot, it's possible this isn't perfectsa
+                def combine_with_next():
+                    entryListLocal[i]['text'] = entryListLocal[i]['text'] + ' ' + entryListLocal[i+1]['text']
+                    entryListLocal[i]['translated_text'] = entryListLocal[i]['translated_text'] + ' ' + entryListLocal[i+1]['translated_text']
+                    entryListLocal[i]['end_ms'] = entryListLocal[i+1]['end_ms']
+                    entryListLocal[i]['end_ms_buffered'] = entryListLocal[i+1]['end_ms_buffered']
+                    entryListLocal[i]['duration_ms'] = int(entryListLocal[i]['duration_ms']) + int(entryListLocal[i+1]['duration_ms'])
+                    entryListLocal[i]['duration_ms_buffered'] = str(int(entryListLocal[i]['duration_ms_buffered']) + int(entryListLocal[i+1]['duration_ms_buffered']) + 2*addBufferMilliseconds)
+                    entryListLocal[i]['srt_timestamps_line'] = entryListLocal[i]['srt_timestamps_line'].split(' --> ')[0] + ' --> ' + entryListLocal[i+1]['srt_timestamps_line'].split(' --> ')[1]
+                    del entryListLocal[i+1]
+
+                def combine_with_prev():
+                    entryListLocal[i-1]['text'] = entryListLocal[i-1]['text'] + ' ' + entryListLocal[i]['text']
+                    entryListLocal[i-1]['translated_text'] = entryListLocal[i-1]['translated_text'] + ' ' + entryListLocal[i]['translated_text']
+                    entryListLocal[i-1]['end_ms'] = entryListLocal[i]['end_ms']
+                    entryListLocal[i-1]['end_ms_buffered'] = entryListLocal[i]['end_ms_buffered']
+                    entryListLocal[i-1]['duration_ms'] = int(entryListLocal[i-1]['duration_ms']) + int(entryListLocal[i]['duration_ms'])
+                    entryListLocal[i-1]['duration_ms_buffered'] = int(entryListLocal[i-1]['duration_ms_buffered']) + int(entryListLocal[i]['duration_ms_buffered']) + 2*addBufferMilliseconds
+                    entryListLocal[i-1]['srt_timestamps_line'] = entryListLocal[i-1]['srt_timestamps_line'].split(' --> ')[0] + ' --> ' + entryListLocal[i]['srt_timestamps_line'].split(' --> ')[1]
+                    del entryListLocal[i]
+
+                # Choose whether to consider next and previous entries, and if neither then continue to next loop
+                if data['char_rate'] > upper:
+                    # Check to ensure next/previous rates are lower than current rate, and the combined entry is not too long, and the gap between entries is not too large
+                    if not nextDiff or nextDiff < 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > maxCharacters):
+                        considerNext = False
+                    if not prevDiff or prevDiff < 0 or (entryListLocal[i-1]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i-1]['translated_text']) + len(entryListLocal[i]['translated_text']) > maxCharacters):
+                        considerPrev = False
+                elif data['char_rate'] < lower:
+                    # Check to ensure next/previous rates are higher than current rate
+                    if not nextDiff or nextDiff > 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > maxCharacters):
+                        considerNext = False
+                    if not prevDiff or prevDiff > 0 or (entryListLocal[i-1]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i-1]['translated_text']) + len(entryListLocal[i]['translated_text']) > maxCharacters):
+                        considerPrev = False
+                else:
+                    continue
+
+                # Continue to next loop if neither are considered
+                if not considerNext and not considerPrev:
+                    continue
+
+                # Should only reach this point if two entries are to be combined
+                if data['char_rate'] > upper:
+                    # If both are to be considered, then choose the one with the lower char_rate
+                    if considerNext and considerPrev:
+                        if nextDiff < prevDiff:
+                            combine_with_next()
+                            break
+                        else:
+                            combine_with_prev()
+                    # If only one is to be considered, then combine with that one
+                    elif considerNext:
+                        combine_with_next()
+                    elif considerPrev:
+                        combine_with_prev()
+                    else:
+                        print(f"Error U: Should not reach this point! Current entry = {i}")
+                        print(f"Current Entry Text = {data['text']}")
+                        continue
+                
+                elif data['char_rate'] < lower:
+                    # If both are to be considered, then choose the one with the higher char_rate
+                    if considerNext and considerPrev:
+                        if nextDiff > prevDiff:
+                            combine_with_next()
+                        else:
+                            combine_with_prev()
+                    # If only one is to be considered, then combine with that one
+                    elif considerNext:
+                        combine_with_next()
+                    elif considerPrev:
+                        combine_with_prev()
+                    else:
+                        print(f"Error L: Should not reach this point! Index = {i}")
+                        print(f"Current Entry Text = {data['text']}")
+                        continue
+        return entryListLocal
+
+    #-- End of combine_single_pass --
+
+    # First will look for extremes to combine, then do another pass to combine the rest
+    # Need to create new list variable or else it won't update entryList if that is used for some reason
+    entryList2 = combine_single_pass(entryList, upperCharRateExtreme, lowerCharRateExtreme)
+    entryList3 = combine_single_pass(entryList2, upperCharRate, lowerCharRate)
+
+    # Convert the list back to a dictionary then return it
+    return dict(enumerate(entryList3))
+
+#----------------------------------------------------------------------
+
+# Calculate the number of characters per second for each subtitle entry
+def calc_dict_speaking_rates(inputDict, dictKey='translated_text'):  
+    tempDict = copy.deepcopy(inputDict)
+    for key, value in tempDict.items():
+        tempDict[key]['char_rate'] = round(len(value[dictKey]) / (int(value['duration_ms']) / 1000), 2)
+    return tempDict
+
+def calc_list_speaking_rates(inputList, dictKey='translated_text'): 
+    tempList = copy.deepcopy(inputList)
+    for i in range(len(tempList)):
+        tempList[i]['char_rate'] = round(len(tempList[i][dictKey]) / (int(tempList[i]['duration_ms']) / 1000), 2)
+    return tempList
 
 # Apply the buffer to the start and end times by setting copying over the buffer values to main values
 for key, value in subsDict.items():
@@ -300,6 +462,8 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
             inputSubsDict[key]['translated_text'] = inputSubsDict[key]['text'] # Skips translating, such as for testing
     print("                                                  ")
 
+    combinedProcessedDict = combine_subtitles_advanced(inputSubsDict, combineMaxChars)
+
     if skipTranslation == False:
         # Use video file name to use in the name of the translate srt file, also display regular language name
         lang = langcodes.get(targetLanguage).display_name()
@@ -308,12 +472,12 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
         translatedSrtFileName = os.path.join(outputFolder, translatedSrtFileName)
         # Write new srt file with translated text
         with open(translatedSrtFileName, 'w', encoding='utf-8') as f:
-            for key in inputSubsDict:
+            for key in combinedProcessedDict:
                 f.write(key + '\n')
-                f.write(inputSubsDict[key]['srt_timestamps_line'] + '\n')
-                f.write(inputSubsDict[key]['translated_text'] + '\n\n')
+                f.write(combinedProcessedDict[key]['srt_timestamps_line'] + '\n')
+                f.write(combinedProcessedDict[key]['translated_text'] + '\n\n')
 
-    return inputSubsDict
+    return combinedProcessedDict
 
 #============================================= Directory Validation =====================================================
 

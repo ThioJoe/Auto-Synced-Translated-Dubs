@@ -1,4 +1,3 @@
-import pydub
 import soundfile
 import pyrubberband
 import configparser

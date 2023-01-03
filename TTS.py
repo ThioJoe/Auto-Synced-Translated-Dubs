@@ -6,11 +6,8 @@ import configparser
 import azure.cognitiveservices.speech as speechsdk
 from googleapiclient.errors import HttpError
 import datetime
-import requests
-import shutil
 import zipfile
 import io
-import sys
 import copy
 from urllib.request import urlopen
 

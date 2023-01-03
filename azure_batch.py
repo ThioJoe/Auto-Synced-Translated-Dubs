@@ -8,10 +8,7 @@
 #--------------------------------------------------------------------------------------------------------
 import json
 import logging
-import os
 import sys
-import time
-from pathlib import Path
 
 import requests
 import configparser
@@ -81,18 +78,3 @@ def list_synthesis_jobs(skip: int = 0, top: int = 100):
     else:
         logger.error(f'Failed to list batch synthesis jobs: {response.text}')
 
-
-# if __name__ == '__main__':
-#     job_id = submit_synthesis()
-#     if job_id is not None:
-#         while True:
-#             status = get_synthesis(job_id)
-#             if status == 'Succeeded':
-#                 logger.info('batch synthesis job succeeded')
-#                 break
-#             elif status == 'Failed':
-#                 logger.error('batch synthesis job failed')
-#                 break
-#             else:
-#                 logger.info(f'batch synthesis job is still running, status [{status}]')
-#                 time.sleep(5)

@@ -6,16 +6,14 @@ import configparser
 import azure.cognitiveservices.speech as speechsdk
 from googleapiclient.errors import HttpError
 import datetime
-import requests
-import shutil
 import zipfile
 import io
-import sys
 import copy
 from urllib.request import urlopen
 
 import auth
 import azure_batch
+from utils import parseBool
 TTS_API, TRANSLATE_API = auth.first_authentication()
 
 # Read config files
@@ -27,6 +25,7 @@ cloudConfig.read('cloud_service_settings.ini')
 # Get variables from config
 ttsService = cloudConfig['CLOUD']['tts_service'].lower()
 audioEncoding = config['SETTINGS']['synth_audio_encoding'].upper()
+debugMode = parseBool(config['SETTINGS']['debug_mode'])
 azureSentencePause = config['SETTINGS']['azure_sentence_pause'].lower().strip("\"").strip("\'")
 
 # Get Azure variables if applicable
@@ -235,7 +234,8 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
 
     # Clear out workingFolder
     for filename in os.listdir('workingFolder'):
-        os.remove('workingFolder\\' + filename)
+        if not debugMode:
+            os.remove('workingFolder\\' + filename)
 
     # Loop through payloads and submit to Azure
     for payload in payloadList:
@@ -287,11 +287,11 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                     elif "json" not in file.filename:
                         # Rename file to match first entry in remainingDownloadedEntriesDict, then extract
                         currentFileNum = remainingDownloadedEntriesList[0]
-                        file.filename = currentFileNum + '.mp3'
+                        file.filename = str(currentFileNum) + '.mp3'
                         #file.filename = file.filename.lstrip('0')
 
                         # Add file path to subsDict then remove from remainingDownloadedEntriesList
-                        subsDict[currentFileNum]['TTS_FilePath'] = "workingFolder\\" + currentFileNum + '.mp3'
+                        subsDict[currentFileNum]['TTS_FilePath'] = "workingFolder\\" + str(currentFileNum) + '.mp3'
                         # Extract file
                         zipdata.extract(file, 'workingFolder')
                         # Remove entry from remainingDownloadedEntriesList
@@ -314,7 +314,7 @@ def synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=False, second
 def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=False):
     for key, value in subsDict.items():
         # TTS each subtitle text, write to file, write filename into dictionary
-        filePath = f"workingFolder\\{key}.mp3"
+        filePath = f"workingFolder\\{str(key)}.mp3"
         if not skipSynthesize:
 
             if secondPass:

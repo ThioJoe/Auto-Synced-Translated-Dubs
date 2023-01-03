@@ -54,7 +54,7 @@ If you already have a human-made SRT subtitles file for a video, this will:
 ## Additional Notes:
 - This works best with subtitles that do not remove gaps between sentences and lines.
 - For now the process only assumes there is one speaker. However, if you can make separate SRT files for each speaker, you could generate each TTS track separately using different voices, then combine them afterwards.
-- It only supports Google Translate API for text translation, but it supports both Google and Azure for Text-To-Speech with neural voices.
+- It supports both Google Translate API and DeepL for text translation, and both Google and Azure for Text-To-Speech with neural voices.
 - This script was written with my own personal workflow in mind. That is:
     - I use [**OpenAI Whisper**](https://github.com/openai/whisper) to transcribe the videos locally, then use [**Descript**](https://www.descript.com/) to sync that transcription and touch it up with corrections.
     - Then I export the SRT file with Descript, which is ideal because it does not just butt the start and end times of each subtitle line next to each other. This means the resulting dub will preserve the pauses between sentences from the original speech. If you use subtitles from another program, you might find the pauses between lines are too short.

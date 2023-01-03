@@ -3,7 +3,7 @@
  
 ### How It Works
 If you already have a human-made SRT subtitles file for a video, this will:
-1. Use Google Cloud to automatically translate the text, and create new translated SRT files
+1. Use Google Cloud/DeepL to automatically translate the text, and create new translated SRT files
 2. Create text-to-speech audio clips of the translated text (using more realistic neural voices)
 3. Use the timings of the subtitle lines to calculate the correct duration of each spoken audio clip
 4. Stretch or shrink the translated audio clip to be exactly the same length as the original speech, and inserted at the same point in the audio. Therefore the translated speech will remain perfectly in sync with the original video.
@@ -30,15 +30,16 @@ If you already have a human-made SRT subtitles file for a video, this will:
 1. Download or clone the repo and install the requirements using `pip install -r requirements.txt`
    - I wrote this using Python 3.9 but it will probably work with earlier versions too
 2. Install the programs mentioned in the 'External Requirements' above.
-3. Setup your Google Cloud (See Wiki) and/or Microsoft Azure API access, and set the variables in `cloud_service_settings.ini`. 
+3. Setup your Google Cloud (See Wiki), Microsoft Azure API access and/or DeepL API Token, and set the variables in `cloud_service_settings.ini`. 
    - I recommend Azure for the TTS voice synthesizing because they have newer and better voices in my opinion, and in higher quality (Azure supports sample rate up to 48KHz vs 24KHz with Google). 
-   - Google Cloud is currently the only option for the text translation part.
+   - Google Cloud is faster, cheaper and supports more languages for text translation, but you can also use DeepL.
 4. Set up your configuration settings in `config.ini`. The default settings should work in most cases, but read through them especially if you are using Azure for TTS because there are more applicable options you may want to customize.
    - This config includes options such as the ability to skip text translation, setting formats and sample rate, and using two-pass voice synthesizing
 5. Finally open `batch.ini` to set the language and voice settings that will be used for each run. 
    - In the top `[SETTINGS]` section you will enter the path to the original video file (used to get the correct audio length), and the original subtitle file path
    - Also you can use the `enabled_languages` variable to list all the languages that will be translated and synthesized at once. The numbers will correspond to the `[LANGUAGE-#]` sections in the same config file. The program will process only the languages listed in this variable.
    - This lets you add as many language presets as you want (such as the preferred voice per language), and can choose which languages you want to use (or not use) for any given run.
+   - Make sure to check supported languages and voices for each service in their respective documentation.
 
 ## Usage Instructions
 - **How to Run:** After configuring the config files, simply run the main.py script using `python main.py` and let it run to completion
@@ -60,9 +61,16 @@ If you already have a human-made SRT subtitles file for a video, this will:
     - The SRT export settings in Descript that seem to work decently for dubbing are *150 max characters per line*, and *1 max line per card*.
 - The "Two Pass" synthesizing feature (can be enabled in the config) will drastically improve the quality of the final result, but will require synthesizing each clip twice, therefore doubling any API costs.
 
+## For more information on supported languages by service:
+- [Google Cloud Translation Supported Languages](https://cloud.google.com/translate/docs/languages)
+- [Google Cloud Text-to-Speech Supported Languages](https://cloud.google.com/text-to-speech/docs/voices)
+- [Azure Text-to-Speech Supported Languages](https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support#text-to-speech)
+- [DeepL Supported Languages](https://www.deepl.com/docs-api/translating-text/request/)
+
 ----
 
 ### For Result Examples See: [Examples Wiki Page](https://github.com/ThioJoe/Auto-Synced-Translated-Dubs/wiki/Examples)
 ### For Planned Features See: [Planned Features Wiki Page](https://github.com/ThioJoe/Auto-Synced-Translated-Dubs/wiki/Planned-Features)
 ### For Google Cloud Project Setup Instructions See: [Instructions Wiki Page](https://github.com/ThioJoe/Auto-Synced-Translated-Dubs/wiki/Instructions:-Obtaining-an-API-Key)
 ### For Microsoft Azure Setup Instructions See: [Azure Instructions Wiki Page](https://github.com/ThioJoe/Auto-Synced-Translated-Dubs/wiki/Instructions:-Microsoft-Azure-Setup)
+

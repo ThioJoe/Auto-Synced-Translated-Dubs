@@ -14,7 +14,6 @@ from urllib.request import urlopen
 import auth
 import azure_batch
 from utils import parseBool
-TTS_API, TRANSLATE_API = auth.first_authentication()
 
 # Read config files
 config = configparser.ConfigParser()
@@ -24,6 +23,7 @@ cloudConfig.read('cloud_service_settings.ini')
 
 # Get variables from config
 ttsService = cloudConfig['CLOUD']['tts_service'].lower()
+translateService = cloudConfig['CLOUD']['translate_service'].lower()
 audioEncoding = config['SETTINGS']['synth_audio_encoding'].upper()
 debugMode = parseBool(config['SETTINGS']['debug_mode'])
 azureSentencePause = config['SETTINGS']['azure_sentence_pause'].lower().strip("\"").strip("\'")
@@ -31,6 +31,15 @@ azureSentencePause = config['SETTINGS']['azure_sentence_pause'].lower().strip("\
 # Get Azure variables if applicable
 AZURE_SPEECH_KEY = cloudConfig['CLOUD']['azure_speech_key']
 AZURE_SPEECH_REGION = cloudConfig['CLOUD']['azure_speech_region']
+
+# Get Google credentials if applicable
+GOOGLE_API = None
+if ttsService == "google" or translateService == "google":
+    GOOGLE_API = auth.first_authentication()
+if ttsService == "google":
+    TTS_API = GOOGLE_API
+if translateService == "google":
+    TRANSLATE_API = GOOGLE_API
 
 # Get List of Voices Available
 def get_voices():

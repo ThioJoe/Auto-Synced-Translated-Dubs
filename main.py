@@ -69,6 +69,11 @@ languageNums = batchConfig['SETTINGS']['enabled_languages'].replace(' ','').spli
 originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))
 srtFile = os.path.abspath(batchConfig['SETTINGS']['srt_file_path'].strip("\""))
 
+# Create the output folder based on the original video file name
+fileName = os.path.basename(originalVideoFile).split(".")[0]
+fileName = re.sub(r"[^\w\s-]", "", fileName)
+outputFolder = outputFolder + "/" + fileName
+
 # Validate the number of sections
 for num in languageNums:
     # Check if section exists

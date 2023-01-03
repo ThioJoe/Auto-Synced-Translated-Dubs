@@ -18,6 +18,7 @@ import os
 import pathlib
 import copy
 # Import other modules
+import ffprobe
 import langcodes
 from operator import itemgetter
 

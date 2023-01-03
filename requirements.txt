@@ -7,5 +7,5 @@ ffprobe-python
 azure-cognitiveservices-speech
 langcodes
 language_data
-whisperx
 numpy
+git+https://github.com/m-bain/whisperx.git

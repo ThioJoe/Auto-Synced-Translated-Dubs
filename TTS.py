@@ -16,6 +16,7 @@ from urllib.request import urlopen
 
 import auth
 import azure_batch
+from utils import parseBool
 TTS_API, TRANSLATE_API = auth.first_authentication()
 
 # Read config files
@@ -27,6 +28,7 @@ cloudConfig.read('cloud_service_settings.ini')
 # Get variables from config
 ttsService = cloudConfig['CLOUD']['tts_service'].lower()
 audioEncoding = config['SETTINGS']['synth_audio_encoding'].upper()
+debugMode = parseBool(config['SETTINGS']['debug_mode'])
 azureSentencePause = config['SETTINGS']['azure_sentence_pause'].lower().strip("\"").strip("\'")
 
 # Get Azure variables if applicable
@@ -235,7 +237,8 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
 
     # Clear out workingFolder
     for filename in os.listdir('workingFolder'):
-        os.remove('workingFolder\\' + filename)
+        if not debugMode:
+            os.remove('workingFolder\\' + filename)
 
     # Loop through payloads and submit to Azure
     for payload in payloadList:

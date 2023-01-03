@@ -35,6 +35,7 @@ forceTwoPassStretch = parseBool(config['SETTINGS']['force_stretch_with_twopass']
 outputFormat = config['SETTINGS']['output_format'].lower()
 batchSynthesize = parseBool(cloudConfig['CLOUD']['batch_tts_synthesize'])
 tts_service = cloudConfig['CLOUD']['tts_service']
+debugMode = parseBool(config['SETTINGS']['debug_mode'])
 
 def trim_clip(inputSound):
     trim_leading_silence: AudioSegment = lambda x: x[detect_leading_silence(x) :]
@@ -75,7 +76,8 @@ def stretch_audio(audioFileToStretch, speedFactor, num):
     streched_audio = pyrubberband.time_stretch(y, sampleRate, speedFactor, rbargs={'--fine': '--fine'}) # Need to add rbarges in weird way because it demands a dictionary of two values
     #soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
     soundfile.write(virtualTempAudioFile, streched_audio, sampleRate, format='wav')
-    #soundfile.write(f'{workingFolder}\\{num}_s.wav', streched_audio, sampleRate) # For debugging, saves the stretched audio files
+    if debugMode:
+        soundfile.write(f'{workingFolder}\\{num}_s.wav', streched_audio, sampleRate) # For debugging, saves the stretched audio files
     #return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
     return AudioSegment.from_file(virtualTempAudioFile, format="wav")
 
@@ -90,7 +92,8 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         # Trim the clip and re-write file
         rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)
         trimmedClip = trim_clip(rawClip)
-        #trimmedClip.export(filePathTrimmed, format="wav")
+        if debugMode:
+            trimmedClip.export(filePathTrimmed, format="wav")
 
         # Create virtual file in dictionary with audio to be read later
         tempTrimmedFile = io.BytesIO()
@@ -119,7 +122,8 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             # Trim the clip and re-write file
             rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)
             trimmedClip = trim_clip(rawClip)
-            #trimmedClip.export(value['TTS_FilePath_Trimmed'], format="wav")
+            if debugMode:
+                trimmedClip.export(value['TTS_FilePath_Trimmed'], format="wav")
             trimmedClip.export(virtualTrimmedFileDict[key], format="wav")
             keyIndex = list(subsDict.keys()).index(key)
             print(f" Trimmed Audio (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")

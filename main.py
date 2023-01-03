@@ -332,7 +332,7 @@ def combine_subtitles_advanced(inputDict, maxCharacters=200):
 
     #-- End of combine_single_pass --
 
-    # First will look for extremes to combine, then do another pass to combine the rest
+    # Two passes since they're combined sequentially in pairs. Might add a better way in the future
     # Need to create new list variable or else it won't update entryList if that is used for some reason
     entryList2 = combine_single_pass(entryList)
     entryList3 = combine_single_pass(entryList2)

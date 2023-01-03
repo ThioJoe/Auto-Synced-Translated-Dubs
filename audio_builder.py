@@ -174,6 +174,13 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         formatString = "adts" # Pydub doesn't accept "aac" as a format, so we have to use "mp4" instead. Alternatively, could use "adts" with file extension "aac"
 
     canvas = canvas.set_channels(2) # Change from mono to stereo
-    canvas.export(outputFileName, format=formatString, bitrate="192k")
+    try:
+        canvas.export(outputFileName, format=formatString, bitrate="192k")
+    except:
+        outputFileName = outputFileName + ".bak"
+        canvas.export(outputFileName, format=formatString, bitrate="192k")
+        print("\nThere was an issue exporting the audio, it might be a permission error. The file was saved as a backup with the extension .bak")
+        print("Try removing the .bak extension then listen to the file to see if it worked.\n")
+        input("Press Enter to exit...")
 
     return subsDict

@@ -1,3 +1,6 @@
+
+#========================================= USER SETTINGS ===============================================
+
 # REMEMBER: Unlike the .ini config files, the variable values here must be surrounded by "quotation" marks
 
     # The video can be anywhere as long as you use the full absolute filepath. Or you can use a relative path.

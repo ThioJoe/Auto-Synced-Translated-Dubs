@@ -24,6 +24,7 @@ cloudConfig.read('cloud_service_settings.ini')
 # Get variables from config
 ttsService = cloudConfig['CLOUD']['tts_service'].lower()
 translateService = cloudConfig['CLOUD']['translate_service'].lower()
+useFallbackGoogleTranslate = parseBool(cloudConfig['CLOUD']['use_fallback_google_translate'])
 audioEncoding = config['SETTINGS']['synth_audio_encoding'].upper()
 debugMode = parseBool(config['SETTINGS']['debug_mode'])
 azureSentencePause = config['SETTINGS']['azure_sentence_pause'].lower().strip("\"").strip("\'")
@@ -34,11 +35,11 @@ AZURE_SPEECH_REGION = cloudConfig['CLOUD']['azure_speech_region']
 
 # Get Google credentials if applicable
 GOOGLE_API = None
-if ttsService == "google" or translateService == "google":
+if ttsService == "google" or translateService == "google" or useFallbackGoogleTranslate:
     GOOGLE_API = auth.first_authentication()
 if ttsService == "google":
     TTS_API = GOOGLE_API
-if translateService == "google":
+if translateService == "google" or useFallbackGoogleTranslate:
     TRANSLATE_API = GOOGLE_API
 
 # Get List of Voices Available

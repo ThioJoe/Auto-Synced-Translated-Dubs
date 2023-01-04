@@ -1,4 +1,3 @@
-import re
 import soundfile
 import pyrubberband
 import configparser

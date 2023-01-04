@@ -27,12 +27,6 @@ batchConfig.read('batch.ini')
 cloudConfig = configparser.ConfigParser()
 cloudConfig.read('cloud_service_settings.ini')
 
-# Get the video file name and create the output folder based on the original video file name
-originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))
-fileName = os.path.basename(originalVideoFile).split(".")[0]
-fileName = re.sub(r"[^\w\s-]", "", fileName)
-outputFolder = outputFolder + "/" + fileName
-
 # Get variables from configs
 nativeSampleRate = int(config['SETTINGS']['synth_sample_rate'])
 originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))

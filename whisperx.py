@@ -32,5 +32,7 @@ def transcribe(videoFile, output):
     #os.system(f"conda activate whisperx && whisperx {outputFolder}/original.wav --model small.en --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --output_dir {outputFolder}")
     #Run whisperx
     os.system(f"whisperx {outputFolder}/original.wav --model small.en --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --output_dir {outputFolder}")
+    #to acess the output file, go to outputFolder
+    print(f"Transcription completed. The output file is in {outputFolder}/original.wav.srt")
 
 transcribe(originalVideoFile, outputFolder)

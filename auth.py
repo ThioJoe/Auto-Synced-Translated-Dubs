@@ -12,15 +12,24 @@ import os
 import sys
 import traceback
 from json import JSONDecodeError
+import configparser
+import deepl
 
+# Import Configs
+cloudConfig = configparser.ConfigParser()
+cloudConfig.read('cloud_service_settings.ini')
+
+# Google Cloud Globals
 TOKEN_FILE_NAME = 'token.pickle'
-
 TTS_API = None
 TRANSLATE_API = None
 
-##########################################################################################
-################################## AUTHORIZATION #########################################
-##########################################################################################
+# deepl Globals
+DEEPL_API = None
+
+#################################################################################################
+################################## GOOGLE AUTHORIZATION #########################################
+#################################################################################################
 # The CLIENT_SECRETS_FILE variable specifies the name of a file that contains
 # the OAuth 2.0 information for this application, including its client_id and
 # client_secret. You can acquire an OAuth 2.0 client ID and client secret from
@@ -107,3 +116,17 @@ def first_authentication():
       input(f"\nError: Something went wrong during authentication. Try deleting the token.pickle file. \nPress Enter to Exit...")
       sys.exit()
   return TTS_API, TRANSLATE_API
+
+
+################################################################################################
+################################## DEEPL AUTHORIZATION #########################################
+################################################################################################
+
+def deepl_auth():
+  # Deepl API Key
+  deeplApiKey = cloudConfig['CLOUD']['deepl_api_key']
+  deepl_auth_object = deepl.Translator(deeplApiKey)
+  return deepl_auth_object
+
+if cloudConfig['CLOUD']['translate_service'] == 'deepl':
+  DEEPL_API = deepl_auth()

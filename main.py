@@ -14,6 +14,7 @@ import TTS
 import audio_builder
 import auth
 from utils import parseBool
+
 # Import built in modules
 import re
 import configparser
@@ -44,7 +45,7 @@ skipSynthesize = parseBool(config['SETTINGS']['skip_synthesize'])  # Set to true
 debugMode = parseBool(config['SETTINGS']['debug_mode'])
 
 # Translation Settings
-stopAtTranslation = parseBool(config['SETTINGS']['stop_at_translation'])
+stopAfterTranslation = parseBool(config['SETTINGS']['stop_after_translation'])
 skipTranslation = parseBool(config['SETTINGS']['skip_translation'])  # Set to true if you don't want to translate the subtitles. If so, ignore the following two variables
 originalLanguage = config['SETTINGS']['original_language']
 
@@ -66,7 +67,7 @@ tts_service = cloudConfig['CLOUD']['tts_service']
 translateService = cloudConfig['CLOUD']['translate_service']
 useFallbackGoogleTranslate = parseBool(cloudConfig['CLOUD']['use_fallback_google_translate'])
 googleProjectID = cloudConfig['CLOUD']['google_project_id']
-deeplApiKey = cloudConfig['CLOUD']['deepl_api_key']
+
 batchSynthesize = parseBool(cloudConfig['CLOUD']['batch_tts_synthesize'])
 
 #---------------------------------------- Batch File Processing ----------------------------------------
@@ -439,11 +440,9 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
 
                 elif translateService == 'deepl':
                     print(f'[DeepL] Translating text group {j+1} of {len(chunkedTexts)}')
-                    # Create a translator object
-                    translator = deepl.Translator(deeplApiKey)
 
                     # Send the request
-                    result = translator.translate_text(chunk, target_lang=targetLanguage)
+                    result = auth.DEEPL_API.translate_text(chunk, target_lang=targetLanguage)
                     
                     # Extract the translated texts from the response
                     translatedTexts = [result[i].text for i in range(len(result))]
@@ -482,11 +481,9 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
 
             elif translateService == 'deepl':
                 print("Translating text using DeepL...")
-                # Create a translator object
-                translator = deepl.Translator(deeplApiKey)
-                
+
                 # Send the request
-                result = translator.translate_text(textToTranslate, target_lang=targetLanguage)
+                result = auth.DEEPL_API.translate_text(textToTranslate, target_lang=targetLanguage)
 
                 # Add the translated texts to the dictionary
                 for i, key in enumerate(inputSubsDict):
@@ -557,7 +554,7 @@ def process_language(value):
     # Translate
     individualLanguageSubsDict = translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=skipTranslation)
 
-    if stopAtTranslation:
+    if stopAfterTranslation:
         print("Stopping at translation is enabled. Skipping TTS and building audio.")
         return
 
@@ -575,10 +572,9 @@ langDict = {}
 fallback_languages = {}
 for langNum, value in batchSettings.items():
     if translateService == 'deepl':
-        translator = deepl.Translator(deeplApiKey)
         # Check if the target language is supported by DeepL
         target_lang = str(value['translation_target_language']).upper()
-        supported_languages = list(map(lambda x: str(x.code).upper(), translator.get_target_languages()))
+        supported_languages = list(map(lambda x: str(x.code).upper(), auth.DEEPL_API.get_target_languages()))
         if target_lang not in supported_languages:
             # Fix languages without a region code
             if target_lang == 'EN': # Supported with region code

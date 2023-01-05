@@ -415,7 +415,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                 if translateService == 'google':
                     # Print status with progress
                     print(f'[Google] Translating text group {j+1} of {len(chunkedTexts)}')
-                    response = auth.TRANSLATE_API.projects().translateText(
+                    response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
                         parent='projects/' + googleProjectID,
                         body={
                             'contents': chunk,
@@ -460,7 +460,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
         else:
             if translateService == 'google':
                 print("Translating text using Google...")
-                response = auth.TRANSLATE_API.projects().translateText(
+                response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
                     parent='projects/' + googleProjectID,
                     body={
                         'contents':textToTranslate,

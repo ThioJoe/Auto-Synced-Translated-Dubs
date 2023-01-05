@@ -21,8 +21,8 @@ cloudConfig.read('cloud_service_settings.ini')
 
 # Google Cloud Globals
 TOKEN_FILE_NAME = 'token.pickle'
-TTS_API = None
-TRANSLATE_API = None
+GOOGLE_TTS_API = None
+GOOGLE_TRANSLATE_API = None
 
 # deepl Globals
 DEEPL_API = None
@@ -40,20 +40,20 @@ DEEPL_API = None
 
 # Authorize the request and store authorization credentials.
 def get_authenticated_service():
-  global TTS_API
-  global TRANSLATE_API
+  global GOOGLE_TTS_API
+  global GOOGLE_TRANSLATE_API
   CLIENT_SECRETS_FILE = 'client_secrets.json'
   API_SCOPES = ['https://www.googleapis.com/auth/cloud-platform', 'https://www.googleapis.com/auth/cloud-translation']
 
   # TTS API Info
-  TTS_API_SERVICE_NAME = 'texttospeech'
-  TTS_API_VERSION = 'v1'
+  GOOGLE_TTS_API_SERVICE_NAME = 'texttospeech'
+  GOOGLE_TTS_API_VERSION = 'v1'
   TTS_DISCOVERY_SERVICE_URL = "https://texttospeech.googleapis.com/$discovery/rest?version=v1"
 
   # Translate API Info
   # https://translate.googleapis.com/$discovery/rest?version=v3 # v3 or beta v3beta1
-  TRANSLATE_API_SERVICE_NAME = 'translate'
-  TRANSLATE_API_VERSION = 'v3beta1'
+  GOOGLE_TRANSLATE_API_SERVICE_NAME = 'translate'
+  GOOGLE_TRANSLATE_API_VERSION = 'v3beta1'
   TRANSLATE_DISCOVERY_SERVICE_URL = "https://translate.googleapis.com/$discovery/rest?version=v3beta1"
 
   # Check if client_secrets.json file exists, if not give error
@@ -87,16 +87,16 @@ def get_authenticated_service():
       token.write(creds.to_json())
 
   # Build tts and translate API objects    
-  TTS_API = build(TTS_API_SERVICE_NAME, TTS_API_VERSION, credentials=creds, discoveryServiceUrl=TTS_DISCOVERY_SERVICE_URL)
-  TRANSLATE_API = build(TRANSLATE_API_SERVICE_NAME, TRANSLATE_API_VERSION, credentials=creds, discoveryServiceUrl=TRANSLATE_DISCOVERY_SERVICE_URL)
+  GOOGLE_TTS_API = build(GOOGLE_TTS_API_SERVICE_NAME, GOOGLE_TTS_API_VERSION, credentials=creds, discoveryServiceUrl=TTS_DISCOVERY_SERVICE_URL)
+  GOOGLE_TRANSLATE_API = build(GOOGLE_TRANSLATE_API_SERVICE_NAME, GOOGLE_TRANSLATE_API_VERSION, credentials=creds, discoveryServiceUrl=TRANSLATE_DISCOVERY_SERVICE_URL)
   
-  return TTS_API, TRANSLATE_API
+  return GOOGLE_TTS_API, GOOGLE_TRANSLATE_API
 
 
 def first_authentication():
-  global TTS_API, TRANSLATE_API
+  global GOOGLE_TTS_API, GOOGLE_TRANSLATE_API
   try:
-    TTS_API, TRANSLATE_API = get_authenticated_service() # Create authentication object
+    GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = get_authenticated_service() # Create authentication object
   except JSONDecodeError as jx:
     print(f" [!!!] Error: " + str(jx))
     print(f"\nDid you make the client_secrets.json file yourself by copying and pasting into it, instead of downloading it?")
@@ -107,7 +107,7 @@ def first_authentication():
     if "invalid_grant" in str(e):
       print(f"[!] Invalid token - Requires Re-Authentication")
       os.remove(TOKEN_FILE_NAME)
-      TTS_API, TRANSLATE_API = get_authenticated_service()
+      GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = get_authenticated_service()
     else:
       print('\n')
       traceback.print_exc() # Prints traceback
@@ -115,7 +115,7 @@ def first_authentication():
       print(f"[!!!] Error: " + str(e))
       input(f"\nError: Something went wrong during authentication. Try deleting the token.pickle file. \nPress Enter to Exit...")
       sys.exit()
-  return TTS_API, TRANSLATE_API
+  return GOOGLE_TTS_API, GOOGLE_TRANSLATE_API
 
 
 ################################################################################################

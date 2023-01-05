@@ -30,7 +30,7 @@ originalLanguage = 'en'
 
 import auth
 from utils import parseBool
-TTS_API, TRANSLATE_API = auth.first_authentication()
+GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = auth.first_authentication()
 
 outputFolder = "output"
 

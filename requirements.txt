@@ -8,3 +8,4 @@ azure-cognitiveservices-speech
 langcodes
 language_data
 numpy
+deepl

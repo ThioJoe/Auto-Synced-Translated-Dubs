@@ -11,7 +11,7 @@ translatedJsonFile = r"output\Translated Items.json"
 # ---------------------------------------------------------------------------------------
 
 # Import translated json file
-with open(translatedJsonFile, "r") as f:
+with open(translatedJsonFile, "r", encoding='utf-8') as f:
     translatedJson = json.load(f)
 
 YOUTUBE_API = auth.youtube_authentication()

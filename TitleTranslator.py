@@ -26,19 +26,26 @@ It will also preserve newlines, so you can use them to separate paragraphs
 noTranslateList = ['•', '⇨', '▼', '😤', '▬']
 originalLanguage = 'en'
 
+# You can export a json file to use with the TitleDescriptionUpdater.py script to update the translated titles and descriptions automatically
+createJsonFile = False
+
 #===============================================================================================================
 
 import auth
 from utils import parseBool
-TTS_API, TRANSLATE_API = auth.first_authentication()
+GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = auth.first_authentication()
 
 outputFolder = "output"
 
 import langcodes
+import sys
+import os
 import configparser
 import textwrap
 import re
 import html
+import copy
+import json
 
 description = textwrap.dedent(description).strip("\n")
 
@@ -77,6 +84,9 @@ languageNums = batchConfig['SETTINGS']['enabled_languages'].replace(' ','').spli
 cloudConfig = configparser.ConfigParser()
 cloudConfig.read('cloud_service_settings.ini')
 googleProjectID = cloudConfig['CLOUD']['google_project_id']
+preferredTranslateService = cloudConfig['CLOUD']['translate_service']
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 batchSettings = {}
 for num in languageNums:
@@ -87,20 +97,88 @@ for num in languageNums:
         'synth_voice_gender': batchConfig[f'LANGUAGE-{num}']['synth_voice_gender']
     }
 
-#--------------------------------- Translate ---------------------------------
-def translate(originalLanguage, targetLanguage, translationList):
-    response = auth.TRANSLATE_API.projects().translateText(
-        parent='projects/' + googleProjectID,
-        body={
-            'contents':translationList,
-            'sourceLanguageCode': originalLanguage,
-            'targetLanguageCode': targetLanguage,
-            'mimeType': 'text/html',
-            #'model': 'nmt',
-            #'glossaryConfig': {}
+##### Add additional info to the dictionary for each language #####
+# Later put this function somewhere else
+formalityPreference = config['SETTINGS']['formality_preference']
+def set_translation_info(languageBatchDict):
+    newBatchSettingsDict = copy.deepcopy(languageBatchDict)
+
+    # Set the translation service for each language
+    if preferredTranslateService == 'deepl':
+        langSupportResponse = auth.DEEPL_API.get_target_languages()
+        supportedLanguagesList = list(map(lambda x: str(x.code).upper(), langSupportResponse))
+
+        # # Create dictionary from response
+        # supportedLanguagesDict = {}
+        # for lang in langSupportResponse:
+        #     supportedLanguagesDict[lang.code.upper()] = {'name': lang.name, 'supports_formality': lang.supports_formality}
+
+        # Fix language codes for certain languages when using DeepL to be region specific
+        deepL_code_override = {
+            'EN': 'EN-US',
+            'PT': 'PT-BR'
         }
-    ).execute()
-    translatedTexts = [response['translations'][i]['translatedText'] for i in range(len(response['translations']))]
+
+        # Set translation service to DeepL if possible and get formality setting, otherwise set to Google
+        for langNum, langInfo in languageBatchDict.items():
+            # Get language code
+            lang = langInfo['translation_target_language'].upper()
+            # Check if language is supported by DeepL, or override if needed
+            if lang in supportedLanguagesList or lang in deepL_code_override:
+                # Fix certain language codes
+                if lang in deepL_code_override:
+                    newBatchSettingsDict[langNum]['translation_target_language'] = deepL_code_override[lang]
+                    lang = deepL_code_override[lang]
+                # Set translation service to DeepL
+                newBatchSettingsDict[langNum]['translate_service'] = 'deepl'
+                # Setting to 'prefer_more' or 'prefer_less' will it will default to 'default' if formality not supported             
+                if formalityPreference == 'more':
+                    newBatchSettingsDict[langNum]['formality'] = 'prefer_more'
+                elif formalityPreference == 'less':
+                    newBatchSettingsDict[langNum]['formality'] = 'prefer_less'
+                else:
+                    # Set formality to None if not supported for that language
+                    newBatchSettingsDict[langNum]['formality'] = 'default'
+
+            # If language is not supported, add dictionary entry to use Google
+            else:
+                newBatchSettingsDict[langNum]['translate_service'] = 'google'
+                newBatchSettingsDict[langNum]['formality'] = None
+    
+    # If using Google, set all languages to use Google in dictionary
+    elif preferredTranslateService == 'google':
+        for langNum, langInfo in languageBatchDict.items():
+            newBatchSettingsDict[langNum]['translate_service'] = 'google'
+            newBatchSettingsDict[langNum]['formality'] = None
+
+    return newBatchSettingsDict
+
+batchSettings = set_translation_info(batchSettings) # Use same function from main.py
+
+#--------------------------------- Translate ---------------------------------
+def translate(originalLanguage, singleLangDict, translationList):
+    targetLanguage = singleLangDict['translation_target_language']
+    translateService = singleLangDict['translate_service']
+    formality = singleLangDict['formality']
+
+    print(" Translating to " + targetLanguage + " using " + translateService + "...                    ", end='\r')
+
+    if translateService == 'google':
+        response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
+            parent='projects/' + googleProjectID,
+            body={
+                'contents':translationList,
+                'sourceLanguageCode': originalLanguage,
+                'targetLanguageCode': targetLanguage,
+                'mimeType': 'text/html',
+                #'model': 'nmt',
+                #'glossaryConfig': {}
+            }
+        ).execute()
+        translatedTexts = [response['translations'][i]['translatedText'] for i in range(len(response['translations']))]
+    elif translateService == 'deepl':
+        response = auth.DEEPL_API.translate_text(translationList, target_lang=targetLanguage, formality=formality)
+        translatedTexts = [response[i].text for i in range(len(response))]
 
     # Remove the span tags from the translated text, and convert the html formatting for special symbols
     for i, line in enumerate(translatedTexts):
@@ -112,23 +190,24 @@ def translate(originalLanguage, targetLanguage, translationList):
 #--------------------------------------------------------------------------------
 
 
-for key, value in batchSettings.items():
-    result = translate(originalLanguage, value['translation_target_language'], translationList)
+for langNum, langData in batchSettings.items():
+    result = translate(originalLanguage, langData, translationList)
     # Pop out the first element of the list, which is the translated title, leave the rest (Description lines)
-    batchSettings[key]['translated_title'] = result.pop(0)
-    batchSettings[key]['translated_description'] = result
+    batchSettings[langNum]['translated_title'] = result.pop(0)
+    batchSettings[langNum]['translated_description'] = result
+
+# Reinsert the empty lines into the description
+for i in emptyLineIndexes:
+    for langNum, langData in batchSettings.items():
+        langData['translated_description'].insert(i, '')
 
 # Write the translated text to a file
 with open(outputFolder + '/Translated Titles and Descriptions.txt', 'w', encoding='utf-8') as f:
-    for key, value in batchSettings.items():
-        title_translated = value['translated_title']
-        description_translated = value['translated_description']
-        lang = value['translation_target_language']
+    for langNum, langData in batchSettings.items():
+        title_translated = langData['translated_title']
+        description_translated = langData['translated_description']
+        lang = langData['translation_target_language']
         langDisplay = langcodes.get(lang).display_name()
-        
-        # Re-add the empty lines to the description
-        for i in emptyLineIndexes:
-            description_translated.insert(i, '')
 
         # Write heading for each language
         f.write(f'==============================================================================\n')
@@ -141,3 +220,13 @@ with open(outputFolder + '/Translated Titles and Descriptions.txt', 'w', encodin
             f.write(f'{line}\n')
       
         f.write("\n\n\n")
+
+if createJsonFile:
+    # Convert each description to single line
+    for langNum, langData in batchSettings.items():
+        langData['translated_description'] = '\n'.join(langData['translated_description'])
+
+    # Write the translated items to a json file
+    with open(outputFolder + '/Translated Items.json', 'w', encoding='utf-8') as f:
+        json.dump(batchSettings, f, indent=4)
+

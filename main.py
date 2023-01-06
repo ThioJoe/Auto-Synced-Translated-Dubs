@@ -6,7 +6,7 @@
 # License: GPLv3
 # NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
 
-version = '0.7.0'
+version = '0.8.0'
 print(f"------- 'Auto Synced Translated Dubs' script by ThioJoe - Release version {version} -------")
 
 # Import other files
@@ -14,6 +14,7 @@ import TTS
 import audio_builder
 import auth
 from utils import parseBool
+
 # Import built in modules
 import re
 import configparser
@@ -24,6 +25,8 @@ import copy
 import ffprobe
 import langcodes
 from operator import itemgetter
+import deepl
+import sys
 
 # EXTERNAL REQUIREMENTS:
 # rubberband binaries: https://breakfastquay.com/rubberband/ - Put rubberband.exe and sndfile.dll in the same folder as this script
@@ -42,8 +45,10 @@ skipSynthesize = parseBool(config['SETTINGS']['skip_synthesize'])  # Set to true
 debugMode = parseBool(config['SETTINGS']['debug_mode'])
 
 # Translation Settings
+stopAfterTranslation = parseBool(config['SETTINGS']['stop_after_translation'])
 skipTranslation = parseBool(config['SETTINGS']['skip_translation'])  # Set to true if you don't want to translate the subtitles. If so, ignore the following two variables
 originalLanguage = config['SETTINGS']['original_language']
+formalityPreference = config['SETTINGS']['formality_preference']
 
 # Note! Setting this to true will make it so instead of just stretching the audio clips, it will have the API generate new audio clips with adjusted speaking rates
 # This can't be done on the first pass because we don't know how long the audio clips will be until we generate them
@@ -53,14 +58,17 @@ twoPassVoiceSynth = parseBool(config['SETTINGS']['two_pass_voice_synth'])
 addBufferMilliseconds = int(config['SETTINGS']['add_line_buffer_milliseconds'])
 
 # Will combine subtitles into one audio clip if they are less than this many characters
-combineMaxChars = int(config['SETTINGS']['combine_subtitles_max_chars'])  
+combineMaxChars = int(config['SETTINGS']['combine_subtitles_max_chars'])
 
 #---------------------------------------- Parse Cloud Service Settings ----------------------------------------
-# Get auth and project settings for Azure or Google Cloud
+# Get auth and project settings for Azure, Google Cloud and/or DeepL
 cloudConfig = configparser.ConfigParser()
 cloudConfig.read('cloud_service_settings.ini')
 tts_service = cloudConfig['CLOUD']['tts_service']
+preferredTranslateService = cloudConfig['CLOUD']['translate_service']
+useFallbackGoogleTranslate = parseBool(cloudConfig['CLOUD']['use_fallback_google_translate'])
 googleProjectID = cloudConfig['CLOUD']['google_project_id']
+
 batchSynthesize = parseBool(cloudConfig['CLOUD']['batch_tts_synthesize'])
 
 #---------------------------------------- Batch File Processing ----------------------------------------
@@ -375,6 +383,8 @@ for key, value in subsDict.items():
 # Translate the text entries of the dictionary
 def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
     targetLanguage = langDict['targetLanguage']
+    translateService = langDict['translateService']
+    formality = langDict['formality']
 
     # Create a container for all the text to be translated
     textToTranslate = []
@@ -389,25 +399,74 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
         codepoints += len(text.encode("utf-8"))
     
     # If the codepoints are greater than 28000, split the request into multiple
-    # Google's API limit is 30000 Utf-8 codepoints per request, but we leave some room just in case
+    # Google's API limit is 30000 Utf-8 codepoints per request, while DeepL's is 130000, but we leave some room just in case
     if skipTranslation == False:
-        if codepoints > 27000:
+        if translateService == 'google' and codepoints > 27000 or translateService == 'deepl' and codepoints > 120000:
             # GPT-3 Description of what the following line does:
+            # If Google Translate is being used:
             # Splits the list of text to be translated into smaller chunks of 100 texts.
             # It does this by looping over the list in steps of 100, and slicing out each chunk from the original list. 
             # Each chunk is appended to a new list, chunkedTexts, which then contains the text to be translated in chunks.
-            chunkedTexts = [textToTranslate[x:x+100] for x in range(0, len(textToTranslate), 100)]
+            # The same thing is done for DeepL, but the chunk size is 400 instead of 100.
+            chunkSize = 100 if translateService == 'google' else 400
+            chunkedTexts = [textToTranslate[x:x+chunkSize] for x in range(0, len(textToTranslate), chunkSize)]
             
             # Send and receive the batch requests
-            for chunk in chunkedTexts:
-                # Print status with progress
-                print(f'Translating text group {chunkedTexts.index(chunk)+1} of {len(chunkedTexts)}')
+            for j,chunk in enumerate(chunkedTexts):
                 
                 # Send the request
-                response = auth.TRANSLATE_API.projects().translateText(
+                if translateService == 'google':
+                    # Print status with progress
+                    print(f'[Google] Translating text group {j+1} of {len(chunkedTexts)}')
+                    response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
+                        parent='projects/' + googleProjectID,
+                        body={
+                            'contents': chunk,
+                            'sourceLanguageCode': originalLanguage,
+                            'targetLanguageCode': targetLanguage,
+                            'mimeType': 'text/plain',
+                            #'model': 'nmt',
+                            #'glossaryConfig': {}
+                        }
+                    ).execute()
+
+                    # Extract the translated texts from the response
+                    translatedTexts = [response['translations'][i]['translatedText'] for i in range(len(response['translations']))]
+
+                    # Add the translated texts to the dictionary
+                    # Divide the dictionary into chunks of 100
+                    for i in range(chunkSize):
+                        key = str((i+1+j*chunkSize))
+                        inputSubsDict[key]['translated_text'] = translatedTexts[i]
+                        # Print progress, ovwerwrite the same line
+                        print(f' Translated with Google: {key} of {len(inputSubsDict)}', end='\r')
+
+                elif translateService == 'deepl':
+                    print(f'[DeepL] Translating text group {j+1} of {len(chunkedTexts)}')
+
+                    # Send the request
+                    result = auth.DEEPL_API.translate_text(chunk, target_lang=targetLanguage, formality=formality)
+                    
+                    # Extract the translated texts from the response
+                    translatedTexts = [result[i].text for i in range(len(result))]
+
+                    # Add the translated texts to the dictionary
+                    for i in range(chunkSize):
+                        key = str((i+1+j*chunkSize))
+                        inputSubsDict[key]['translated_text'] = translatedTexts[i]
+                        # Print progress, ovwerwrite the same line
+                        print(f' Translated with DeepL: {key} of {len(inputSubsDict)}', end='\r')
+                else:
+                    print("Error: Invalid translate_service setting. Only 'google' and 'deepl' are supported.")
+                    sys.exit()
+                
+        else:
+            if translateService == 'google':
+                print("Translating text using Google...")
+                response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
                     parent='projects/' + googleProjectID,
                     body={
-                        'contents': chunk,
+                        'contents':textToTranslate,
                         'sourceLanguageCode': originalLanguage,
                         'targetLanguageCode': targetLanguage,
                         'mimeType': 'text/plain',
@@ -415,34 +474,28 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                         #'glossaryConfig': {}
                     }
                 ).execute()
-
-                # Extract the translated texts from the response
                 translatedTexts = [response['translations'][i]['translatedText'] for i in range(len(response['translations']))]
                 
                 # Add the translated texts to the dictionary
                 for i, key in enumerate(inputSubsDict):
                     inputSubsDict[key]['translated_text'] = translatedTexts[i]
-                    # Print progress, ovwerwrite the same line
+                    # Print progress, overwrite the same line
                     print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
-        
-        else:
-            print("Translating text...")
-            response = auth.TRANSLATE_API.projects().translateText(
-                parent='projects/' + googleProjectID,
-                body={
-                    'contents':textToTranslate,
-                    'sourceLanguageCode': originalLanguage,
-                    'targetLanguageCode': targetLanguage,
-                    'mimeType': 'text/plain',
-                    #'model': 'nmt',
-                    #'glossaryConfig': {}
-                }
-            ).execute()
-            translatedTexts = [response['translations'][i]['translatedText'] for i in range(len(response['translations']))]
-            for i, key in enumerate(inputSubsDict):
-                inputSubsDict[key]['translated_text'] = translatedTexts[i]
-                # Print progress, ovwerwrite the same line
-                print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
+
+            elif translateService == 'deepl':
+                print("Translating text using DeepL...")
+
+                # Send the request
+                result = auth.DEEPL_API.translate_text(textToTranslate, target_lang=targetLanguage, formality=formality)
+
+                # Add the translated texts to the dictionary
+                for i, key in enumerate(inputSubsDict):
+                    inputSubsDict[key]['translated_text'] = result[i].text
+                    # Print progress, overwrite the same line
+                    print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
+            else:
+                print("Error: Invalid translate_service setting. Only 'google' and 'deepl' are supported.")
+                sys.exit()
     else:
         for key in inputSubsDict:
             inputSubsDict[key]['translated_text'] = inputSubsDict[key]['text'] # Skips translating, such as for testing
@@ -488,18 +541,72 @@ if not os.path.exists('workingFolder'):
 
 #======================================== Translation and Text-To-Speech ================================================    
 
-# Create dictionary to store settings for the language to pass into functions
-langDict = {}
-for langNum, value in batchSettings.items():
-    # Place settings into individual dictionary
-    langDict = {
-        'targetLanguage': value['translation_target_language'], 
-        'voiceName': value['synth_voice_name'], 
-        'languageCode': value['synth_language_code'], 
-        'voiceGender': value['synth_voice_gender']
+
+##### Add additional info to the dictionary for each language #####
+def set_translation_info(languageBatchDict):
+    newBatchSettingsDict = copy.deepcopy(languageBatchDict)
+
+    # Set the translation service for each language
+    if preferredTranslateService == 'deepl':
+        langSupportResponse = auth.DEEPL_API.get_target_languages()
+        supportedLanguagesList = list(map(lambda x: str(x.code).upper(), langSupportResponse))
+
+        # # Create dictionary from response
+        # supportedLanguagesDict = {}
+        # for lang in langSupportResponse:
+        #     supportedLanguagesDict[lang.code.upper()] = {'name': lang.name, 'supports_formality': lang.supports_formality}
+
+        # Fix language codes for certain languages when using DeepL to be region specific
+        deepL_code_override = {
+            'EN': 'EN-US',
+            'PT': 'PT-BR'
         }
 
-    # Create subs dict to use for this language
+        # Set translation service to DeepL if possible and get formality setting, otherwise set to Google
+        for langNum, langInfo in languageBatchDict.items():
+            # Get language code
+            lang = langInfo['translation_target_language'].upper()
+            # Check if language is supported by DeepL, or override if needed
+            if lang in supportedLanguagesList or lang in deepL_code_override:
+                # Fix certain language codes
+                if lang in deepL_code_override:
+                    newBatchSettingsDict[langNum]['translation_target_language'] = deepL_code_override[lang]
+                    lang = deepL_code_override[lang]
+                # Set translation service to DeepL
+                newBatchSettingsDict[langNum]['translate_service'] = 'deepl'
+                # Setting to 'prefer_more' or 'prefer_less' will it will default to 'default' if formality not supported             
+                if formalityPreference == 'more':
+                    newBatchSettingsDict[langNum]['formality'] = 'prefer_more'
+                elif formalityPreference == 'less':
+                    newBatchSettingsDict[langNum]['formality'] = 'prefer_less'
+                else:
+                    # Set formality to None if not supported for that language
+                    newBatchSettingsDict[langNum]['formality'] = 'default'
+
+            # If language is not supported, add dictionary entry to use Google
+            else:
+                newBatchSettingsDict[langNum]['translate_service'] = 'google'
+                newBatchSettingsDict[langNum]['formality'] = None
+    
+    # If using Google, set all languages to use Google in dictionary
+    elif preferredTranslateService == 'google':
+        for langNum, langInfo in languageBatchDict.items():
+            newBatchSettingsDict[langNum]['translate_service'] = 'google'
+            newBatchSettingsDict[langNum]['formality'] = None
+
+    return newBatchSettingsDict
+
+# Process a language: Translate, Synthesize, and Build Audio
+def process_language(langData):
+    langDict = {
+        'targetLanguage': langData['translation_target_language'], 
+        'voiceName': langData['synth_voice_name'], 
+        'languageCode': langData['synth_language_code'], 
+        'voiceGender': langData['synth_voice_gender'],
+        'translateService': langData['translate_service'],
+        'formality': langData['formality']
+        }
+
     individualLanguageSubsDict = copy.deepcopy(subsDict)
 
     # Print language being processed
@@ -508,6 +615,10 @@ for langNum, value in batchSettings.items():
     # Translate
     individualLanguageSubsDict = translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=skipTranslation)
 
+    if stopAfterTranslation:
+        print("Stopping at translation is enabled. Skipping TTS and building audio.")
+        return
+
     # Synthesize
     if batchSynthesize == True and tts_service == 'azure':
         individualLanguageSubsDict = TTS.synthesize_dictionary_batch(individualLanguageSubsDict, langDict, skipSynthesize=skipSynthesize)
@@ -515,4 +626,13 @@ for langNum, value in batchSettings.items():
         individualLanguageSubsDict = TTS.synthesize_dictionary(individualLanguageSubsDict, langDict, skipSynthesize=skipSynthesize)
 
     # Build audio
-    individualLanguageSubsDict = audio_builder.build_audio(individualLanguageSubsDict, langDict, totalAudioLength, twoPassVoiceSynth)
+    individualLanguageSubsDict = audio_builder.build_audio(individualLanguageSubsDict, langDict, totalAudioLength, twoPassVoiceSynth)    
+
+
+
+# Process all languages
+print(f"\n----- Beginning Processing of Languages -----")
+batchSettings = set_translation_info(batchSettings)
+for langNum, langData in batchSettings.items():
+    # Process current fallback language
+    process_language(langData)

@@ -14,7 +14,6 @@ from urllib.request import urlopen
 import auth
 import azure_batch
 from utils import parseBool
-TTS_API, TRANSLATE_API = auth.first_authentication()
 
 # Read config files
 config = configparser.ConfigParser()
@@ -24,6 +23,8 @@ cloudConfig.read('cloud_service_settings.ini')
 
 # Get variables from config
 ttsService = cloudConfig['CLOUD']['tts_service'].lower()
+translateService = cloudConfig['CLOUD']['translate_service'].lower()
+useFallbackGoogleTranslate = parseBool(cloudConfig['CLOUD']['use_fallback_google_translate'])
 audioEncoding = config['SETTINGS']['synth_audio_encoding'].upper()
 debugMode = parseBool(config['SETTINGS']['debug_mode'])
 azureSentencePause = config['SETTINGS']['azure_sentence_pause'].lower().strip("\"").strip("\'")
@@ -32,9 +33,13 @@ azureSentencePause = config['SETTINGS']['azure_sentence_pause'].lower().strip("\
 AZURE_SPEECH_KEY = cloudConfig['CLOUD']['azure_speech_key']
 AZURE_SPEECH_REGION = cloudConfig['CLOUD']['azure_speech_region']
 
+# Get Google credentials if applicable
+if ttsService == "google" or translateService == "google" or useFallbackGoogleTranslate:
+    GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = auth.first_authentication()
+
 # Get List of Voices Available
 def get_voices():
-    voices = TTS_API.voices().list().execute()
+    voices = GOOGLE_TTS_API.voices().list().execute()
     voices_json = json.dumps(voices)
     return voices_json
 
@@ -49,7 +54,7 @@ def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCo
     # API Info at https://texttospeech.googleapis.com/$discovery/rest?version=v1
     # Try, if error regarding quota, waits a minute and tries again
     def send_request(speedFactor):
-        response = TTS_API.text().synthesize(
+        response = GOOGLE_TTS_API.text().synthesize(
             body={
                 'input':{
                     "text": text

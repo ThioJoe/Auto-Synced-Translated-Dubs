@@ -7,6 +7,10 @@ import json
 videoID = "abcdefghijkl"
 translatedJsonFile = r"output\Translated Items.json"
 
+# Override language codes, like for localization. Put the original on the left, and the new on the right
+overRiddenLangCodes = {
+    "pt": "pt-BR",
+}
 
 # ---------------------------------------------------------------------------------------
 
@@ -46,6 +50,10 @@ def update_title_and_description(videoID, translatedJson):
         langCode = langData["translation_target_language"]
         title = langData["translated_title"]
         description = langData["translated_description"]
+
+        # Override selected language codes if applicable
+        if overRiddenLangCodes and langCode in overRiddenLangCodes:
+            langCode = overRiddenLangCodes[langCode]
 
         # newLocals will contain the original localizations, but overwritten by the data from the json file
         newLocals[langCode] = {

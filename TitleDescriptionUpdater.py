@@ -61,14 +61,14 @@ def update_title_and_description(videoID, translatedJson):
             "description": description
         }
 
-        # Send request to update localization
-        localization_result = YOUTUBE_API.videos().update(
-            part = "localizations",
-            body = {
-                "id": videoID,
-                "localizations": newLocals
-            },
-        ).execute()
+    # Send request to update localization
+    localization_result = YOUTUBE_API.videos().update(
+        part = "localizations",
+        body = {
+            "id": videoID,
+            "localizations": newLocals
+        },
+    ).execute()
 
 def get_video_title(videoID):
     try:

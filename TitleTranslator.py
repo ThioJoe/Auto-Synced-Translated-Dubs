@@ -26,6 +26,9 @@ It will also preserve newlines, so you can use them to separate paragraphs
 noTranslateList = ['•', '⇨', '▼', '😤', '▬']
 originalLanguage = 'en'
 
+# You can export a json file to use with the TitleDescriptionUpdater.py script to update the translated titles and descriptions automatically
+createJsonFile = False
+
 #===============================================================================================================
 
 import auth
@@ -42,6 +45,7 @@ import textwrap
 import re
 import html
 import copy
+import json
 
 description = textwrap.dedent(description).strip("\n")
 
@@ -192,6 +196,11 @@ for langNum, langData in batchSettings.items():
     batchSettings[langNum]['translated_title'] = result.pop(0)
     batchSettings[langNum]['translated_description'] = result
 
+# Reinsert the empty lines into the description
+for i in emptyLineIndexes:
+    for langNum, langData in batchSettings.items():
+        langData['translated_description'].insert(i, '')
+
 # Write the translated text to a file
 with open(outputFolder + '/Translated Titles and Descriptions.txt', 'w', encoding='utf-8') as f:
     for langNum, langData in batchSettings.items():
@@ -199,10 +208,6 @@ with open(outputFolder + '/Translated Titles and Descriptions.txt', 'w', encodin
         description_translated = langData['translated_description']
         lang = langData['translation_target_language']
         langDisplay = langcodes.get(lang).display_name()
-        
-        # Re-add the empty lines to the description
-        for i in emptyLineIndexes:
-            description_translated.insert(i, '')
 
         # Write heading for each language
         f.write(f'==============================================================================\n')
@@ -215,3 +220,13 @@ with open(outputFolder + '/Translated Titles and Descriptions.txt', 'w', encodin
             f.write(f'{line}\n')
       
         f.write("\n\n\n")
+
+if createJsonFile:
+    # Convert each description to single line
+    for langNum, langData in batchSettings.items():
+        langData['translated_description'] = '\n'.join(langData['translated_description'])
+
+    # Write the translated items to a json file
+    with open(outputFolder + '/Translated Items.json', 'w', encoding='utf-8') as f:
+        json.dump(batchSettings, f, indent=4)
+

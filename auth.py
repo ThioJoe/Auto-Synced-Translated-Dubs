@@ -20,7 +20,8 @@ cloudConfig = configparser.ConfigParser()
 cloudConfig.read('cloud_service_settings.ini')
 
 # Google Cloud Globals
-TOKEN_FILE_NAME = 'token.pickle'
+token_file_name = 'token.pickle'
+youtube_token_filename = 'yt_token.pickle'
 GOOGLE_TTS_API = None
 GOOGLE_TRANSLATE_API = None
 
@@ -39,12 +40,13 @@ DEEPL_API = None
 # https://developers.google.com/api-client-library/python/guide/aaa_client_secrets
 
 # Authorize the request and store authorization credentials.
-def get_authenticated_service():
+def get_authenticated_service(youtubeAuth = False):
   global GOOGLE_TTS_API
   global GOOGLE_TRANSLATE_API
   CLIENT_SECRETS_FILE = 'client_secrets.json'
-  API_SCOPES = ['https://www.googleapis.com/auth/cloud-platform', 'https://www.googleapis.com/auth/cloud-translation']
-
+  YOUTUBE_CLIENT_SECRETS_FILE = 'yt_client_secrets.json'
+  GOOGLE_API_SCOPES = ['https://www.googleapis.com/auth/cloud-platform', 'https://www.googleapis.com/auth/cloud-translation']
+  
   # TTS API Info
   GOOGLE_TTS_API_SERVICE_NAME = 'texttospeech'
   GOOGLE_TTS_API_VERSION = 'v1'
@@ -56,11 +58,33 @@ def get_authenticated_service():
   GOOGLE_TRANSLATE_API_VERSION = 'v3beta1'
   TRANSLATE_DISCOVERY_SERVICE_URL = "https://translate.googleapis.com/$discovery/rest?version=v3beta1"
 
+  # YouTube API Info
+  YT_READ_WRITE_SSL_SCOPE = ['https://www.googleapis.com/auth/youtube.force-ssl']
+  YT_API_SERVICE_NAME = 'youtube'
+  YT_API_VERSION = 'v3'
+  YT_DISCOVERY_SERVICE_URL = "https://youtube.googleapis.com/$discovery/rest?version=v3"
+
+  # Set proper variables based on which API is being used
+  if youtubeAuth:
+    API_SCOPES = YT_READ_WRITE_SSL_SCOPE
+  else:
+    API_SCOPES = GOOGLE_API_SCOPES
+
+  if youtubeAuth == True:
+    token_file = youtube_token_filename
+  else:
+    token_file = token_file_name
+
+  if youtubeAuth == True:
+    secrets_file = YOUTUBE_CLIENT_SECRETS_FILE
+  else:
+    secrets_file = CLIENT_SECRETS_FILE
+
   # Check if client_secrets.json file exists, if not give error
-  if not os.path.exists(CLIENT_SECRETS_FILE):
+  if not os.path.exists(secrets_file):
     # In case people don't have file extension viewing enabled, they may add a redundant json extension
-    if os.path.exists(f"{CLIENT_SECRETS_FILE}.json"):
-      CLIENT_SECRETS_FILE = CLIENT_SECRETS_FILE + ".json"
+    if os.path.exists(f"{secrets_file}.json"):
+      secrets_file = secrets_file + ".json"
     else:
       print(f"\n         ----- [!] Error: client_secrets.json file not found -----")
       print(f" ----- Did you create a Google Cloud Platform Project to access the API? ----- ")
@@ -70,8 +94,8 @@ def get_authenticated_service():
   creds = None
   # The file token.pickle stores the user's access and refresh tokens, and is
   # created automatically when the authorization flow completes for the first time.
-  if os.path.exists(TOKEN_FILE_NAME):
-    creds = Credentials.from_authorized_user_file(TOKEN_FILE_NAME, scopes=API_SCOPES)
+  if os.path.exists(token_file):
+    creds = Credentials.from_authorized_user_file(token_file, scopes=API_SCOPES)
 
   # If there are no (valid) credentials available, make the user log in.
   if not creds or not creds.valid:
@@ -79,12 +103,17 @@ def get_authenticated_service():
       creds.refresh(Request())
     else:
       print(f"\nPlease login using the browser window that opened just now.\n")
-      flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, scopes=API_SCOPES)
+      flow = InstalledAppFlow.from_client_secrets_file(secrets_file, scopes=API_SCOPES)
       creds = flow.run_local_server(port=0, authorization_prompt_message="Waiting for authorization. See message above.")
       print(f"[OK] Authorization Complete.")
       # Save the credentials for the next run
-    with open(TOKEN_FILE_NAME, 'w') as token:
+    with open(token_file, 'w') as token:
       token.write(creds.to_json())
+  
+  if youtubeAuth:
+    # Build YouTube API object
+    YOUTUBE_API =  build(YT_API_SERVICE_NAME, YT_API_VERSION, credentials=creds, discoveryServiceUrl=YT_DISCOVERY_SERVICE_URL)
+    return YOUTUBE_API
 
   # Build tts and translate API objects    
   GOOGLE_TTS_API = build(GOOGLE_TTS_API_SERVICE_NAME, GOOGLE_TTS_API_VERSION, credentials=creds, discoveryServiceUrl=TTS_DISCOVERY_SERVICE_URL)
@@ -92,6 +121,26 @@ def get_authenticated_service():
   
   return GOOGLE_TTS_API, GOOGLE_TRANSLATE_API
 
+def youtube_authentication():
+  global YOUTUBE_API
+  try:
+    YOUTUBE_API = get_authenticated_service(youtubeAuth = True) # Create authentication object
+  except JSONDecodeError as jx:
+    print(f" [!!!] Error: " + str(jx))
+    print(f"\nDid you make the client_secrets.json file yourself by copying and pasting into it, instead of downloading it?")
+
+    input("Press Enter to Exit...")
+    sys.exit()
+  except Exception as e:
+    if "invalid_grant" in str(e):
+      print(f"[!] Invalid token - Requires Re-Authentication")
+      os.remove(youtube_token_filename)
+      youtube_authentication()
+    else:
+      print(f" [!!!] Error: " + str(e))
+      input("Press Enter to Exit...")
+      sys.exit()
+  return YOUTUBE_API
 
 def first_authentication():
   global GOOGLE_TTS_API, GOOGLE_TRANSLATE_API
@@ -99,14 +148,14 @@ def first_authentication():
     GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = get_authenticated_service() # Create authentication object
   except JSONDecodeError as jx:
     print(f" [!!!] Error: " + str(jx))
-    print(f"\nDid you make the client_secrets.json file yourself by copying and pasting into it, instead of downloading it?")
+    print(f"\nDid you make the yt_client_secrets.json file yourself by copying and pasting into it, instead of downloading it?")
     print(f"You need to download the json file directly from the Google Cloud dashboard, by creating credentials.")
     input("Press Enter to Exit...")
     sys.exit()
   except Exception as e:
     if "invalid_grant" in str(e):
       print(f"[!] Invalid token - Requires Re-Authentication")
-      os.remove(TOKEN_FILE_NAME)
+      os.remove(token_file_name)
       GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = get_authenticated_service()
     else:
       print('\n')

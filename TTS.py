@@ -240,7 +240,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
     # Clear out workingFolder
     for filename in os.listdir('workingFolder'):
         if not debugMode:
-            os.remove('workingFolder\\' + filename)
+            os.remove(os.path.join('workingFolder', filename))
 
     # Loop through payloads and submit to Azure
     for payload in payloadList:
@@ -296,7 +296,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                         #file.filename = file.filename.lstrip('0')
 
                         # Add file path to subsDict then remove from remainingDownloadedEntriesList
-                        subsDict[currentFileNum]['TTS_FilePath'] = "workingFolder\\" + str(currentFileNum) + '.mp3'
+                        subsDict[currentFileNum]['TTS_FilePath'] = os.path.join('workingFolder', str(currentFileNum)) + '.mp3'
                         # Extract file
                         zipdata.extract(file, 'workingFolder')
                         # Remove entry from remainingDownloadedEntriesList
@@ -319,7 +319,7 @@ def synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=False, second
 def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=False):
     for key, value in subsDict.items():
         # TTS each subtitle text, write to file, write filename into dictionary
-        filePath = f"workingFolder\\{str(key)}.mp3"
+        filePath = os.path.join('workingFolder', f'{str(key)}.mp3')
         if not skipSynthesize:
 
             if secondPass:

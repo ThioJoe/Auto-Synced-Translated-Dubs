@@ -76,7 +76,7 @@ def stretch_audio(audioFileToStretch, speedFactor, num):
     #soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
     soundfile.write(virtualTempAudioFile, streched_audio, sampleRate, format='wav')
     if debugMode:
-        soundfile.write(f'{workingFolder}\\{num}_s.wav', streched_audio, sampleRate) # For debugging, saves the stretched audio files
+        soundfile.write(os.path.join(workingFolder, f'{num}_s.wav'), streched_audio, sampleRate) # For debugging, saves the stretched audio files
     #return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
     return AudioSegment.from_file(virtualTempAudioFile, format="wav")
 
@@ -85,7 +85,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     virtualTrimmedFileDict = {}
     # First trim silence off the audio files
     for key, value in subsDict.items():
-        filePathTrimmed = workingFolder + "\\" + str(key) + "_t.wav"
+        filePathTrimmed = os.path.join(workingFolder,  str(key)) + "_t.wav"
         subsDict[key]['TTS_FilePath_Trimmed'] = filePathTrimmed
 
         # Trim the clip and re-write file

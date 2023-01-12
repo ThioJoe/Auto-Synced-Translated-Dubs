@@ -6,7 +6,7 @@
 # License: GPLv3
 # NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
 
-version = '0.8.0'
+version = '0.8.1'
 print(f"------- 'Auto Synced Translated Dubs' script by ThioJoe - Release version {version} -------")
 
 # Import other files
@@ -126,7 +126,7 @@ totalAudioLength = get_duration(originalVideoFile)
 
 #======================================== Parse SRT File ================================================
 # Open an srt file and read the lines into a list
-with open(srtFile, 'r', encoding='utf-8') as f:
+with open(srtFile, 'r', encoding='utf-8-sig') as f:
     lines = f.readlines()
 
 # Matches the following example with regex:    00:00:20,130 --> 00:00:23,419
@@ -513,7 +513,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
         # Set path to save translated srt file
         translatedSrtFileName = os.path.join(outputFolder, translatedSrtFileName)
         # Write new srt file with translated text
-        with open(translatedSrtFileName, 'w', encoding='utf-8') as f:
+        with open(translatedSrtFileName, 'w', encoding='utf-8-sig') as f:
             for key in combinedProcessedDict:
                 f.write(str(key) + '\n')
                 f.write(combinedProcessedDict[key]['srt_timestamps_line'] + '\n')

@@ -13,6 +13,7 @@ import os
 import pathlib
 import langcodes
 import html
+import re
 
 # Get Configs
 cloudConfig = configparser.ConfigParser()
@@ -38,9 +39,19 @@ originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file
 outputDirectory = "Outputs"
 outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0] + ' (Output)')
 
-# Will add span tags around certain words to exclude them from being translated
+# Add span tags around certain words to exclude them from being translated
+dontTranslateList = [] # Placeholder for now
 
+def add_notranslate_tags(dontTranslateList, text):
+    #dontTranslateList = [word.lower() for word in dontTranslateList]
+    for word in dontTranslateList:
+        findWordRegex = rf'\b["\']?{word}[.,!?]?["\']?\b' # Find the word, with optional punctuation after, and optional quotes before or after
+        text = re.sub(findWordRegex, r' <span class="notranslate">\1</span> ', text, flags=re.IGNORECASE)
+    return text
 
+def remove_notranslate_tags(text):
+    text = text.replace('<span class="notranslate">', '').replace('</span>', '')
+    return text
 
 #======================================== Translate Text ================================================
 # Note: This function was almost entirely written by GPT-3 after feeding it my original code and asking it to change it so it

@@ -12,6 +12,7 @@ import copy
 import os
 import pathlib
 import langcodes
+import html
 
 # Get Configs
 cloudConfig = configparser.ConfigParser()
@@ -36,6 +37,10 @@ originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file
 # Set output folder based on filename of original video file
 outputDirectory = "Outputs"
 outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0] + ' (Output)')
+
+# Will add span tags around certain words to exclude them from being translated
+
+
 
 #======================================== Translate Text ================================================
 # Note: This function was almost entirely written by GPT-3 after feeding it my original code and asking it to change it so it
@@ -92,7 +97,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     ).execute()
 
                     # Extract the translated texts from the response
-                    translatedTexts = [response['translations'][i]['translatedText'] for i in range(len(response['translations']))]
+                    translatedTexts = [html.unescape(response['translations'][i]['translatedText']) for i in range(len(response['translations']))]
 
                     # Add the translated texts to the dictionary
                     # Divide the dictionary into chunks of 100
@@ -109,7 +114,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     result = auth.DEEPL_API.translate_text(chunk, target_lang=targetLanguage, formality=formality)
                     
                     # Extract the translated texts from the response
-                    translatedTexts = [result[i].text for i in range(len(result))]
+                    translatedTexts = [html.unescape(result[i].text) for i in range(len(result))]
 
                     # Add the translated texts to the dictionary
                     for i in range(chunkSize):
@@ -135,7 +140,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                         #'glossaryConfig': {}
                     }
                 ).execute()
-                translatedTexts = [response['translations'][i]['translatedText'] for i in range(len(response['translations']))]
+                translatedTexts = [html.unescape(response['translations'][i]['translatedText']) for i in range(len(response['translations']))]
                 
                 # Add the translated texts to the dictionary
                 for i, key in enumerate(inputSubsDict):

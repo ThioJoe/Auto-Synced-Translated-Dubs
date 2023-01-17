@@ -33,7 +33,7 @@ import sys
 
 # ====================================== SET CONFIGS ================================================
 # MOVE THIS INTO A DICTIONARY VARIABLE AT SOME POINT
-outputFolder = "output"
+
 
 # Read config file
 config = configparser.ConfigParser()
@@ -67,8 +67,12 @@ batchConfig = configparser.ConfigParser()
 batchConfig.read('batch.ini')
 # Get list of languages to process
 languageNums = batchConfig['SETTINGS']['enabled_languages'].replace(' ','').split(',')
-originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))
 srtFile = os.path.abspath(batchConfig['SETTINGS']['srt_file_path'].strip("\""))
+originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))
+
+# Set output folder based on filename of original video file
+outputDirectory = "Outputs"
+outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0] + ' (Output)')
 
 # Validate the number of sections
 for num in languageNums:
@@ -195,6 +199,8 @@ for key, value in subsDict.items():
 #============================================= Directory Validation =====================================================
 
 # Check if the output folder exists, if not, create it
+if not os.path.exists(outputDirectory):
+    os.makedirs(outputDirectory)
 if not os.path.exists(outputFolder):
     os.makedirs(outputFolder)
 

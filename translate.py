@@ -32,8 +32,10 @@ debugMode = parseBool(config['SETTINGS']['debug_mode'])
 combineMaxChars = int(config['SETTINGS']['combine_subtitles_max_chars']) # Will combine subtitles into one audio clip if they are less than this many characters
 
 # MOVE THESE INTO A DICTIONARY VARIABLE AT SOME POINT
-outputFolder = "output"
 originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))
+# Set output folder based on filename of original video file
+outputDirectory = "Outputs"
+outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0] + ' (Output)')
 
 #======================================== Translate Text ================================================
 # Note: This function was almost entirely written by GPT-3 after feeding it my original code and asking it to change it so it

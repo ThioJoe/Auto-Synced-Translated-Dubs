@@ -6,7 +6,7 @@
 # License: GPLv3
 # NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
 
-version = '0.9.0'
+version = '0.9.1'
 print(f"------- 'Auto Synced Translated Dubs' script by ThioJoe - Release version {version} -------")
 
 # Import other files
@@ -68,7 +68,13 @@ batchConfig.read('batch.ini')
 # Get list of languages to process
 languageNums = batchConfig['SETTINGS']['enabled_languages'].replace(' ','').split(',')
 srtFile = os.path.abspath(batchConfig['SETTINGS']['srt_file_path'].strip("\""))
-originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))
+
+# Get original video file path, also allow you to debug using a subtitle file without having the original video file
+videoFilePath = batchConfig['SETTINGS']['original_video_file_path']
+if debugMode and (videoFilePath == '' or videoFilePath.lower() == 'none'):
+    originalVideoFile = 'Debug.test'
+else:
+    originalVideoFile = os.path.abspath(videoFilePath.strip("\""))
 
 # Set output folder based on filename of original video file
 outputDirectory = "Outputs"
@@ -101,22 +107,6 @@ for num in languageNums:
         'synth_voice_gender': batchConfig[f'LANGUAGE-{num}']['synth_voice_gender']
     }
 
-#======================================== Get Total Duration ================================================
-# Final audio file Should equal the length of the video in milliseconds
-def get_duration(filename):
-    import subprocess, json
-    result = subprocess.check_output(
-            f'ffprobe -v quiet -show_streams -select_streams v:0 -of json "{filename}"', shell=True).decode()
-    fields = json.loads(result)['streams'][0]
-    try:
-        duration = fields['tags']['DURATION']
-    except KeyError:
-        duration = fields['duration']
-    durationMS = round(float(duration)*1000) # Convert to milliseconds
-    return durationMS
-
-totalAudioLength = get_duration(originalVideoFile)
-#totalAudioLength = 999999 # Or set manually here and comment out the above line
 
 #======================================== Parse SRT File ================================================
 # Open an srt file and read the lines into a list
@@ -183,10 +173,6 @@ for lineNum, line in enumerate(lines):
             subsDict[line]['break_until_next'] = 0
 
 
-
-
-
-
 # Apply the buffer to the start and end times by setting copying over the buffer values to main values
 for key, value in subsDict.items():
     if addBufferMilliseconds > 0:
@@ -194,6 +180,27 @@ for key, value in subsDict.items():
         subsDict[key]['end_ms'] = value['end_ms_buffered']
         subsDict[key]['duration_ms'] = value['duration_ms_buffered']
 
+
+#======================================== Get Total Duration ================================================
+# Final audio file Should equal the length of the video in milliseconds
+def get_duration(filename):
+    import subprocess, json
+    result = subprocess.check_output(
+            f'ffprobe -v quiet -show_streams -select_streams v:0 -of json "{filename}"', shell=True).decode()
+    fields = json.loads(result)['streams'][0]
+    try:
+        duration = fields['tags']['DURATION']
+    except KeyError:
+        duration = fields['duration']
+    durationMS = round(float(duration)*1000) # Convert to milliseconds
+    return durationMS
+
+# Get the duration of the original video file
+if debugMode and originalVideoFile.lower() == "debug.test":
+    # Copy the duration based on the last timestamp of the subtitles
+    totalAudioLength = int(subsDict[str(len(subsDict))]['end_ms'])
+else:
+    totalAudioLength = get_duration(originalVideoFile)
 
 
 #============================================= Directory Validation =====================================================

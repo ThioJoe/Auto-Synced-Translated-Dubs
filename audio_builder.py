@@ -25,7 +25,7 @@ cloudConfig.read('cloud_service_settings.ini')
 
 # Get variables from configs
 nativeSampleRate = int(config['SETTINGS']['synth_sample_rate'])
-originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))
+
 skipSynthesize = parseBool(config['SETTINGS']['skip_synthesize'])
 forceTwoPassStretch = parseBool(config['SETTINGS']['force_stretch_with_twopass'])
 outputFormat = config['SETTINGS']['output_format'].lower()
@@ -34,6 +34,13 @@ tts_service = cloudConfig['CLOUD']['tts_service']
 debugMode = parseBool(config['SETTINGS']['debug_mode'])
 
 # MOVE THIS INTO A VARIABLE AT SOME POINT
+# Get original video file path, also allow you to debug using a subtitle file without having the original video file
+videoFilePath = batchConfig['SETTINGS']['original_video_file_path']
+originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))
+if debugMode and (videoFilePath == '' or videoFilePath.lower() == 'none'):
+    originalVideoFile = 'Debug.test'
+else:
+    originalVideoFile = os.path.abspath(videoFilePath.strip("\""))
 outputDirectory = "Outputs"
 outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0] + ' (Output)')
 
@@ -123,7 +130,9 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)
             trimmedClip = trim_clip(rawClip)
             if debugMode:
-                trimmedClip.export(value['TTS_FilePath_Trimmed'], format="wav")
+                # Remove '.wav' from the end of the file path
+                secondPassTrimmedFile = value['TTS_FilePath_Trimmed'][:-4] + "_p2_t.wav"
+                trimmedClip.export(secondPassTrimmedFile, format="wav")
             trimmedClip.export(virtualTrimmedFileDict[key], format="wav")
             keyIndex = list(subsDict.keys()).index(key)
             print(f" Trimmed Audio (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
@@ -157,7 +166,10 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     # Use video file name to use in the name of the output file. Add language name and language code
     lang = langcodes.get(langDict['languageCode'])
     langName = langcodes.get(langDict['languageCode']).get(lang.to_alpha3()).display_name()
-    outputFileName = pathlib.Path(originalVideoFile).stem + f" - {langName} - {langDict['languageCode']}."
+    if debugMode and not os.path.isfile(originalVideoFile):
+        outputFileName = "debug" + f" - {langName} - {langDict['languageCode']}."
+    else:
+        outputFileName = pathlib.Path(originalVideoFile).stem + f" - {langName} - {langDict['languageCode']}."
     # Set output path
     outputFileName = os.path.join(outputFolder, outputFileName)
 

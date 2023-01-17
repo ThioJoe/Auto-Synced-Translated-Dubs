@@ -341,6 +341,19 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                 # Download zip file
                 urlResponse = urlopen(resultDownloadLink)
 
+                # If debug mode, save zip file to disk
+                if debugMode:
+                    if secondPass == False:
+                        zipName = 'azureBatch.zip'
+                    else:
+                        zipName = 'azureBatchPass2.zip'
+
+                    zipPath = os.path.join('workingFolder', zipName)
+                    with open(zipPath, 'wb') as f:
+                        f.write(urlResponse.read())
+                    # Reset urlResponse so it can be read again
+                    urlResponse = urlopen(resultDownloadLink)
+
                 # Process zip file    
                 virtualResultZip = io.BytesIO(urlResponse.read())
                 zipdata = zipfile.ZipFile(virtualResultZip)
@@ -385,6 +398,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
     for key, value in subsDict.items():
         # TTS each subtitle text, write to file, write filename into dictionary
         filePath = os.path.join('workingFolder', f'{str(key)}.mp3')
+        filePathStem = os.path.join('workingFolder', f'{str(key)}')
         if not skipSynthesize:
 
             if secondPass:
@@ -405,6 +419,14 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                 audio = synthesize_text_google(value['translated_text'], speedFactor, langDict['voiceName'], langDict['voiceGender'], langDict['languageCode'])
                 with open(filePath, "wb", encoding='utf-8') as out:
                     out.write(audio)
+                
+                # If debug mode, write to files after Google TTS
+                if debugMode and secondPass == False:
+                    with open(filePathStem+"_p1.mp3", "wb", encoding='utf-8') as out:
+                        out.write(audio)
+                elif debugMode and secondPass == True:
+                    with open(filePathStem+"_p2.mp3", "wb", encoding='utf-8') as out:
+                        out.write(audio)
 
             # If Azure TTS, use Azure API
             elif ttsService == "azure":
@@ -412,6 +434,12 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                 audio = synthesize_text_azure(value['translated_text'], speedFactor, langDict['voiceName'], langDict['languageCode'])
                 # Save to file using save_to_wav_file method of audio object
                 audio.save_to_wav_file(filePath)
+                
+                # If debug mode, write to files after Google TTS
+                if debugMode and secondPass == False:
+                    audio.save_to_wav_file(filePathStem+"_p1.mp3")
+                elif debugMode and secondPass == True:
+                    audio.save_to_wav_file(filePathStem+"_p2.mp3")
 
         subsDict[key]['TTS_FilePath'] = filePath
 

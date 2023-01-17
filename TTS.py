@@ -9,10 +9,12 @@ import datetime
 import zipfile
 import io
 import copy
+import re
 from urllib.request import urlopen
 
 import auth
 import azure_batch
+import utils
 from utils import parseBool
 
 # Read config files
@@ -42,6 +44,63 @@ def get_voices():
     voices = GOOGLE_TTS_API.voices().list().execute()
     voices_json = json.dumps(voices)
     return voices_json
+
+
+# ======================================== Pronunciation Correction Functions ================================================
+
+interpretAsOverrideFile = os.path.join('SSML_Customization', 'interpret-as.csv')
+interpretAsEntries = utils.csv_to_dict(interpretAsOverrideFile)
+
+aliasOverrideFile = os.path.join('SSML_Customization', 'aliases.csv')
+aliasEntries = utils.csv_to_dict(aliasOverrideFile)
+
+def add_all_pronunciation_overrides(text):
+    text = add_interpretas_tags(text)
+    text = add_alias_tags(text)
+    return text
+
+def add_interpretas_tags(text):
+    for entryDict in interpretAsEntries:
+        # Get entry info
+        entryText = entryDict['Text']
+        entryInterpretAsType = entryDict['interpret-as Type']
+        isCaseSensitive = parseBool(entryDict['Case Sensitive (True/False)'])
+        entryFormat = entryDict['Format (Optional)']
+
+        # Create say-as tag
+        if entryFormat == "":
+            sayAsTagStart = rf'<say-as interpret-as="{entryInterpretAsType}">'
+        else:
+            sayAsTagStart = rf'<say-as interpret-as="{entryInterpretAsType}" format="{entryFormat}">'
+        
+        # Find and replace the word
+        findWordRegex = rf'(\b["\']?{entryText}[.,!?]?["\']?\b)' # Find the word, with optional punctuation after, and optional quotes before or after
+        if isCaseSensitive:
+            text = re.sub(findWordRegex, rf'{sayAsTagStart}\1</say-as>', text) # Uses group reference, so remember regex must be in parentheses
+            
+        else:
+            text = re.sub(findWordRegex, rf'{sayAsTagStart}\1</say-as>', text, flags=re.IGNORECASE)
+    return text
+
+def add_alias_tags(text):
+    for entryDict in aliasEntries:
+        # Get entry info
+        entryText = entryDict['Original Text']
+        entryAlias = entryDict['Alias']
+        if entryDict['Case Sensitive (True/False)'] == "":
+            isCaseSensitive = False
+        else:
+            isCaseSensitive = parseBool(entryDict['Case Sensitive (True/False)'])
+
+        # Find and replace the word
+        findWordRegex = rf'\b["\']?{entryText}[.,!?]?["\']?\b' # Find the word, with optional punctuation after, and optional quotes before or after
+        if isCaseSensitive:
+            text = re.sub(findWordRegex, rf'{entryAlias}', text)
+        else:
+            text = re.sub(findWordRegex, rf'{entryAlias}', text, flags=re.IGNORECASE)
+    return text
+
+# =============================================================================================================================
 
 # Build API request for google text to speech, then execute
 def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCode, audioEncoding=audioEncoding):
@@ -111,7 +170,10 @@ def synthesize_text_azure(text, speedFactor, voiceName, languageCode):
     if not azureSentencePause == 'default' and azureSentencePause.isnumeric():
         pauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{azureSentencePause}ms"/>'
     else:
-        pauseTag = ''    
+        pauseTag = ''
+    
+    # Process text using pronunciation customization set by user
+    text = add_all_pronunciation_overrides(text)
 
     # Create SSML syntax for Azure TTS
     ssml = f"<speak version='1.0' xml:lang='{languageCode}' xmlns='http://www.w3.org/2001/10/synthesis' " \
@@ -180,6 +242,9 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                 pauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{azureSentencePause}ms"/>'
             else:
                 pauseTag = ''
+
+            # Process text using pronunciation customization set by user
+            text = add_all_pronunciation_overrides(text)
 
             # Create the SSML for each subtitle
             ssml = f"<speak version='1.0' xml:lang='{language}' xmlns='http://www.w3.org/2001/10/synthesis' " \

@@ -12,9 +12,6 @@ from pydub import AudioSegment
 from pydub.silence import detect_leading_silence
 import langcodes
 
-# MOVE THIS INTO A VARIABLE AT SOME POINT
-outputFolder = "output"
-
 # Set working folder
 workingFolder = "workingFolder"
 
@@ -35,6 +32,10 @@ outputFormat = config['SETTINGS']['output_format'].lower()
 batchSynthesize = parseBool(cloudConfig['CLOUD']['batch_tts_synthesize'])
 tts_service = cloudConfig['CLOUD']['tts_service']
 debugMode = parseBool(config['SETTINGS']['debug_mode'])
+
+# MOVE THIS INTO A VARIABLE AT SOME POINT
+outputDirectory = "Outputs"
+outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0] + ' (Output)')
 
 def trim_clip(inputSound):
     trim_leading_silence: AudioSegment = lambda x: x[detect_leading_silence(x) :]

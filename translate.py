@@ -4,6 +4,7 @@
 # Imports
 import auth
 from utils import parseBool
+import utils
 
 import configparser
 from operator import itemgetter
@@ -39,13 +40,15 @@ originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file
 outputDirectory = "Outputs"
 outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0] + ' (Output)')
 
-# Add span tags around certain words to exclude them from being translated
-dontTranslateList = [] # Placeholder for now
+# ---------------------------------------------------------------------------------------
 
-def add_notranslate_tags(dontTranslateList, text):
-    #dontTranslateList = [word.lower() for word in dontTranslateList]
+# Add span tags around certain words to exclude them from being translated
+noTranslateOverrideFile = os.path.join('SSML_Customization', 'dont_translate_phrases.txt')
+dontTranslateList = utils.txt_to_list(noTranslateOverrideFile)
+
+def add_notranslate_tags(text):
     for word in dontTranslateList:
-        findWordRegex = rf'\b["\']?{word}[.,!?]?["\']?\b' # Find the word, with optional punctuation after, and optional quotes before or after
+        findWordRegex = rf'(\b["\']?{word}[.,!?]?["\']?\b)' # Find the word, with optional punctuation after, and optional quotes before or after
         text = re.sub(findWordRegex, r' <span class="notranslate">\1</span> ', text, flags=re.IGNORECASE)
     return text
 
@@ -56,6 +59,11 @@ def remove_notranslate_tags(text):
 #======================================== Translate Text ================================================
 # Note: This function was almost entirely written by GPT-3 after feeding it my original code and asking it to change it so it
 # would break up the text into chunks if it was too long. It appears to work
+
+def process_response_text(text):
+    text = html.unescape(text)
+    text = remove_notranslate_tags(text)
+    return text
 
 # Translate the text entries of the dictionary
 def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
@@ -68,11 +76,13 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
 
     for key in inputSubsDict:
         originalText = inputSubsDict[key]['text']
-        textToTranslate.append(originalText)
+        # Add the text to the list of text to be translated, and also add the span tags around the words that shouldn't be translated
+        textToTranslate.append(add_notranslate_tags(originalText))
     
     # Calculate the total number of utf-8 codepoints
     codepoints = 0
     for text in textToTranslate:
+        text = add_notranslate_tags(text)
         codepoints += len(text.encode("utf-8"))
     
     # If the codepoints are greater than 28000, split the request into multiple
@@ -108,7 +118,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     ).execute()
 
                     # Extract the translated texts from the response
-                    translatedTexts = [html.unescape(response['translations'][i]['translatedText']) for i in range(len(response['translations']))]
+                    translatedTexts = [process_response_text(response['translations'][i]['translatedText']) for i in range(len(response['translations']))]
 
                     # Add the translated texts to the dictionary
                     # Divide the dictionary into chunks of 100
@@ -125,7 +135,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     result = auth.DEEPL_API.translate_text(chunk, target_lang=targetLanguage, formality=formality)
                     
                     # Extract the translated texts from the response
-                    translatedTexts = [html.unescape(result[i].text) for i in range(len(result))]
+                    translatedTexts = [process_response_text(result[i].text) for i in range(len(result))]
 
                     # Add the translated texts to the dictionary
                     for i in range(chunkSize):
@@ -151,7 +161,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                         #'glossaryConfig': {}
                     }
                 ).execute()
-                translatedTexts = [html.unescape(response['translations'][i]['translatedText']) for i in range(len(response['translations']))]
+                translatedTexts = [process_response_text(response['translations'][i]['translatedText']) for i in range(len(response['translations']))]
                 
                 # Add the translated texts to the dictionary
                 for i, key in enumerate(inputSubsDict):

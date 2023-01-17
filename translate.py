@@ -194,6 +194,16 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
             inputSubsDict[key]['translated_text'] = inputSubsDict[key]['text'] # Skips translating, such as for testing
     print("                                                  ")
 
+    # # Debug export inputSubsDict as json for offline testing
+    # import json
+    # with open('inputSubsDict.json', 'w') as f:
+    #     json.dump(inputSubsDict, f)
+
+    # # DEBUG import inputSubsDict from json for offline testing
+    # import json
+    # with open('inputSubsDict.json', 'r') as f:
+    #     inputSubsDict = json.load(f)
+
     combinedProcessedDict = combine_subtitles_advanced(inputSubsDict, combineMaxChars)
 
     if skipTranslation == False or debugMode == True:
@@ -285,163 +295,190 @@ def set_translation_info(languageBatchDict):
 def combine_subtitles_advanced(inputDict, maxCharacters=200):
     charRateGoal = 20 #20
     gapThreshold = 100 # The maximum gap between subtitles to combine
-
+    noMorePossibleCombines = False
     # Convert dictionary to list of dictionaries of the values
     entryList = []
+
     for key, value in inputDict.items():
         value['originalIndex'] = int(key)-1
         entryList.append(value)
-    
-    def combine_single_pass(entryListLocal):
-        # Want to restart the loop if a change is made, so use this variable, otherwise break only if the end is reached
-        reachedEndOfList = False
 
-        # Use while loop because the list is being modified
-        while not reachedEndOfList:
-            # Need to calculate the char_rate for each entry, any time something changes, so put it at the top of this loop
-            entryListLocal = calc_list_speaking_rates(entryListLocal, charRateGoal)
-
-            # Sort the list by the difference in speaking speed from charRateGoal
-            priorityOrderedList = sorted(entryListLocal, key=itemgetter('char_rate_diff'), reverse=True) 
-
-            # Iterates through the list in order of priority, and uses that index to operate on entryListLocal
-            # For loop is broken after a combination is made, so that the list can be re-sorted and re-iterated
-            for i, data in enumerate(priorityOrderedList):
-
-                # Check if last entry, and therefore will end loop when done with this iteration
-                if i == len(priorityOrderedList) - 1:
-                    reachedEndOfList = True
-
-                # Check if the current entry is outside the upper and lower bounds
-                if (data['char_rate'] > charRateGoal or data['char_rate'] < charRateGoal):
-
-                    # Set flags for whether to consider the next and previous entries
-                    considerNext = True
-                    considerPrev = True
-
-                    # Get the char_rate of the next and previous entries, if they exist, and calculate the difference
-                    # If the diff is positive, then it is lower than the current char_rate
-                    try:
-                        nextCharRate = entryListLocal[i+1]['char_rate']
-                        nextDiff = data['char_rate'] - nextCharRate
-                    except IndexError:
-                        considerNext = False
-                        nextCharRate = None
-                        nextDiff = None
-                        reachedEndOfList = True
-                    try:
-                        prevCharRate = entryListLocal[i-1]['char_rate']
-                        prevDiff = data['char_rate'] - prevCharRate
-                    except IndexError:
-                        considerPrev = False
-                        prevCharRate = None
-                        prevDiff = None
-                        
-                else:
-                    continue
-
-                # Define functions for combining with previous or next entries - Generated with copilot, it's possible this isn't perfect
-                def combine_with_next():
-                    entryListLocal[i]['text'] = entryListLocal[i]['text'] + ' ' + entryListLocal[i+1]['text']
-                    entryListLocal[i]['translated_text'] = entryListLocal[i]['translated_text'] + ' ' + entryListLocal[i+1]['translated_text']
-                    entryListLocal[i]['end_ms'] = entryListLocal[i+1]['end_ms']
-                    entryListLocal[i]['end_ms_buffered'] = entryListLocal[i+1]['end_ms_buffered']
-                    entryListLocal[i]['duration_ms'] = int(entryListLocal[i+1]['end_ms']) - int(entryListLocal[i]['start_ms'])
-                    entryListLocal[i]['duration_ms_buffered'] = int(entryListLocal[i+1]['end_ms_buffered']) - int(entryListLocal[i]['start_ms_buffered'])
-                    entryListLocal[i]['srt_timestamps_line'] = entryListLocal[i]['srt_timestamps_line'].split(' --> ')[0] + ' --> ' + entryListLocal[i+1]['srt_timestamps_line'].split(' --> ')[1]
-                    del entryListLocal[i+1]
-
-                def combine_with_prev():
-                    entryListLocal[i-1]['text'] = entryListLocal[i-1]['text'] + ' ' + entryListLocal[i]['text']
-                    entryListLocal[i-1]['translated_text'] = entryListLocal[i-1]['translated_text'] + ' ' + entryListLocal[i]['translated_text']
-                    entryListLocal[i-1]['end_ms'] = entryListLocal[i]['end_ms']
-                    entryListLocal[i-1]['end_ms_buffered'] = entryListLocal[i]['end_ms_buffered']
-                    entryListLocal[i-1]['duration_ms'] = int(entryListLocal[i]['end_ms']) - int(entryListLocal[i-1]['start_ms'])
-                    entryListLocal[i-1]['duration_ms_buffered'] = int(entryListLocal[i]['end_ms_buffered']) - int(entryListLocal[i-1]['start_ms_buffered'])
-                    entryListLocal[i-1]['srt_timestamps_line'] = entryListLocal[i-1]['srt_timestamps_line'].split(' --> ')[0] + ' --> ' + entryListLocal[i]['srt_timestamps_line'].split(' --> ')[1]
-                    del entryListLocal[i]
-
-
-                # Choose whether to consider next and previous entries, and if neither then continue to next loop
-                if data['char_rate'] > charRateGoal:
-                    # Check to ensure next/previous rates are lower than current rate, and the combined entry is not too long, and the gap between entries is not too large
-                    if not nextDiff or nextDiff < 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > maxCharacters):
-                        considerNext = False
-                    try:
-                        if not prevDiff or prevDiff < 0 or (entryListLocal[i-1]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i-1]['translated_text']) + len(entryListLocal[i]['translated_text']) > maxCharacters):
-                            considerPrev = False
-                    except TypeError:
-                        considerPrev = False
-
-                elif data['char_rate'] < charRateGoal:
-                    # Check to ensure next/previous rates are higher than current rate
-                    if not nextDiff or nextDiff > 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > maxCharacters):
-                        considerNext = False
-                    try:
-                        if not prevDiff or prevDiff > 0 or (entryListLocal[i-1]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i-1]['translated_text']) + len(entryListLocal[i]['translated_text']) > maxCharacters):
-                            considerPrev = False
-                    except TypeError:
-                        considerPrev = False
-                else:
-                    continue
-
-                # Continue to next loop if neither are considered
-                if not considerNext and not considerPrev:
-                    continue
-
-                # Should only reach this point if two entries are to be combined
-                if data['char_rate'] > charRateGoal:
-                    # If both are to be considered, then choose the one with the lower char_rate
-                    if considerNext and considerPrev:
-                        if nextDiff < prevDiff:
-                            combine_with_next()
-                            break
-                        else:
-                            combine_with_prev()
-                            break
-                    # If only one is to be considered, then combine with that one
-                    elif considerNext:
-                        combine_with_next()
-                        break
-                    elif considerPrev:
-                        combine_with_prev()
-                        break
-                    else:
-                        print(f"Error U: Should not reach this point! Current entry = {i}")
-                        print(f"Current Entry Text = {data['text']}")
-                        continue
-                
-                elif data['char_rate'] < charRateGoal:
-                    # If both are to be considered, then choose the one with the higher char_rate
-                    if considerNext and considerPrev:
-                        if nextDiff > prevDiff:
-                            combine_with_next()
-                            break
-                        else:
-                            combine_with_prev()
-                            break
-                    # If only one is to be considered, then combine with that one
-                    elif considerNext:
-                        combine_with_next()
-                        break
-                    elif considerPrev:
-                        combine_with_prev()
-                        break
-                    else:
-                        print(f"Error L: Should not reach this point! Index = {i}")
-                        print(f"Current Entry Text = {data['text']}")
-                        continue
-        return entryListLocal
-
-    #-- End of combine_single_pass --
-
-    # Two passes since they're combined sequentially in pairs. Might add a better way in the future
-    # Need to create new list variable or else it won't update entryList if that is used for some reason
-    entryList2 = combine_single_pass(entryList)
-    entryList3 = combine_single_pass(entryList2)
+    while not noMorePossibleCombines:
+        entryList, noMorePossibleCombines = combine_single_pass(entryList, charRateGoal, gapThreshold, maxCharacters)
 
     # Convert the list back to a dictionary then return it
-    return dict(enumerate(entryList3, start=1))
+    return dict(enumerate(entryList, start=1))
+
+def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacters):
+    # Want to restart the loop if a change is made, so use this variable, otherwise break only if the end is reached
+    reachedEndOfList = False
+    noMorePossibleCombines = True # Will be set to False if a combination is made
+
+    # Use while loop because the list is being modified
+    while not reachedEndOfList:
+
+        # Need to update original index in here
+        for entry in entryListLocal:
+            entry['originalIndex'] = entryListLocal.index(entry)
+
+        # Will use later to check if an entry is the last one in the list, because the last entry will have originalIndex equal to the length of the list - 1
+        originalNumberOfEntries = len(entryListLocal)
+
+        # Need to calculate the char_rate for each entry, any time something changes, so put it at the top of this loop
+        entryListLocal = calc_list_speaking_rates(entryListLocal, charRateGoal)
+
+        # Sort the list by the difference in speaking speed from charRateGoal
+        priorityOrderedList = sorted(entryListLocal, key=itemgetter('char_rate_diff'), reverse=True) 
+
+        # Iterates through the list in order of priority, and uses that index to operate on entryListLocal
+        # For loop is broken after a combination is made, so that the list can be re-sorted and re-iterated
+        for progress, data in enumerate(priorityOrderedList):
+            i = data['originalIndex']
+            # Check if last entry, and therefore will end loop when done with this iteration
+            if progress == len(priorityOrderedList) - 1:
+                reachedEndOfList = True
+
+            # Check if the current entry is outside the upper and lower bounds
+            if (data['char_rate'] > charRateGoal or data['char_rate'] < charRateGoal):
+
+                # Check if the entry is the first in entryListLocal, if so do not consider the previous entry
+                if data['originalIndex'] == 0:
+                    considerPrev = False
+                else:
+                    considerPrev = True
+
+                # Check if the entry is the last in entryListLocal, if so do not consider the next entry
+                if data['originalIndex'] == originalNumberOfEntries - 1:
+                    considerNext = False
+                else:
+                    considerNext = True
+
+                # Check if current entry is still in the list - if it has been combined with another entry, it will not be
+
+                
+                # Get the char_rate of the next and previous entries, if they exist, and calculate the difference
+                # If the diff is positive, then it is lower than the current char_rate
+                try:
+                    nextCharRate = entryListLocal[i+1]['char_rate']
+                    nextDiff = data['char_rate'] - nextCharRate
+                except IndexError:
+                    considerNext = False
+                    nextCharRate = None
+                    nextDiff = None
+                try:
+                    prevCharRate = entryListLocal[i-1]['char_rate']
+                    prevDiff = data['char_rate'] - prevCharRate
+                except IndexError:
+                    considerPrev = False
+                    prevCharRate = None
+                    prevDiff = None
+                    
+            else:
+                continue
+
+            # Define functions for combining with previous or next entries - Generated with copilot, it's possible this isn't perfect
+            def combine_with_next():
+                entryListLocal[i]['text'] = entryListLocal[i]['text'] + ' ' + entryListLocal[i+1]['text']
+                entryListLocal[i]['translated_text'] = entryListLocal[i]['translated_text'] + ' ' + entryListLocal[i+1]['translated_text']
+                entryListLocal[i]['end_ms'] = entryListLocal[i+1]['end_ms']
+                entryListLocal[i]['end_ms_buffered'] = entryListLocal[i+1]['end_ms_buffered']
+                entryListLocal[i]['duration_ms'] = int(entryListLocal[i+1]['end_ms']) - int(entryListLocal[i]['start_ms'])
+                entryListLocal[i]['duration_ms_buffered'] = int(entryListLocal[i+1]['end_ms_buffered']) - int(entryListLocal[i]['start_ms_buffered'])
+                entryListLocal[i]['srt_timestamps_line'] = entryListLocal[i]['srt_timestamps_line'].split(' --> ')[0] + ' --> ' + entryListLocal[i+1]['srt_timestamps_line'].split(' --> ')[1]
+                del entryListLocal[i+1]
+
+            def combine_with_prev():
+                entryListLocal[i-1]['text'] = entryListLocal[i-1]['text'] + ' ' + entryListLocal[i]['text']
+                entryListLocal[i-1]['translated_text'] = entryListLocal[i-1]['translated_text'] + ' ' + entryListLocal[i]['translated_text']
+                entryListLocal[i-1]['end_ms'] = entryListLocal[i]['end_ms']
+                entryListLocal[i-1]['end_ms_buffered'] = entryListLocal[i]['end_ms_buffered']
+                entryListLocal[i-1]['duration_ms'] = int(entryListLocal[i]['end_ms']) - int(entryListLocal[i-1]['start_ms'])
+                entryListLocal[i-1]['duration_ms_buffered'] = int(entryListLocal[i]['end_ms_buffered']) - int(entryListLocal[i-1]['start_ms_buffered'])
+                entryListLocal[i-1]['srt_timestamps_line'] = entryListLocal[i-1]['srt_timestamps_line'].split(' --> ')[0] + ' --> ' + entryListLocal[i]['srt_timestamps_line'].split(' --> ')[1]
+                del entryListLocal[i]
+
+
+            # Choose whether to consider next and previous entries, and if neither then continue to next loop
+            if data['char_rate'] > charRateGoal:
+                # Check to ensure next/previous rates are lower than current rate, and the combined entry is not too long, and the gap between entries is not too large
+                # Need to add check for considerNext and considerPrev first, because if run other checks when there is no next/prev value to check, it will throw an error
+                if considerNext == False or nextDiff or nextDiff < 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > maxCharacters):
+                    considerNext = False
+                try:
+                    if considerPrev == False or not prevDiff or prevDiff < 0 or (entryListLocal[i-1]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i-1]['translated_text']) + len(entryListLocal[i]['translated_text']) > maxCharacters):
+                        considerPrev = False
+                except TypeError:
+                    considerPrev = False
+
+            elif data['char_rate'] < charRateGoal:
+                # Check to ensure next/previous rates are higher than current rate
+                if considerNext == False or not nextDiff or nextDiff > 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > maxCharacters):
+                    considerNext = False
+                try:
+                    if considerPrev == False or not prevDiff or prevDiff > 0 or (entryListLocal[i-1]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i-1]['translated_text']) + len(entryListLocal[i]['translated_text']) > maxCharacters):
+                        considerPrev = False
+                except TypeError:
+                    considerPrev = False
+            else:
+                continue
+
+            # Continue to next loop if neither are considered
+            if not considerNext and not considerPrev:
+                continue
+
+            # Should only reach this point if two entries are to be combined
+            if data['char_rate'] > charRateGoal:
+                # If both are to be considered, then choose the one with the lower char_rate
+                if considerNext and considerPrev:
+                    if nextDiff < prevDiff:
+                        combine_with_next()
+                        noMorePossibleCombines = False
+                        break
+                    else:
+                        combine_with_prev()
+                        noMorePossibleCombines = False
+                        break
+                # If only one is to be considered, then combine with that one
+                elif considerNext:
+                    combine_with_next()
+                    noMorePossibleCombines = False
+                    break
+                elif considerPrev:
+                    combine_with_prev()
+                    noMorePossibleCombines = False
+                    break
+                else:
+                    print(f"Error U: Should not reach this point! Current entry = {i}")
+                    print(f"Current Entry Text = {data['text']}")
+                    continue
+            
+            elif data['char_rate'] < charRateGoal:
+                # If both are to be considered, then choose the one with the higher char_rate
+                if considerNext and considerPrev:
+                    if nextDiff > prevDiff:
+                        combine_with_next()
+                        noMorePossibleCombines = False
+                        break
+                    else:
+                        combine_with_prev()
+                        noMorePossibleCombines = False
+                        break
+                # If only one is to be considered, then combine with that one
+                elif considerNext:
+                    combine_with_next()
+                    noMorePossibleCombines = False
+                    break
+                elif considerPrev:
+                    combine_with_prev()
+                    noMorePossibleCombines = False
+                    break
+                else:
+                    print(f"Error L: Should not reach this point! Index = {i}")
+                    print(f"Current Entry Text = {data['text']}")
+                    continue
+    return entryListLocal, noMorePossibleCombines
+
+#-- End of combine_single_pass --    
 
 #----------------------------------------------------------------------
 

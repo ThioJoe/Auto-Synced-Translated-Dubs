@@ -188,6 +188,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
 
     canvas = canvas.set_channels(2) # Change from mono to stereo
     try:
+        print("\nExporting audio file...")
         canvas.export(outputFileName, format=formatString, bitrate="192k")
     except:
         outputFileName = outputFileName + ".bak"

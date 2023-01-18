@@ -42,7 +42,7 @@ if debugMode and (videoFilePath == '' or videoFilePath.lower() == 'none'):
 else:
     originalVideoFile = os.path.abspath(videoFilePath.strip("\""))
 outputDirectory = "Outputs"
-outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0] + ' (Output)')
+outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0])
 
 def trim_clip(inputSound):
     trim_leading_silence: AudioSegment = lambda x: x[detect_leading_silence(x) :]

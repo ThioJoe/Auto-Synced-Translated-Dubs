@@ -78,7 +78,7 @@ else:
 
 # Set output folder based on filename of original video file
 outputDirectory = "Outputs"
-outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0] + ' (Output)')
+outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0])
 
 # Validate the number of sections
 for num in languageNums:

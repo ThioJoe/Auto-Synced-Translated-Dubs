@@ -51,11 +51,11 @@ description = textwrap.dedent(description).strip("\n")
 
 # Parse the description for hyperlinks and put the tags <span class="notranslate"></span> around them
 # This prevents Google Translate from translating the links
-description = re.sub(r'(https?://[^\s]+)', r' <span class="notranslate">\1</span> ', description, flags=re.IGNORECASE)
+description = re.sub(r'(https?://[^\s]+)', r'<span class="notranslate">\1</span>', description, flags=re.IGNORECASE)
 
 # Use span class="notranslate" to prevent translating certain characters
 for char in noTranslateList:
-    description = re.sub(r'(' + char + r'+)', r' <span class="notranslate">\1</span> ', description)
+    description = re.sub(r'(' + char + r'+)', r'<span class="notranslate">\1</span>', description)
 
 # Use span class to prevent translating timestamp numbers, only matching if there is a newline or space before and after the timestamp
 description = re.sub(r'(\n|\s)(\d+:\d+)(\n|\s)', r'\1<span class="notranslate">\2</span>\3', description)

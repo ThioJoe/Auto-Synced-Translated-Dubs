@@ -130,7 +130,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     # Divide the dictionary into chunks of 100
                     for i in range(chunkSize):
                         key = str((i+1+j*chunkSize))
-                        inputSubsDict[key]['translated_text'] = translatedTexts[i]
+                        inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i])
                         # Print progress, ovwerwrite the same line
                         print(f' Translated with Google: {key} of {len(inputSubsDict)}', end='\r')
 
@@ -146,7 +146,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     # Add the translated texts to the dictionary
                     for i in range(chunkSize):
                         key = str((i+1+j*chunkSize))
-                        inputSubsDict[key]['translated_text'] = translatedTexts[i]
+                        inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i])
                         # Print progress, ovwerwrite the same line
                         print(f' Translated with DeepL: {key} of {len(inputSubsDict)}', end='\r')
                 else:
@@ -171,7 +171,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                 
                 # Add the translated texts to the dictionary
                 for i, key in enumerate(inputSubsDict):
-                    inputSubsDict[key]['translated_text'] = translatedTexts[i]
+                    inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i])
                     # Print progress, overwrite the same line
                     print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
 
@@ -183,7 +183,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
 
                 # Add the translated texts to the dictionary
                 for i, key in enumerate(inputSubsDict):
-                    inputSubsDict[key]['translated_text'] = result[i].text
+                    inputSubsDict[key]['translated_text'] = process_response_text(result[i].text)
                     # Print progress, overwrite the same line
                     print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
             else:
@@ -191,7 +191,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                 sys.exit()
     else:
         for key in inputSubsDict:
-            inputSubsDict[key]['translated_text'] = inputSubsDict[key]['text'] # Skips translating, such as for testing
+            inputSubsDict[key]['translated_text'] = process_response_text(inputSubsDict[key]['text']) # Skips translating, such as for testing
     print("                                                  ")
 
     # # Debug export inputSubsDict as json for offline testing

@@ -1,0 +1,29 @@
+This folder contains the following three pronunciation customization files by default.
+
+• dont_translate_phrases.txt
+	- You can add a list of phrases or words you do not want to be translated.
+	- This will work for both Google Translate and DeepL
+
+• interpret-as.csv (Azure Only)
+	- You can use SSML parameters to customize how specific words or phrases are pronounced
+	- See this article for documentation: https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-synthesis-markup-pronunciation#say-as-element
+	- Note: The script will match the phrases in the TRANSLATED text. You may therefore wish to also add these phrases to 'dont_translate_phrases.txt'.
+	- The first row contains the titles of each column - Do not change anything in the first row!
+	- Descriptions of each column:
+		• Text: The word or phrase that will be pronounced how you specify, if it is found in the text to be spoken
+		• interpret-as Type: The way in which the word/phrase will be pronounced. See documentation link above. (Some examples include: characters, cardinal, ordinal)
+		• Case Sensitive (True/False): Whether to only modify the pronunciation if the word/phrase matches exactly, being case sensitive
+		• Format (Optional): Only applicable to some types, such as 'date', 'time', and others. Otherwise leave blank. See documentation link above for details
+	- See 'Example - interpret-as.csv' for an example of how to use this file
+	- This will only apply if using Azure TTS, not Google
+	
+• aliases.csv (Azure Only)
+	- Lets you effectively change what should be spoken instead of a certain word or phrase
+	- Example: If the text to be spoken contains "BTW" you can have it say "by the way"
+		-Note: It does NOT actually replace the text, but only changes how the voice will pronounce it
+	- The first row contains the titles of each column - Do not change anything in the first row!
+	- Description of each column:
+		- Original Text: The original word or phrase to match
+		- Alias: The word or phrase to speak instead of the original text
+		- Case Sensitive (True/False): Whether it must be an exact match including capital/lower case. If nothing is entered, will default to False
+	- This will only apply if using Azure TTS, not Google

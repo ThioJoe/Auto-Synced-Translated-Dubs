@@ -35,7 +35,7 @@ import auth
 from utils import parseBool
 GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = auth.first_authentication()
 
-outputFolder = "output"
+outputFolder = "Outputs"
 
 import langcodes
 import sys
@@ -51,11 +51,11 @@ description = textwrap.dedent(description).strip("\n")
 
 # Parse the description for hyperlinks and put the tags <span class="notranslate"></span> around them
 # This prevents Google Translate from translating the links
-description = re.sub(r'(https?://[^\s]+)', r' <span class="notranslate">\1</span> ', description)
+description = re.sub(r'(https?://[^\s]+)', r'<span class="notranslate">\1</span>', description, flags=re.IGNORECASE)
 
 # Use span class="notranslate" to prevent translating certain characters
 for char in noTranslateList:
-    description = re.sub(r'(' + char + r'+)', r' <span class="notranslate">\1</span> ', description)
+    description = re.sub(r'(' + char + r'+)', r'<span class="notranslate">\1</span>', description)
 
 # Use span class to prevent translating timestamp numbers, only matching if there is a newline or space before and after the timestamp
 description = re.sub(r'(\n|\s)(\d+:\d+)(\n|\s)', r'\1<span class="notranslate">\2</span>\3', description)
@@ -202,7 +202,7 @@ for i in emptyLineIndexes:
         langData['translated_description'].insert(i, '')
 
 # Write the translated text to a file
-with open(outputFolder + '/Translated Titles and Descriptions.txt', 'w', encoding='utf-8') as f:
+with open(os.path.join(outputFolder , 'Translated Titles and Descriptions.txt'), 'w', encoding='utf-8') as f:
     for langNum, langData in batchSettings.items():
         title_translated = langData['translated_title']
         description_translated = langData['translated_description']
@@ -227,6 +227,6 @@ if createJsonFile:
         langData['translated_description'] = '\n'.join(langData['translated_description'])
 
     # Write the translated items to a json file
-    with open(outputFolder + '/Translated Items.json', 'w', encoding='utf-8') as f:
+    with open(os.path.join(outputFolder , 'Translated Items.json'), 'w', encoding='utf-8') as f:
         json.dump(batchSettings, f, indent=4)
 

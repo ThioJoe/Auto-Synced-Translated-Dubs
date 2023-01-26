@@ -54,12 +54,16 @@ interpretAsEntries = utils.csv_to_dict(interpretAsOverrideFile)
 aliasOverrideFile = os.path.join('SSML_Customization', 'aliases.csv')
 aliasEntries = utils.csv_to_dict(aliasOverrideFile)
 
+urlListFile = os.path.join('SSML_Customization', 'url_list.txt')
+urlList = utils.txt_to_list(urlListFile)
+
 def add_all_pronunciation_overrides(text):
     text = add_interpretas_tags(text)
     text = add_alias_tags(text)
     return text
 
 def add_interpretas_tags(text):
+    # Add interpret-as tags from interpret-as.csv
     for entryDict in interpretAsEntries:
         # Get entry info
         entryText = entryDict['Text']
@@ -80,6 +84,16 @@ def add_interpretas_tags(text):
             
         else:
             text = re.sub(findWordRegex, rf'{sayAsTagStart}\1</say-as>', text, flags=re.IGNORECASE)
+
+    # Add interpret-as tags from url_list.txt
+    for url in urlList:
+        # This regex expression will match the top level domain extension, and the punctuation before/after it, and any periods, slashes or colons
+        # It will then put the say-as characters tag around all matches
+        punctuationRegex = re.compile(r'((?:\.[a-z]{2,6}(?:\/|$|\s))|(?:[\.\/:]+))') 
+        taggedURL = re.sub(punctuationRegex, r'<say-as interpret-as="characters">\1</say-as>', url)
+        # Replace any instances of the URL with the tagged version
+        text = text.replace(url, taggedURL)
+
     return text
 
 def add_alias_tags(text):

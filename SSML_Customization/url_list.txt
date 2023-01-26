@@ -1,0 +1,4 @@
+# List any URLs that may appear in the original text, such as "google.com/example"
+# This ensures they will not be translated, and will be spoken as words in the TTS stage
+# Example: "google.com/example" becomes "google dot com slash example", which spoken in spanish would be "google punto c o m diagonal example"
+# The actual text in the subtitles will remain as "google.com/example", and only the spoken audio will change

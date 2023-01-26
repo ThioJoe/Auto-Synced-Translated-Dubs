@@ -27,3 +27,14 @@ This folder contains the following three pronunciation customization files by de
 		- Alias: The word or phrase to speak instead of the original text
 		- Case Sensitive (True/False): Whether it must be an exact match including capital/lower case. If nothing is entered, will default to False
 	- This will only apply if using Azure TTS, not Google
+
+• Manual_Translations.csv
+	- If you know you are going to use a word that gets incorrectly interpreted or translated, you can enter manual translations for any words for any languages
+	- In Manual_Translations.csv, put the original text in the first column, your translation in the second, and the 2-letter language code for that entry into the 3rd column
+	
+
+• url_list.txt
+	- If you have any URLs in the original text, you can put them as a list in this file
+	- This makes it so the URL will not be translated, and also improves the pronunciation in the TTS stage
+	- It will really only work on basic URLs, such as "example.com/test". If it has anything other than slashes, periods, and colons, it won't work
+	- See the notes at the top of the url_list.txt file for more details

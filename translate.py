@@ -46,29 +46,57 @@ else:
 outputDirectory = "Outputs"
 outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0])
 
-# ---------------------------------------------------------------------------------------
+# -------------------------------- No Translate and Manual Translation Functions -----------------------------------
 
-# Add span tags around certain words to exclude them from being translated
+# Import files and put into dictionaries
 noTranslateOverrideFile = os.path.join('SSML_Customization', 'dont_translate_phrases.txt')
 dontTranslateList = utils.txt_to_list(noTranslateOverrideFile)
+manualTranslationOverrideFile = os.path.join('SSML_Customization', 'Manual_Translations.csv')
+manualTranslationsDict = utils.csv_to_dict(manualTranslationOverrideFile)
+urlListFile = os.path.join('SSML_Customization', 'url_list.txt')
+urlList = utils.txt_to_list(urlListFile)
 
-def add_notranslate_tags(text):
-    for word in dontTranslateList:
+# Add span tags around certain words to exclude them from being translated
+def add_notranslate_tags_from_notranslate_file(text, phraseList):
+    for word in phraseList:
         findWordRegex = rf'(\b["\']?{word}[.,!?]?["\']?\b)' # Find the word, with optional punctuation after, and optional quotes before or after
-        text = re.sub(findWordRegex, r' <span class="notranslate">\1</span> ', text, flags=re.IGNORECASE)
+        text = re.sub(findWordRegex, r'<span class="notranslate">\1</span>', text, flags=re.IGNORECASE)
     return text
 
 def remove_notranslate_tags(text):
     text = text.replace('<span class="notranslate">', '').replace('</span>', '')
     return text
 
+def add_notranslate_tags_for_manual_translations(text, langcode):
+    for manualTranslatedText in manualTranslationsDict:
+        # Only replace text if the language matches the entry in the manual translations file
+        if manualTranslatedText['Language Code'] == langcode: 
+            originalText = manualTranslatedText['Original Text']
+            findWordRegex = rf'(\b["\']?{originalText}[.,!?]?["\']?\b)'
+            text = re.sub(findWordRegex, r'<span class="notranslate">\1</span>', text, flags=re.IGNORECASE)
+    return text
+
+# Replace certain words or phrases with their manual translation
+def replace_manual_translations(text, langcode):
+    for manualTranslatedText in manualTranslationsDict:
+        # Only replace text if the language matches the entry in the manual translations file
+        if manualTranslatedText['Language Code'] == langcode: 
+            originalText = manualTranslatedText['Original Text']
+            translatedText = manualTranslatedText['Translated Text']
+            findWordRegex = rf'(\b["\']?{originalText}[.,!?]?["\']?\b)'
+            text = re.sub(findWordRegex, translatedText, text, flags=re.IGNORECASE)
+    return text
+
+
+
 #======================================== Translate Text ================================================
 # Note: This function was almost entirely written by GPT-3 after feeding it my original code and asking it to change it so it
 # would break up the text into chunks if it was too long. It appears to work
 
-def process_response_text(text):
+def process_response_text(text, targetLanguage):
     text = html.unescape(text)
     text = remove_notranslate_tags(text)
+    text = replace_manual_translations(text, targetLanguage)
     return text
 
 # Translate the text entries of the dictionary
@@ -82,13 +110,17 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
 
     for key in inputSubsDict:
         originalText = inputSubsDict[key]['text']
-        # Add the text to the list of text to be translated, and also add the span tags around the words that shouldn't be translated
-        textToTranslate.append(add_notranslate_tags(originalText))
-    
+        # Add any 'notranslate' tags to the text
+        processedText = add_notranslate_tags_from_notranslate_file(originalText, dontTranslateList)
+        processedText = add_notranslate_tags_from_notranslate_file(processedText, urlList)
+        processedText = add_notranslate_tags_for_manual_translations(processedText, targetLanguage)
+
+        # Add the text to the list of text to be translated
+        textToTranslate.append(processedText)
+   
     # Calculate the total number of utf-8 codepoints
     codepoints = 0
     for text in textToTranslate:
-        text = add_notranslate_tags(text)
         codepoints += len(text.encode("utf-8"))
     
     # If the codepoints are greater than 28000, split the request into multiple
@@ -124,13 +156,13 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     ).execute()
 
                     # Extract the translated texts from the response
-                    translatedTexts = [process_response_text(response['translations'][i]['translatedText']) for i in range(len(response['translations']))]
+                    translatedTexts = [process_response_text(response['translations'][i]['translatedText'], targetLanguage) for i in range(len(response['translations']))]
 
                     # Add the translated texts to the dictionary
                     # Divide the dictionary into chunks of 100
                     for i in range(chunkSize):
                         key = str((i+1+j*chunkSize))
-                        inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i])
+                        inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i], targetLanguage)
                         # Print progress, ovwerwrite the same line
                         print(f' Translated with Google: {key} of {len(inputSubsDict)}', end='\r')
 
@@ -141,12 +173,12 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     result = auth.DEEPL_API.translate_text(chunk, target_lang=targetLanguage, formality=formality)
                     
                     # Extract the translated texts from the response
-                    translatedTexts = [process_response_text(result[i].text) for i in range(len(result))]
+                    translatedTexts = [process_response_text(result[i].text, targetLanguage) for i in range(len(result))]
 
                     # Add the translated texts to the dictionary
                     for i in range(chunkSize):
                         key = str((i+1+j*chunkSize))
-                        inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i])
+                        inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i], targetLanguage)
                         # Print progress, ovwerwrite the same line
                         print(f' Translated with DeepL: {key} of {len(inputSubsDict)}', end='\r')
                 else:
@@ -167,11 +199,11 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                         #'glossaryConfig': {}
                     }
                 ).execute()
-                translatedTexts = [process_response_text(response['translations'][i]['translatedText']) for i in range(len(response['translations']))]
+                translatedTexts = [process_response_text(response['translations'][i]['translatedText'], targetLanguage) for i in range(len(response['translations']))]
                 
                 # Add the translated texts to the dictionary
                 for i, key in enumerate(inputSubsDict):
-                    inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i])
+                    inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i], targetLanguage)
                     # Print progress, overwrite the same line
                     print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
 
@@ -183,7 +215,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
 
                 # Add the translated texts to the dictionary
                 for i, key in enumerate(inputSubsDict):
-                    inputSubsDict[key]['translated_text'] = process_response_text(result[i].text)
+                    inputSubsDict[key]['translated_text'] = process_response_text(result[i].text, targetLanguage)
                     # Print progress, overwrite the same line
                     print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
             else:
@@ -191,7 +223,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                 sys.exit()
     else:
         for key in inputSubsDict:
-            inputSubsDict[key]['translated_text'] = process_response_text(inputSubsDict[key]['text']) # Skips translating, such as for testing
+            inputSubsDict[key]['translated_text'] = process_response_text(inputSubsDict[key]['text'], targetLanguage) # Skips translating, such as for testing
     print("                                                  ")
 
     # # Debug export inputSubsDict as json for offline testing

@@ -57,9 +57,13 @@ aliasEntries = utils.csv_to_dict(aliasOverrideFile)
 urlListFile = os.path.join('SSML_Customization', 'url_list.txt')
 urlList = utils.txt_to_list(urlListFile)
 
+phonemeFile = os.path.join('SSML_Customization', 'Phoneme_Pronunciation.csv')
+phonemeEntries = utils.csv_to_dict(phonemeFile)
+
 def add_all_pronunciation_overrides(text):
     text = add_interpretas_tags(text)
     text = add_alias_tags(text)
+    text = add_phoneme_tags(text)
     return text
 
 def add_interpretas_tags(text):
@@ -113,6 +117,29 @@ def add_alias_tags(text):
         else:
             text = re.sub(findWordRegex, rf'{entryAlias}', text, flags=re.IGNORECASE)
     return text
+
+
+# Uses the phoneme pronunciation file to add phoneme tags to the text
+def add_phoneme_tags(text):
+    for entryDict in phonemeEntries:
+        # Get entry info
+        entryText = entryDict['Text']
+        entryPhoneme = entryDict['Phonetic Pronunciation']
+        entryAlphabet = entryDict['Phonetic Alphabet']
+
+        if entryDict['Case Sensitive (True/False)'] == "":
+            isCaseSensitive = False
+        else:
+            isCaseSensitive = parseBool(entryDict['Case Sensitive (True/False)'])
+
+        # Find and replace the word
+        findWordRegex = rf'\b["\']?{entryText}[.,!?]?["\']?\b' # Find the word, with optional punctuation after, and optional quotes before or after
+        if isCaseSensitive:
+            text = re.sub(findWordRegex, rf'<phoneme alphabet="ipa" ph="{entryPhoneme}">\1</phoneme>', text)
+        else:
+            text = re.sub(findWordRegex, rf'<phoneme alphabet="{entryAlphabet}" ph="{entryPhoneme}">\1</phoneme>', text, flags=re.IGNORECASE)
+    return text
+
 
 # =============================================================================================================================
 

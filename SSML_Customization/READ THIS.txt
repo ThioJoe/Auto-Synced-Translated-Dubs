@@ -38,3 +38,9 @@ This folder contains the following three pronunciation customization files by de
 	- This makes it so the URL will not be translated, and also improves the pronunciation in the TTS stage
 	- It will really only work on basic URLs, such as "example.com/test". If it has anything other than slashes, periods, and colons, it won't work
 	- See the notes at the top of the url_list.txt file for more details
+
+• Phoneme_Pronunciation.csv
+	- Allows you to specify exact phonetic pronunciation of words or phrases
+	- Note: This is different from 'aliases'. Using this requires using special phonetic alphabets (see links below)
+	- See: https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-ssml-phonetic-sets
+	- See: https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-synthesis-markup-pronunciation#phoneme-element

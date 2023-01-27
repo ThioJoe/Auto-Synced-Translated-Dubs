@@ -177,7 +177,7 @@ def translate(originalLanguage, singleLangDict, translationList):
         ).execute()
         translatedTexts = [response['translations'][i]['translatedText'] for i in range(len(response['translations']))]
     elif translateService == 'deepl':
-        response = auth.DEEPL_API.translate_text(translationList, target_lang=targetLanguage, formality=formality)
+        response = auth.DEEPL_API.translate_text(translationList, target_lang=targetLanguage, formality=formality, tag_handling='html')
         translatedTexts = [response[i].text for i in range(len(response))]
 
     # Remove the span tags from the translated text, and convert the html formatting for special symbols

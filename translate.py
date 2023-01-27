@@ -170,7 +170,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     print(f'[DeepL] Translating text group {j+1} of {len(chunkedTexts)}')
 
                     # Send the request
-                    result = auth.DEEPL_API.translate_text(chunk, target_lang=targetLanguage, formality=formality)
+                    result = auth.DEEPL_API.translate_text(chunk, target_lang=targetLanguage, formality=formality, tag_handling='html')
                     
                     # Extract the translated texts from the response
                     translatedTexts = [process_response_text(result[i].text, targetLanguage) for i in range(len(result))]
@@ -211,7 +211,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                 print("Translating text using DeepL...")
 
                 # Send the request
-                result = auth.DEEPL_API.translate_text(textToTranslate, target_lang=targetLanguage, formality=formality)
+                result = auth.DEEPL_API.translate_text(textToTranslate, target_lang=targetLanguage, formality=formality, tag_handling='html')
 
                 # Add the translated texts to the dictionary
                 for i, key in enumerate(inputSubsDict):

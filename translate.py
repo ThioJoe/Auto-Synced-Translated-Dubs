@@ -59,7 +59,7 @@ urlList = utils.txt_to_list(urlListFile)
 # Add span tags around certain words to exclude them from being translated
 def add_notranslate_tags_from_notranslate_file(text, phraseList):
     for word in phraseList:
-        findWordRegex = rf'(\b["\']?{word}[.,!?]?["\']?\b)' # Find the word, with optional punctuation after, and optional quotes before or after
+        findWordRegex = rf'(\b["\'()]?{word}[.,!?()]?["\']?\b)' # Find the word, with optional punctuation after, and optional quotes before or after
         text = re.sub(findWordRegex, r'<span class="notranslate">\1</span>', text, flags=re.IGNORECASE)
     return text
 
@@ -72,7 +72,7 @@ def add_notranslate_tags_for_manual_translations(text, langcode):
         # Only replace text if the language matches the entry in the manual translations file
         if manualTranslatedText['Language Code'] == langcode: 
             originalText = manualTranslatedText['Original Text']
-            findWordRegex = rf'(\b["\']?{originalText}[.,!?]?["\']?\b)'
+            findWordRegex = rf'(\b["\'()]?{originalText}[.,!?()]?["\']?\b)'
             text = re.sub(findWordRegex, r'<span class="notranslate">\1</span>', text, flags=re.IGNORECASE)
     return text
 
@@ -83,7 +83,7 @@ def replace_manual_translations(text, langcode):
         if manualTranslatedText['Language Code'] == langcode: 
             originalText = manualTranslatedText['Original Text']
             translatedText = manualTranslatedText['Translated Text']
-            findWordRegex = rf'(\b["\']?{originalText}[.,!?]?["\']?\b)'
+            findWordRegex = rf'(\b["\'()]?{originalText}[.,!?()]?["\']?\b)'
             text = re.sub(findWordRegex, translatedText, text, flags=re.IGNORECASE)
     return text
 

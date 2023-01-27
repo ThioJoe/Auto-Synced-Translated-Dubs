@@ -111,7 +111,7 @@ def add_alias_tags(text):
             isCaseSensitive = parseBool(entryDict['Case Sensitive (True/False)'])
 
         # Find and replace the word
-        findWordRegex = rf'\b["\']?{entryText}[.,!?]?["\']?\b' # Find the word, with optional punctuation after, and optional quotes before or after
+        findWordRegex = rf'\b["\'()]?{entryText}[.,!?()]?["\']?\b' # Find the word, with optional punctuation after, and optional quotes before or after
         if isCaseSensitive:
             text = re.sub(findWordRegex, rf'{entryAlias}', text)
         else:
@@ -133,7 +133,7 @@ def add_phoneme_tags(text):
             isCaseSensitive = parseBool(entryDict['Case Sensitive (True/False)'])
 
         # Find and replace the word
-        findWordRegex = rf'\b["\']?{entryText}[.,!?]?["\']?\b' # Find the word, with optional punctuation after, and optional quotes before or after
+        findWordRegex = rf'(\b["\'()]?{entryText}[.,!?()]?["\']?\b)' # Find the word, with optional punctuation after, and optional quotes before or after
         if isCaseSensitive:
             text = re.sub(findWordRegex, rf'<phoneme alphabet="ipa" ph="{entryPhoneme}">\1</phoneme>', text)
         else:

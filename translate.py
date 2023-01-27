@@ -149,7 +149,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                             'contents': chunk,
                             'sourceLanguageCode': originalLanguage,
                             'targetLanguageCode': targetLanguage,
-                            'mimeType': 'text/plain',
+                            'mimeType': 'text/html',
                             #'model': 'nmt',
                             #'glossaryConfig': {}
                         }
@@ -194,7 +194,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                         'contents':textToTranslate,
                         'sourceLanguageCode': originalLanguage,
                         'targetLanguageCode': targetLanguage,
-                        'mimeType': 'text/plain',
+                        'mimeType': 'text/html',
                         #'model': 'nmt',
                         #'glossaryConfig': {}
                     }

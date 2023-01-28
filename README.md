@@ -48,7 +48,12 @@ If you already have a human-made SRT subtitles file for a video, this will:
    - Open the script file with a text editor and change the values in the "User Settings" section at the top.
    - This will label the tracks so the video file is ready to be uploaded to YouTube. HOWEVER, the multiple audio tracks feature is only available to a limited number of channels. You will most likely need to contact YouTube creator support to ask for access, but there is no guarantee they will grant it.
 - **Optional:** You can use the separate `TitleTranslator.py` script if uploading to YouTube, which lets you enter a video's Title and Description, and the text will be translated into all the languages enabled in `batch.ini`. They wil be placed together in a single text file in the "output" folder.
-
+- **Optional:** You can use the separate `whisperx.py` script to transcribe a video to (file.srt).
+   - Open the script file with a text editor and change the values in the "User Settings" section at the top.
+   - To use this script, you need to install WhisperX using **`pip install git+https://github.com/m-bain/whisperx.git`**
+   - To improve the processing speed, you can install PyTorch with a NVIDIA video card and use it to run the script. This will significantly increase the processing speed, but you need to install the CUDA and cuDNN libraries as well. See the PyTorch website for instructions on how to install PyTorch locally with a NVIDIA GPU: https://pytorch.org/get-started/locally/.
+   - [**Whisperx**](https://github.com/m-bain/whisperX)
+   
 ----
 
 ## Additional Notes:

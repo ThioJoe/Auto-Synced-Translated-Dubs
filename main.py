@@ -6,7 +6,7 @@
 # License: GPLv3
 # NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
 
-version = '0.10.0'
+version = '0.11.0'
 print(f"------- 'Auto Synced Translated Dubs' script by ThioJoe - Release version {version} -------")
 
 # Import other files
@@ -110,7 +110,7 @@ for num in languageNums:
 
 #======================================== Parse SRT File ================================================
 
-def parse_srt_file(srtFileLines):
+def parse_srt_file(srtFileLines, preTranslated=False):
     # Matches the following example with regex:    00:00:20,130 --> 00:00:23,419
     subtitleTimeLineRegex = re.compile(r'\d\d:\d\d:\d\d,\d\d\d --> \d\d:\d\d:\d\d,\d\d\d')
 
@@ -150,7 +150,7 @@ def parse_srt_file(srtFileLines):
             timeDifferenceMs = str(processedTime2 - processedTime1)
 
             # Adjust times with buffer
-            if addBufferMilliseconds > 0:
+            if addBufferMilliseconds > 0 and not preTranslated:
                 subsDict[line]['start_ms_buffered'] = str(processedTime1 + addBufferMilliseconds)
                 subsDict[line]['end_ms_buffered'] = str(processedTime2 - addBufferMilliseconds)
                 subsDict[line]['duration_ms_buffered'] = str((processedTime2 - addBufferMilliseconds) - (processedTime1 + addBufferMilliseconds))
@@ -172,8 +172,8 @@ def parse_srt_file(srtFileLines):
 
 
     # Apply the buffer to the start and end times by setting copying over the buffer values to main values
-    for key, value in subsDict.items():
-        if addBufferMilliseconds > 0:
+    if addBufferMilliseconds > 0 and not preTranslated:
+        for key, value in subsDict.items():
             subsDict[key]['start_ms'] = value['start_ms_buffered']
             subsDict[key]['end_ms'] = value['end_ms_buffered']
             subsDict[key]['duration_ms'] = value['duration_ms_buffered']
@@ -222,10 +222,35 @@ if not os.path.exists(outputFolder):
 if not os.path.exists('workingFolder'):
     os.makedirs('workingFolder')
 
-#======================================== Translation and Text-To-Speech ================================================    
+#======================================== Translation and Text-To-Speech ================================================
 
+def get_pretranslated_subs_dict(langData):
+    # Get list of files in the output folder
+    files = os.listdir(outputFolder)
+    # Check if any files ends with the specific language code and srt file extension
+    for file in files:
+        if file.endswith(f" - {langData['translation_target_language']}.srt"):
+            # If so, open the file and read the lines into a list
+            with open(f"{outputFolder}/{file}", 'r', encoding='utf-8-sig') as f:
+                pretranslatedSubLines = f.readlines()
+            print(f"Pre-translated file found: {file}")
 
+            # Parse the srt file using function
+            preTranslatedDict = parse_srt_file(pretranslatedSubLines, preTranslated=True)
 
+            ### Do additional Processing to match the format produced by translation function
+            # Create new key 'translated_text' and set it to the value of 'text'
+            for key, value in preTranslatedDict.items():
+                preTranslatedDict[key]['translated_text'] = value['text']
+
+            # Convert the keys to integers
+            preTranslatedDict = {int(k):v for k,v in preTranslatedDict.items()}
+
+            # Return the dictionary
+            return preTranslatedDict
+        
+    # If no file is found, return None
+    return None
 
 # Process a language: Translate, Synthesize, and Build Audio
 def process_language(langData):
@@ -243,12 +268,22 @@ def process_language(langData):
     # Print language being processed
     print(f"\n----- Beginning Processing of Language: {langDict['languageCode']} -----")
 
-    # Translate
-    individualLanguageSubsDict = translate.translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=skipTranslation)
+    if skipTranslation == False:
+        # Translate
+        individualLanguageSubsDict = translate.translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=skipTranslation)
 
-    if stopAfterTranslation:
-        print("Stopping at translation is enabled. Skipping TTS and building audio.")
-        return
+        if stopAfterTranslation:
+            print("Stopping at translation is enabled. Skipping TTS and building audio.")
+            return
+    elif skipTranslation == True:
+        print("Skip translation enabled. Checking for pre-translated subtitles...")
+        # Check if pre-translated subtitles exist
+        pretranslatedSubsDict = get_pretranslated_subs_dict(langData)
+        if pretranslatedSubsDict != None:
+            individualLanguageSubsDict = pretranslatedSubsDict
+        else:
+            print(f"Pre-translated subtitles not found for language: {langDict['languageCode']}. Skipping.")
+            return
 
     # Synthesize
     if batchSynthesize == True and tts_service == 'azure':

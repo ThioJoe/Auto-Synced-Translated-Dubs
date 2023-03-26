@@ -90,8 +90,15 @@ def list_captions(videoID):
         videoId=videoID
     ).execute()
     return results
-
 #captionsList = list_captions(videoID)
+
+def delete_caption_track(videoID, captionID):
+    delete_result = auth.YOUTUBE_API.captions().delete(
+        id=captionID
+    ).execute()
+    return delete_result
+#captionsTrackID = "abcdefghijkl"
+#delete_result = delete_caption_track(videoID, captionsTrackID)
 
 
 def upload_caption(videoID, language, name, file):

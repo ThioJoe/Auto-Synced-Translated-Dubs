@@ -218,7 +218,7 @@ def get_pretranslated_subs_dict(langData):
     return None
 
 # Process a language: Translate, Synthesize, and Build Audio
-def process_language(langData):
+def process_language(langData, processedCount, totalLanguages):
     langDict = {
         'targetLanguage': langData['translation_target_language'], 
         'voiceName': langData['synth_voice_name'], 
@@ -231,7 +231,7 @@ def process_language(langData):
     individualLanguageSubsDict = copy.deepcopy(originalLanguageSubsDict)
 
     # Print language being processed
-    print(f"\n----- Beginning Processing of Language: {langDict['languageCode']} -----")
+    print(f"\n----- Beginning Processing of Language ({processedCount}/{totalLanguages}): {langDict['languageCode']} -----")
 
     if config['skip_translation'] == False:
         # Translate
@@ -268,10 +268,14 @@ def process_language(langData):
 
 
 #======================================== Main Program ================================================
+# Counter for number of languages processed
+processedCount = 0
+totalLanguages = len(batchSettings)
 
 # Process all languages
 print(f"\n----- Beginning Processing of Languages -----")
 batchSettings = translate.set_translation_info(batchSettings)
 for langNum, langData in batchSettings.items():
+    processedCount += 1
     # Process current fallback language
-    process_language(langData)
+    process_language(langData, processedCount, totalLanguages)

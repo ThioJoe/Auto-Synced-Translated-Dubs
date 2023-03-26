@@ -12,6 +12,7 @@ import sys
 
 import requests
 import configparser
+from shared_imports import *
 
 logging.basicConfig(stream=sys.stdout, level=logging.ERROR,
         format="[%(asctime)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p %Z")
@@ -20,11 +21,8 @@ logger = logging.getLogger(__name__)
 # Your Speech resource key and region
 # This example requires environment variables named "SPEECH_KEY" and "SPEECH_REGION"
 
-cloudConfig = configparser.ConfigParser()
-cloudConfig.read('cloud_service_settings.ini')
-
-AZURE_SPEECH_KEY = cloudConfig['CLOUD']['azure_speech_key']
-AZURE_SPEECH_REGION = cloudConfig['CLOUD']['azure_speech_region']
+AZURE_SPEECH_KEY = cloudConfig['azure_speech_key']
+AZURE_SPEECH_REGION = cloudConfig['azure_speech_region']
 
 NAME = "Simple synthesis"
 DESCRIPTION = "Simple synthesis description"

@@ -12,28 +12,23 @@ import copy
 import re
 from urllib.request import urlopen
 
+from shared_imports import *
 import auth
 import azure_batch
 import utils
 from utils import parseBool
 
-# Read config files
-config = configparser.ConfigParser()
-config.read('config.ini')
-cloudConfig = configparser.ConfigParser()
-cloudConfig.read('cloud_service_settings.ini')
-
 # Get variables from config
-ttsService = cloudConfig['CLOUD']['tts_service'].lower()
-translateService = cloudConfig['CLOUD']['translate_service'].lower()
-useFallbackGoogleTranslate = parseBool(cloudConfig['CLOUD']['use_fallback_google_translate'])
-audioEncoding = config['SETTINGS']['synth_audio_encoding'].upper()
-debugMode = parseBool(config['SETTINGS']['debug_mode'])
-azureSentencePause = config['SETTINGS']['azure_sentence_pause'].lower().strip("\"").strip("\'")
+ttsService = cloudConfig['tts_service'].lower()
+translateService = cloudConfig['translate_service'].lower()
+useFallbackGoogleTranslate = cloudConfig['use_fallback_google_translate']
+audioEncoding = config['synth_audio_encoding'].upper()
+debugMode = config['debug_mode']
+azureSentencePause = config['azure_sentence_pause'].lower().strip("\"").strip("\'")
 
 # Get Azure variables if applicable
-AZURE_SPEECH_KEY = cloudConfig['CLOUD']['azure_speech_key']
-AZURE_SPEECH_REGION = cloudConfig['CLOUD']['azure_speech_region']
+AZURE_SPEECH_KEY = cloudConfig['azure_speech_key']
+AZURE_SPEECH_REGION = cloudConfig['azure_speech_region']
 
 # Get Google credentials if applicable
 if ttsService == "google" or translateService == "google" or useFallbackGoogleTranslate:

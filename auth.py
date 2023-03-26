@@ -7,6 +7,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
+from shared_imports import *
+
 # Other Modules
 import os
 import sys
@@ -15,9 +17,6 @@ from json import JSONDecodeError
 import configparser
 import deepl
 
-# Import Configs
-cloudConfig = configparser.ConfigParser()
-cloudConfig.read('cloud_service_settings.ini')
 
 # Google Cloud Globals
 token_file_name = 'token.pickle'
@@ -173,9 +172,9 @@ def first_authentication():
 
 def deepl_auth():
   # Deepl API Key
-  deeplApiKey = cloudConfig['CLOUD']['deepl_api_key']
+  deeplApiKey = cloudConfig['deepl_api_key']
   deepl_auth_object = deepl.Translator(deeplApiKey)
   return deepl_auth_object
 
-if cloudConfig['CLOUD']['translate_service'] == 'deepl':
+if cloudConfig['translate_service'] == 'deepl':
   DEEPL_API = deepl_auth()

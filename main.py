@@ -6,10 +6,11 @@
 # License: GPLv3
 # NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
 
-version = '0.11.0'
+version = '0.11.1'
 print(f"------- 'Auto Synced Translated Dubs' script by ThioJoe - Release version {version} -------")
 
 # Import other files
+from shared_imports import *
 import TTS
 import audio_builder
 import auth
@@ -19,12 +20,10 @@ from utils import parseBool
 # Import built in modules
 import re
 import configparser
-import os
 import copy
 
 # Import other modules
 import ffprobe
-import sys
 
 # EXTERNAL REQUIREMENTS:
 # rubberband binaries: https://breakfastquay.com/rubberband/ - Put rubberband.exe and sndfile.dll in the same folder as this script
@@ -34,37 +33,28 @@ import sys
 # ====================================== SET CONFIGS ================================================
 # MOVE THIS INTO A DICTIONARY VARIABLE AT SOME POINT
 
+skipSynthesize = config['skip_synthesize']  # Set to true if you don't want to synthesize the audio. For example, you already did that and are testing
+debugMode = config['debug_mode']
 
-# Read config file
-config = configparser.ConfigParser()
-config.read('config.ini')
-
-skipSynthesize = parseBool(config['SETTINGS']['skip_synthesize'])  # Set to true if you don't want to synthesize the audio. For example, you already did that and are testing
-debugMode = parseBool(config['SETTINGS']['debug_mode'])
-
-skipTranslation = parseBool(config['SETTINGS']['skip_translation'])  # Set to true if you don't want to translate the subtitles. If so, ignore the following two variables
-stopAfterTranslation = parseBool(config['SETTINGS']['stop_after_translation'])
+skipTranslation = config['skip_translation']  # Set to true if you don't want to translate the subtitles. If so, ignore the following two variables
+stopAfterTranslation = config['stop_after_translation']
 
 # Note! Setting this to true will make it so instead of just stretching the audio clips, it will have the API generate new audio clips with adjusted speaking rates
 # This can't be done on the first pass because we don't know how long the audio clips will be until we generate them
-twoPassVoiceSynth = parseBool(config['SETTINGS']['two_pass_voice_synth'])
+twoPassVoiceSynth = config['two_pass_voice_synth']
 
 # Will add this many milliseconds of extra silence before and after each audio clip / spoken subtitle line
-addBufferMilliseconds = int(config['SETTINGS']['add_line_buffer_milliseconds'])
+addBufferMilliseconds = int(config['add_line_buffer_milliseconds'])
 
 #---------------------------------------- Parse Cloud Service Settings ----------------------------------------
 # Get auth and project settings for Azure, Google Cloud and/or DeepL
-cloudConfig = configparser.ConfigParser()
-cloudConfig.read('cloud_service_settings.ini')
-tts_service = cloudConfig['CLOUD']['tts_service']
+tts_service = cloudConfig['tts_service']
 
-useFallbackGoogleTranslate = parseBool(cloudConfig['CLOUD']['use_fallback_google_translate'])
-batchSynthesize = parseBool(cloudConfig['CLOUD']['batch_tts_synthesize'])
+useFallbackGoogleTranslate = cloudConfig['use_fallback_google_translate']
+batchSynthesize = cloudConfig['batch_tts_synthesize']
 
 #---------------------------------------- Batch File Processing ----------------------------------------
 
-batchConfig = configparser.ConfigParser()
-batchConfig.read('batch.ini')
 # Get list of languages to process
 languageNums = batchConfig['SETTINGS']['enabled_languages'].replace(' ','').split(',')
 srtFile = os.path.abspath(batchConfig['SETTINGS']['srt_file_path'].strip("\""))

@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 # Imports
+from shared_imports import *
 import auth
 from utils import parseBool
 import utils
@@ -16,23 +17,15 @@ import langcodes
 import html
 import re
 
-# Get Configs
-cloudConfig = configparser.ConfigParser()
-cloudConfig.read('cloud_service_settings.ini')
-config = configparser.ConfigParser()
-config.read('config.ini')
-batchConfig = configparser.ConfigParser()
-batchConfig.read('batch.ini')
-
 # Get settings from configs
-googleProjectID = cloudConfig['CLOUD']['google_project_id']
+googleProjectID = cloudConfig['google_project_id']
 
 # Translation Settings
-originalLanguage = config['SETTINGS']['original_language']
-formalityPreference = config['SETTINGS']['formality_preference']
-preferredTranslateService = cloudConfig['CLOUD']['translate_service']
-debugMode = parseBool(config['SETTINGS']['debug_mode'])
-combineMaxChars = int(config['SETTINGS']['combine_subtitles_max_chars']) # Will combine subtitles into one audio clip if they are less than this many characters
+originalLanguage = config['original_language']
+formalityPreference = config['formality_preference']
+preferredTranslateService = cloudConfig['translate_service']
+debugMode = config['debug_mode']
+combineMaxChars = int(config['combine_subtitles_max_chars']) # Will combine subtitles into one audio clip if they are less than this many characters
 
 # MOVE THESE INTO A DICTIONARY VARIABLE AT SOME POINT
 # Get original video file path, also allow you to debug using a subtitle file without having the original video file

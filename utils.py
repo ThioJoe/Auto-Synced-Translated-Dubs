@@ -1,12 +1,18 @@
 import csv
+from shared_imports import *
 
 # Interprets a string as a boolean. Returns True or False
-def parseBool(string):
+def parseBool(string, silent=False):
     if type(string) == str:
         if string.lower() == 'true':
             return True
         elif string.lower() == 'false':
             return False
+        else:
+            if not silent:
+                raise ValueError(f'Invalid value "{string}". Must be "True" or "False"')
+            elif silent:
+                return string
     elif type(string) == bool:
         if string == True:
             return True

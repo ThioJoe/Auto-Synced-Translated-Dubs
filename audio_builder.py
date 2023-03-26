@@ -5,6 +5,7 @@ import pathlib
 import os
 import io
 
+from shared_imports import *
 import TTS
 from utils import parseBool
 
@@ -15,23 +16,15 @@ import langcodes
 # Set working folder
 workingFolder = "workingFolder"
 
-# Read config files
-config = configparser.ConfigParser()
-config.read('config.ini')
-batchConfig = configparser.ConfigParser()
-batchConfig.read('batch.ini')
-cloudConfig = configparser.ConfigParser()
-cloudConfig.read('cloud_service_settings.ini')
-
 # Get variables from configs
-nativeSampleRate = int(config['SETTINGS']['synth_sample_rate'])
+nativeSampleRate = int(config['synth_sample_rate'])
 
-skipSynthesize = parseBool(config['SETTINGS']['skip_synthesize'])
-forceTwoPassStretch = parseBool(config['SETTINGS']['force_stretch_with_twopass'])
-outputFormat = config['SETTINGS']['output_format'].lower()
-batchSynthesize = parseBool(cloudConfig['CLOUD']['batch_tts_synthesize'])
-tts_service = cloudConfig['CLOUD']['tts_service']
-debugMode = parseBool(config['SETTINGS']['debug_mode'])
+skipSynthesize = config['skip_synthesize']
+forceTwoPassStretch = config['force_stretch_with_twopass']
+outputFormat = config['output_format'].lower()
+batchSynthesize = cloudConfig['batch_tts_synthesize']
+tts_service = cloudConfig['tts_service']
+debugMode = config['debug_mode']
 
 # MOVE THIS INTO A VARIABLE AT SOME POINT
 # Get original video file path, also allow you to debug using a subtitle file without having the original video file

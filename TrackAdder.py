@@ -42,6 +42,7 @@ import shutil
 from pydub import AudioSegment
 import langcodes
 from utils import parseBool
+from shared_imports import *
 
 # Auto fetch tracks from tracksFolder
 tracksToAddDict = {}

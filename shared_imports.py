@@ -21,11 +21,11 @@ cloudConfig = {}
 
 for section in configRaw.sections():
     for key in configRaw[section]:
-        config[key] = parseConfigSetting(configRaw[section][key], silent=True)
+        config[key] = parseConfigSetting(configRaw[section][key])
 
 for section in cloudConfigRaw.sections():
     for key in cloudConfigRaw[section]:
-        cloudConfig[key] = parseConfigSetting(cloudConfigRaw[section][key], silent=True)
+        cloudConfig[key] = parseConfigSetting(cloudConfigRaw[section][key])
 
 # ----- Create constants ------
 ORIGINAL_VIDEO_PATH = batchConfig['SETTINGS']['original_video_file_path']

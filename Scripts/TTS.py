@@ -199,10 +199,15 @@ def synthesize_text_azure(text, speedFactor, voiceName, languageCode):
 
     # Create string for sentence pauses, if not default
     if not config['azure_sentence_pause'] == 'default':
-
-        pauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{int(config["azure_sentence_pause"])}ms"/>'
+        sentencePauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{str(config["azure_sentence_pause"])}ms"/>'
     else:
-        pauseTag = ''
+        sentencePauseTag = ''
+
+    # Create string for comma pauses, if not default
+    if not config['azure_comma_pause'] == 'default':
+        commaPauseTag = f'<mstts:silence type="Comma-exact" value="{str(config["azure_comma_pause"])}ms"/>'
+    else:
+        commaPauseTag = ''
     
     # Process text using pronunciation customization set by user
     text = add_all_pronunciation_overrides(text)
@@ -210,7 +215,7 @@ def synthesize_text_azure(text, speedFactor, voiceName, languageCode):
     # Create SSML syntax for Azure TTS
     ssml = f"<speak version='1.0' xml:lang='{languageCode}' xmlns='http://www.w3.org/2001/10/synthesis' " \
         "xmlns:mstts='http://www.w3.org/2001/mstts'>" \
-        f"<voice name='{voiceName}'>{pauseTag}" \
+        f"<voice name='{voiceName}'>{sentencePauseTag}{commaPauseTag}" \
         f"<prosody rate='{rate}'>{text}</prosody></voice></speak>"
 
     speech_config = speechsdk.SpeechConfig(subscription=AZURE_SPEECH_KEY, region=AZURE_SPEECH_REGION)
@@ -271,9 +276,15 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
 
             # Create string for sentence pauses, if not default
             if not config['azure_sentence_pause'] == 'default':
-                pauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{int(config["azure_sentence_pause"])}ms"/>'
+                sentencePauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{str(config["azure_sentence_pause"])}ms"/>'
             else:
-                pauseTag = ''
+                sentencePauseTag = ''
+
+            # Create string for comma pauses, if not default
+            if not config['azure_comma_pause'] == 'default':
+                commaPauseTag = f'<mstts:silence type="Comma-exact" value="{str(config["azure_comma_pause"])}ms"/>'
+            else:
+                commaPauseTag = ''
 
             # Process text using pronunciation customization set by user
             text = add_all_pronunciation_overrides(text)
@@ -281,7 +292,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
             # Create the SSML for each subtitle
             ssml = f"<speak version='1.0' xml:lang='{language}' xmlns='http://www.w3.org/2001/10/synthesis' " \
             "xmlns:mstts='http://www.w3.org/2001/mstts'>" \
-            f"<voice name='{voice}'>{pauseTag}" \
+            f"<voice name='{voice}'>{sentencePauseTag}{commaPauseTag}" \
             f"{pOpenTag}{text}{pCloseTag}</voice></speak>"
             ssmlJson.append({"text": ssml})
 

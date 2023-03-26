@@ -2,6 +2,8 @@ import os
 import sys
 import traceback
 import configparser
+import re
+import regex
 
 from utils import parseBool, parseConfigSetting
 
@@ -39,4 +41,4 @@ else:
     ORIGINAL_VIDEO_PATH = os.path.abspath(ORIGINAL_VIDEO_PATH.strip("\""))
 
 # ---------------------------------------------------------------------------------------
-__all__ = ['os', 'sys', 'traceback', 'config', 'cloudConfig', 'batchConfig', 'ORIGINAL_VIDEO_PATH', 'OUTPUT_DIRECTORY', 'OUTPUT_FOLDER']
+__all__ = ['os', 'sys', 'traceback', 'config', 'cloudConfig', 'batchConfig', 'ORIGINAL_VIDEO_PATH', 'OUTPUT_DIRECTORY', 'OUTPUT_FOLDER', 're', 'regex', 'parseBool']

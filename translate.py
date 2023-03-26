@@ -15,8 +15,6 @@ import os
 import pathlib
 import langcodes
 import html
-import re
-
 
 # -------------------------------- No Translate and Manual Translation Functions -----------------------------------
 
@@ -31,8 +29,10 @@ urlList = utils.txt_to_list(urlListFile)
 # Add span tags around certain words to exclude them from being translated
 def add_notranslate_tags_from_notranslate_file(text, phraseList):
     for word in phraseList:
-        findWordRegex = rf'(\b["\'()]?{word}[.,!?()]?["\']?\b)' # Find the word, with optional punctuation after, and optional quotes before or after
-        text = re.sub(findWordRegex, r'<span class="notranslate">\1</span>', text, flags=re.IGNORECASE)
+        findWordRegex = rf'(\p{{Z}}|^)(["\'()]?{word}[.,!?()]?["\']?)(\p{{Z}}|$)' #\p ensures it works with unicode characters
+        findWordRegexCompiled = regex.compile(findWordRegex, flags=re.IGNORECASE | re.UNICODE)
+        # Find the word, with optional punctuation after, and optional quotes before or after
+        text = findWordRegexCompiled.sub(r'\1<span class="notranslate">\2</span>\3', text)
     return text
 
 def remove_notranslate_tags(text):
@@ -44,8 +44,9 @@ def add_notranslate_tags_for_manual_translations(text, langcode):
         # Only replace text if the language matches the entry in the manual translations file
         if manualTranslatedText['Language Code'] == langcode: 
             originalText = manualTranslatedText['Original Text']
-            findWordRegex = rf'(\b["\'()]?{originalText}[.,!?()]?["\']?\b)'
-            text = re.sub(findWordRegex, r'<span class="notranslate">\1</span>', text, flags=re.IGNORECASE)
+            findWordRegex = rf'(\p{{Z}}|^)(["\'()]?{originalText}[.,!?()]?["\']?)(\p{{Z}}|$)'
+            findWordRegexCompiled = regex.compile(findWordRegex, flags=re.IGNORECASE | re.UNICODE)
+            text = findWordRegexCompiled.sub(r'\1<span class="notranslate">\2</span>\3', text)
     return text
 
 # Replace certain words or phrases with their manual translation
@@ -55,8 +56,10 @@ def replace_manual_translations(text, langcode):
         if manualTranslatedText['Language Code'] == langcode: 
             originalText = manualTranslatedText['Original Text']
             translatedText = manualTranslatedText['Translated Text']
-            findWordRegex = rf'(\b["\'()]?{originalText}[.,!?()]?["\']?\b)'
-            text = re.sub(findWordRegex, translatedText, text, flags=re.IGNORECASE)
+            findWordRegex = rf'(\p{{Z}}|^)(["\'()]?{originalText}[.,!?()]?["\']?)(\p{{Z}}|$)'
+            findWordRegexCompiled = regex.compile(findWordRegex, flags=re.IGNORECASE | re.UNICODE)
+            # Substitute the matched word with the translated text
+            text = findWordRegexCompiled.sub(rf'\1{translatedText}\3', text)
     return text
 
 

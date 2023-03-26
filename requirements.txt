@@ -9,3 +9,4 @@ langcodes
 language_data
 numpy
 deepl
+regex

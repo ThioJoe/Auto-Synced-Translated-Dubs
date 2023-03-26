@@ -244,6 +244,12 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
 def set_translation_info(languageBatchDict):
     newBatchSettingsDict = copy.deepcopy(languageBatchDict)
 
+    if config['skip_translation'] == True:
+        for langNum, langInfo in languageBatchDict.items():
+            newBatchSettingsDict[langNum]['translate_service'] = None
+            newBatchSettingsDict[langNum]['formality'] = None
+        return newBatchSettingsDict
+        
     # Set the translation service for each language
     if cloudConfig['translate_service'] == 'deepl':
         langSupportResponse = auth.DEEPL_API.get_target_languages()
@@ -285,12 +291,16 @@ def set_translation_info(languageBatchDict):
             else:
                 newBatchSettingsDict[langNum]['translate_service'] = 'google'
                 newBatchSettingsDict[langNum]['formality'] = None
-    
+
     # If using Google, set all languages to use Google in dictionary
     elif cloudConfig['translate_service'] == 'google':
         for langNum, langInfo in languageBatchDict.items():
             newBatchSettingsDict[langNum]['translate_service'] = 'google'
             newBatchSettingsDict[langNum]['formality'] = None
+
+    else:
+        print("Error: No valid translation service selected. Please choose a valid service or enable 'skip_translation' in config.")
+        sys.exit()
 
     return newBatchSettingsDict    
 

@@ -243,7 +243,7 @@ def process_language(langData):
         
     elif config['skip_translation'] == True:
         # Check for special case where original language is the same as the target language
-        if langDict['targetLanguage'].lower() == config['original_language'].lower():
+        if langDict['languageCode'].lower() == config['original_language'].lower():
             print("Original language is the same as the target language. Skipping translation.")
             individualLanguageSubsDict = manually_prepare_dictionary(individualLanguageSubsDict)
 
@@ -267,6 +267,7 @@ def process_language(langData):
     individualLanguageSubsDict = audio_builder.build_audio(individualLanguageSubsDict, langDict, totalAudioLength, config['two_pass_voice_synth'])    
 
 
+#======================================== Main Program ================================================
 
 # Process all languages
 print(f"\n----- Beginning Processing of Languages -----")

@@ -29,9 +29,6 @@ import ffprobe
 # ffmpeg installed: https://ffmpeg.org/download.html
 
 
-# ====================================== SET CONFIGS ================================================
-# MOVE THIS INTO A DICTIONARY VARIABLE AT SOME POINT
-
 #---------------------------------------- Batch File Processing ----------------------------------------
 
 # Get list of languages to process

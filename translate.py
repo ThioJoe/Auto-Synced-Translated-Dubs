@@ -17,17 +17,6 @@ import langcodes
 import html
 import re
 
-# MOVE THESE INTO A DICTIONARY VARIABLE AT SOME POINT
-# Get original video file path, also allow you to debug using a subtitle file without having the original video file
-videoFilePath = batchConfig['SETTINGS']['original_video_file_path']
-if config['debug_mode'] and (videoFilePath == '' or videoFilePath.lower() == 'none'):
-    originalVideoFile = 'Debug.test'
-else:
-    originalVideoFile = os.path.abspath(videoFilePath.strip("\""))
-
-# Set output folder based on filename of original video file
-outputDirectory = "Outputs"
-outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0])
 
 # -------------------------------- No Translate and Manual Translation Functions -----------------------------------
 
@@ -225,14 +214,14 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
         # Use video file name to use in the name of the translate srt file, also display regular language name
         lang = langcodes.get(targetLanguage).display_name()
         if config['debug_mode']:
-            if os.path.isfile(originalVideoFile):
-                translatedSrtFileName = pathlib.Path(originalVideoFile).stem + f" - {lang} - {targetLanguage}.DEBUG.txt"
+            if os.path.isfile(ORIGINAL_VIDEO_PATH):
+                translatedSrtFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f" - {lang} - {targetLanguage}.DEBUG.txt"
             else:
                 translatedSrtFileName = "debug" + f" - {lang} - {targetLanguage}.DEBUG.txt"
         else:
-            translatedSrtFileName = pathlib.Path(originalVideoFile).stem + f" - {lang} - {targetLanguage}.srt"
+            translatedSrtFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f" - {lang} - {targetLanguage}.srt"
         # Set path to save translated srt file
-        translatedSrtFileName = os.path.join(outputFolder, translatedSrtFileName)
+        translatedSrtFileName = os.path.join(OUTPUT_FOLDER, translatedSrtFileName)
         # Write new srt file with translated text
         with open(translatedSrtFileName, 'w', encoding='utf-8-sig') as f:
             for key in combinedProcessedDict:

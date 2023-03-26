@@ -19,7 +19,6 @@ from utils import parseBool
 
 # Import built in modules
 import re
-import configparser
 import copy
 
 # Import other modules
@@ -41,14 +40,6 @@ srtFile = os.path.abspath(batchConfig['SETTINGS']['srt_file_path'].strip("\""))
 
 # Get original video file path, also allow you to debug using a subtitle file without having the original video file
 videoFilePath = batchConfig['SETTINGS']['original_video_file_path']
-if config['debug_mode'] and (videoFilePath == '' or videoFilePath.lower() == 'none'):
-    originalVideoFile = 'Debug.test'
-else:
-    originalVideoFile = os.path.abspath(videoFilePath.strip("\""))
-
-# Set output folder based on filename of original video file
-outputDirectory = "Outputs"
-outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0])
 
 # Validate the number of sections
 for num in languageNums:
@@ -176,20 +167,20 @@ def get_duration(filename):
     return durationMS
 
 # Get the duration of the original video file
-if config['debug_mode'] and originalVideoFile.lower() == "debug.test":
+if config['debug_mode'] and ORIGINAL_VIDEO_PATH.lower() == "debug.test":
     # Copy the duration based on the last timestamp of the subtitles
     totalAudioLength = int(originalLanguageSubsDict[str(len(originalLanguageSubsDict))]['end_ms'])
 else:
-    totalAudioLength = get_duration(originalVideoFile)
+    totalAudioLength = get_duration(ORIGINAL_VIDEO_PATH)
 
 
 #============================================= Directory Validation =====================================================
 
 # Check if the output folder exists, if not, create it
-if not os.path.exists(outputDirectory):
-    os.makedirs(outputDirectory)
-if not os.path.exists(outputFolder):
-    os.makedirs(outputFolder)
+if not os.path.exists(OUTPUT_DIRECTORY):
+    os.makedirs(OUTPUT_DIRECTORY)
+if not os.path.exists(OUTPUT_FOLDER):
+    os.makedirs(OUTPUT_FOLDER)
 
 # Check if the working folder exists, if not, create it
 if not os.path.exists('workingFolder'):
@@ -199,12 +190,12 @@ if not os.path.exists('workingFolder'):
 
 def get_pretranslated_subs_dict(langData):
     # Get list of files in the output folder
-    files = os.listdir(outputFolder)
+    files = os.listdir(OUTPUT_FOLDER)
     # Check if any files ends with the specific language code and srt file extension
     for file in files:
         if file.endswith(f" - {langData['translation_target_language']}.srt"):
             # If so, open the file and read the lines into a list
-            with open(f"{outputFolder}/{file}", 'r', encoding='utf-8-sig') as f:
+            with open(f"{OUTPUT_FOLDER}/{file}", 'r', encoding='utf-8-sig') as f:
                 pretranslatedSubLines = f.readlines()
             print(f"Pre-translated file found: {file}")
 

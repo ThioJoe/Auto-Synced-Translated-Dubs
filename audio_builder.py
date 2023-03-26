@@ -16,16 +16,6 @@ import langcodes
 # Set working folder
 workingFolder = "workingFolder"
 
-# MOVE THIS INTO A VARIABLE AT SOME POINT
-# Get original video file path, also allow you to debug using a subtitle file without having the original video file
-videoFilePath = batchConfig['SETTINGS']['original_video_file_path']
-originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))
-if config['debug_mode'] and (videoFilePath == '' or videoFilePath.lower() == 'none'):
-    originalVideoFile = 'Debug.test'
-else:
-    originalVideoFile = os.path.abspath(videoFilePath.strip("\""))
-outputDirectory = "Outputs"
-outputFolder = os.path.join(outputDirectory , os.path.splitext(os.path.basename(originalVideoFile))[0])
 
 def trim_clip(inputSound):
     trim_leading_silence: AudioSegment = lambda x: x[detect_leading_silence(x) :]
@@ -149,12 +139,12 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     # Use video file name to use in the name of the output file. Add language name and language code
     lang = langcodes.get(langDict['languageCode'])
     langName = langcodes.get(langDict['languageCode']).get(lang.to_alpha3()).display_name()
-    if config['debug_mode'] and not os.path.isfile(originalVideoFile):
+    if config['debug_mode'] and not os.path.isfile(ORIGINAL_VIDEO_PATH):
         outputFileName = "debug" + f" - {langName} - {langDict['languageCode']}."
     else:
-        outputFileName = pathlib.Path(originalVideoFile).stem + f" - {langName} - {langDict['languageCode']}."
+        outputFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f" - {langName} - {langDict['languageCode']}."
     # Set output path
-    outputFileName = os.path.join(outputFolder, outputFileName)
+    outputFileName = os.path.join(OUTPUT_FOLDER, outputFileName)
 
     # Determine string to use for output format and file extension based on config setting
     outputFormat=config['output_format'].lower()

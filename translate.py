@@ -17,20 +17,10 @@ import langcodes
 import html
 import re
 
-# Get settings from configs
-googleProjectID = cloudConfig['google_project_id']
-
-# Translation Settings
-originalLanguage = config['original_language']
-formalityPreference = config['formality_preference']
-preferredTranslateService = cloudConfig['translate_service']
-debugMode = config['debug_mode']
-combineMaxChars = int(config['combine_subtitles_max_chars']) # Will combine subtitles into one audio clip if they are less than this many characters
-
 # MOVE THESE INTO A DICTIONARY VARIABLE AT SOME POINT
 # Get original video file path, also allow you to debug using a subtitle file without having the original video file
 videoFilePath = batchConfig['SETTINGS']['original_video_file_path']
-if debugMode and (videoFilePath == '' or videoFilePath.lower() == 'none'):
+if config['debug_mode'] and (videoFilePath == '' or videoFilePath.lower() == 'none'):
     originalVideoFile = 'Debug.test'
 else:
     originalVideoFile = os.path.abspath(videoFilePath.strip("\""))
@@ -137,10 +127,10 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                     # Print status with progress
                     print(f'[Google] Translating text group {j+1} of {len(chunkedTexts)}')
                     response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
-                        parent='projects/' + googleProjectID,
+                        parent='projects/' + cloudConfig['google_project_id'],
                         body={
                             'contents': chunk,
-                            'sourceLanguageCode': originalLanguage,
+                            'sourceLanguageCode': config['original_language'],
                             'targetLanguageCode': targetLanguage,
                             'mimeType': 'text/html',
                             #'model': 'nmt',
@@ -182,10 +172,10 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
             if translateService == 'google':
                 print("Translating text using Google...")
                 response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
-                    parent='projects/' + googleProjectID,
+                    parent='projects/' + cloudConfig['google_project_id'],
                     body={
                         'contents':textToTranslate,
-                        'sourceLanguageCode': originalLanguage,
+                        'sourceLanguageCode': config['original_language'],
                         'targetLanguageCode': targetLanguage,
                         'mimeType': 'text/html',
                         #'model': 'nmt',
@@ -229,12 +219,12 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
     # with open('inputSubsDict.json', 'r') as f:
     #     inputSubsDict = json.load(f)
 
-    combinedProcessedDict = combine_subtitles_advanced(inputSubsDict, combineMaxChars)
+    combinedProcessedDict = combine_subtitles_advanced(inputSubsDict, int(config['combine_subtitles_max_chars']))
 
-    if skipTranslation == False or debugMode == True:
+    if skipTranslation == False or config['debug_mode'] == True:
         # Use video file name to use in the name of the translate srt file, also display regular language name
         lang = langcodes.get(targetLanguage).display_name()
-        if debugMode:
+        if config['debug_mode']:
             if os.path.isfile(originalVideoFile):
                 translatedSrtFileName = pathlib.Path(originalVideoFile).stem + f" - {lang} - {targetLanguage}.DEBUG.txt"
             else:
@@ -249,7 +239,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
                 f.write(str(key) + '\n')
                 f.write(combinedProcessedDict[key]['srt_timestamps_line'] + '\n')
                 f.write(combinedProcessedDict[key]['translated_text'] + '\n')
-                if debugMode:
+                if config['debug_mode']:
                     f.write(f"DEBUG: duration_ms = {combinedProcessedDict[key]['duration_ms']}" + '\n')
                     f.write(f"DEBUG: char_rate = {combinedProcessedDict[key]['char_rate']}" + '\n')
                     f.write(f"DEBUG: start_ms = {combinedProcessedDict[key]['start_ms']}" + '\n')
@@ -266,7 +256,7 @@ def set_translation_info(languageBatchDict):
     newBatchSettingsDict = copy.deepcopy(languageBatchDict)
 
     # Set the translation service for each language
-    if preferredTranslateService == 'deepl':
+    if cloudConfig['translate_service'] == 'deepl':
         langSupportResponse = auth.DEEPL_API.get_target_languages()
         supportedLanguagesList = list(map(lambda x: str(x.code).upper(), langSupportResponse))
 
@@ -294,9 +284,9 @@ def set_translation_info(languageBatchDict):
                 # Set translation service to DeepL
                 newBatchSettingsDict[langNum]['translate_service'] = 'deepl'
                 # Setting to 'prefer_more' or 'prefer_less' will it will default to 'default' if formality not supported             
-                if formalityPreference == 'more':
+                if config['formality_preference'] == 'more':
                     newBatchSettingsDict[langNum]['formality'] = 'prefer_more'
-                elif formalityPreference == 'less':
+                elif config['formality_preference'] == 'less':
                     newBatchSettingsDict[langNum]['formality'] = 'prefer_less'
                 else:
                     # Set formality to None if not supported for that language
@@ -308,7 +298,7 @@ def set_translation_info(languageBatchDict):
                 newBatchSettingsDict[langNum]['formality'] = None
     
     # If using Google, set all languages to use Google in dictionary
-    elif preferredTranslateService == 'google':
+    elif cloudConfig['translate_service'] == 'google':
         for langNum, langInfo in languageBatchDict.items():
             newBatchSettingsDict[langNum]['translate_service'] = 'google'
             newBatchSettingsDict[langNum]['formality'] = None

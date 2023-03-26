@@ -16,21 +16,11 @@ import langcodes
 # Set working folder
 workingFolder = "workingFolder"
 
-# Get variables from configs
-nativeSampleRate = int(config['synth_sample_rate'])
-
-skipSynthesize = config['skip_synthesize']
-forceTwoPassStretch = config['force_stretch_with_twopass']
-outputFormat = config['output_format'].lower()
-batchSynthesize = cloudConfig['batch_tts_synthesize']
-tts_service = cloudConfig['tts_service']
-debugMode = config['debug_mode']
-
 # MOVE THIS INTO A VARIABLE AT SOME POINT
 # Get original video file path, also allow you to debug using a subtitle file without having the original video file
 videoFilePath = batchConfig['SETTINGS']['original_video_file_path']
 originalVideoFile = os.path.abspath(batchConfig['SETTINGS']['original_video_file_path'].strip("\""))
-if debugMode and (videoFilePath == '' or videoFilePath.lower() == 'none'):
+if config['debug_mode'] and (videoFilePath == '' or videoFilePath.lower() == 'none'):
     originalVideoFile = 'Debug.test'
 else:
     originalVideoFile = os.path.abspath(videoFilePath.strip("\""))
@@ -54,7 +44,7 @@ def insert_audio(canvas, audioToOverlay, startTimeMs):
     return canvasCopy
 
 # Function to create a canvas of a specific duration in miliseconds
-def create_canvas(canvasDuration, frame_rate=nativeSampleRate):
+def create_canvas(canvasDuration, frame_rate=int(config['synth_sample_rate'])):
     canvas = AudioSegment.silent(duration=canvasDuration, frame_rate=frame_rate)
     return canvas
 
@@ -76,7 +66,7 @@ def stretch_audio(audioFileToStretch, speedFactor, num):
     streched_audio = pyrubberband.time_stretch(y, sampleRate, speedFactor, rbargs={'--fine': '--fine'}) # Need to add rbarges in weird way because it demands a dictionary of two values
     #soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
     soundfile.write(virtualTempAudioFile, streched_audio, sampleRate, format='wav')
-    if debugMode:
+    if config['debug_mode']:
         soundfile.write(os.path.join(workingFolder, f'{num}_s.wav'), streched_audio, sampleRate) # For debugging, saves the stretched audio files
     #return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
     return AudioSegment.from_file(virtualTempAudioFile, format="wav")
@@ -90,9 +80,9 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         subsDict[key]['TTS_FilePath_Trimmed'] = filePathTrimmed
 
         # Trim the clip and re-write file
-        rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)
+        rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=int(config['synth_sample_rate']))
         trimmedClip = trim_clip(rawClip)
-        if debugMode:
+        if config['debug_mode']:
             trimmedClip.export(filePathTrimmed, format="wav")
 
         # Create virtual file in dictionary with audio to be read later
@@ -113,16 +103,16 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
 
     # If two pass voice synth is enabled, have API re-synthesize the clips at the new speed
     if twoPassVoiceSynth == True:
-        if batchSynthesize == True and tts_service == 'azure':
-            subsDict = TTS.synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=skipSynthesize, secondPass=True)
+        if cloudConfig['batch_tts_synthesize'] == True and cloudConfig['tts_service'] == 'azure':
+            subsDict = TTS.synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=config['skip_synthesize'], secondPass=True)
         else:
-            subsDict = TTS.synthesize_dictionary(subsDict, langDict, skipSynthesize=skipSynthesize, secondPass=True)
+            subsDict = TTS.synthesize_dictionary(subsDict, langDict, skipSynthesize=config['skip_synthesize'], secondPass=True)
             
         for key, value in subsDict.items():
             # Trim the clip and re-write file
-            rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=nativeSampleRate)
+            rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=int(config['synth_sample_rate']))
             trimmedClip = trim_clip(rawClip)
-            if debugMode:
+            if config['debug_mode']:
                 # Remove '.wav' from the end of the file path
                 secondPassTrimmedFile = value['TTS_FilePath_Trimmed'][:-4] + "_p2_t.wav"
                 trimmedClip.export(secondPassTrimmedFile, format="wav")
@@ -131,7 +121,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             print(f" Trimmed Audio (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
         print("\n")
 
-        if forceTwoPassStretch == True:
+        if config['force_stretch_with_twopass'] == True:
             for key, value in subsDict.items():
                 subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
                 keyIndex = list(subsDict.keys()).index(key)
@@ -143,7 +133,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
 
     # Stretch audio and insert into canvas
     for key, value in subsDict.items():
-        if not twoPassVoiceSynth or forceTwoPassStretch == True:
+        if not twoPassVoiceSynth or config['force_stretch_with_twopass'] == True:
             #stretchedClip = stretch_audio(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'], num=key)
             stretchedClip = stretch_audio(virtualTrimmedFileDict[key], speedFactor=subsDict[key]['speed_factor'], num=key)
         else:
@@ -159,7 +149,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     # Use video file name to use in the name of the output file. Add language name and language code
     lang = langcodes.get(langDict['languageCode'])
     langName = langcodes.get(langDict['languageCode']).get(lang.to_alpha3()).display_name()
-    if debugMode and not os.path.isfile(originalVideoFile):
+    if config['debug_mode'] and not os.path.isfile(originalVideoFile):
         outputFileName = "debug" + f" - {langName} - {langDict['languageCode']}."
     else:
         outputFileName = pathlib.Path(originalVideoFile).stem + f" - {langName} - {langDict['languageCode']}."
@@ -167,6 +157,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     outputFileName = os.path.join(outputFolder, outputFileName)
 
     # Determine string to use for output format and file extension based on config setting
+    outputFormat=config['output_format'].lower()
     if outputFormat == "mp3":
         outputFileName += "mp3"
         formatString = "mp3"

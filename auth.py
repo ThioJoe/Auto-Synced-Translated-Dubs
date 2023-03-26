@@ -172,8 +172,7 @@ def first_authentication():
 
 def deepl_auth():
   # Deepl API Key
-  deeplApiKey = cloudConfig['deepl_api_key']
-  deepl_auth_object = deepl.Translator(deeplApiKey)
+  deepl_auth_object = deepl.Translator(cloudConfig['deepl_api_key'])
   return deepl_auth_object
 
 if cloudConfig['translate_service'] == 'deepl':

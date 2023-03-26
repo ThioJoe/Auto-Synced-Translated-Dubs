@@ -33,26 +33,6 @@ import ffprobe
 # ====================================== SET CONFIGS ================================================
 # MOVE THIS INTO A DICTIONARY VARIABLE AT SOME POINT
 
-skipSynthesize = config['skip_synthesize']  # Set to true if you don't want to synthesize the audio. For example, you already did that and are testing
-debugMode = config['debug_mode']
-
-skipTranslation = config['skip_translation']  # Set to true if you don't want to translate the subtitles. If so, ignore the following two variables
-stopAfterTranslation = config['stop_after_translation']
-
-# Note! Setting this to true will make it so instead of just stretching the audio clips, it will have the API generate new audio clips with adjusted speaking rates
-# This can't be done on the first pass because we don't know how long the audio clips will be until we generate them
-twoPassVoiceSynth = config['two_pass_voice_synth']
-
-# Will add this many milliseconds of extra silence before and after each audio clip / spoken subtitle line
-addBufferMilliseconds = int(config['add_line_buffer_milliseconds'])
-
-#---------------------------------------- Parse Cloud Service Settings ----------------------------------------
-# Get auth and project settings for Azure, Google Cloud and/or DeepL
-tts_service = cloudConfig['tts_service']
-
-useFallbackGoogleTranslate = cloudConfig['use_fallback_google_translate']
-batchSynthesize = cloudConfig['batch_tts_synthesize']
-
 #---------------------------------------- Batch File Processing ----------------------------------------
 
 # Get list of languages to process
@@ -61,7 +41,7 @@ srtFile = os.path.abspath(batchConfig['SETTINGS']['srt_file_path'].strip("\""))
 
 # Get original video file path, also allow you to debug using a subtitle file without having the original video file
 videoFilePath = batchConfig['SETTINGS']['original_video_file_path']
-if debugMode and (videoFilePath == '' or videoFilePath.lower() == 'none'):
+if config['debug_mode'] and (videoFilePath == '' or videoFilePath.lower() == 'none'):
     originalVideoFile = 'Debug.test'
 else:
     originalVideoFile = os.path.abspath(videoFilePath.strip("\""))
@@ -106,6 +86,9 @@ def parse_srt_file(srtFileLines, preTranslated=False):
 
     # Create a dictionary
     subsDict = {}
+
+    # Will add this many milliseconds of extra silence before and after each audio clip / spoken subtitle line
+    addBufferMilliseconds = int(config['add_line_buffer_milliseconds'])
 
     # Enumerate lines, and if a line in lines contains only an integer, put that number in the key, and a dictionary in the value
     # The dictionary contains the start, ending, and duration of the subtitles as well as the text
@@ -193,7 +176,7 @@ def get_duration(filename):
     return durationMS
 
 # Get the duration of the original video file
-if debugMode and originalVideoFile.lower() == "debug.test":
+if config['debug_mode'] and originalVideoFile.lower() == "debug.test":
     # Copy the duration based on the last timestamp of the subtitles
     totalAudioLength = int(originalLanguageSubsDict[str(len(originalLanguageSubsDict))]['end_ms'])
 else:
@@ -258,14 +241,14 @@ def process_language(langData):
     # Print language being processed
     print(f"\n----- Beginning Processing of Language: {langDict['languageCode']} -----")
 
-    if skipTranslation == False:
+    if config['skip_translation'] == False:
         # Translate
-        individualLanguageSubsDict = translate.translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=skipTranslation)
+        individualLanguageSubsDict = translate.translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=config['skip_translation'])
 
-        if stopAfterTranslation:
+        if config['stop_after_translation']:
             print("Stopping at translation is enabled. Skipping TTS and building audio.")
             return
-    elif skipTranslation == True:
+    elif config['skip_translation'] == True:
         print("Skip translation enabled. Checking for pre-translated subtitles...")
         # Check if pre-translated subtitles exist
         pretranslatedSubsDict = get_pretranslated_subs_dict(langData)
@@ -276,13 +259,13 @@ def process_language(langData):
             return
 
     # Synthesize
-    if batchSynthesize == True and tts_service == 'azure':
-        individualLanguageSubsDict = TTS.synthesize_dictionary_batch(individualLanguageSubsDict, langDict, skipSynthesize=skipSynthesize)
+    if cloudConfig['batch_tts_synthesize'] == True and cloudConfig['tts_service'] == 'azure':
+        individualLanguageSubsDict = TTS.synthesize_dictionary_batch(individualLanguageSubsDict, langDict, skipSynthesize=config['skip_synthesize'])
     else:
-        individualLanguageSubsDict = TTS.synthesize_dictionary(individualLanguageSubsDict, langDict, skipSynthesize=skipSynthesize)
+        individualLanguageSubsDict = TTS.synthesize_dictionary(individualLanguageSubsDict, langDict, skipSynthesize=config['skip_synthesize'])
 
     # Build audio
-    individualLanguageSubsDict = audio_builder.build_audio(individualLanguageSubsDict, langDict, totalAudioLength, twoPassVoiceSynth)    
+    individualLanguageSubsDict = audio_builder.build_audio(individualLanguageSubsDict, langDict, totalAudioLength, config['two_pass_voice_synth'])    
 
 
 

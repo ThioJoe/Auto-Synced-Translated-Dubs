@@ -21,9 +21,7 @@ from utils import parseBool
 # Get variables from config
 ttsService = cloudConfig['tts_service'].lower()
 translateService = cloudConfig['translate_service'].lower()
-useFallbackGoogleTranslate = cloudConfig['use_fallback_google_translate']
 audioEncoding = config['synth_audio_encoding'].upper()
-debugMode = config['debug_mode']
 azureSentencePause = config['azure_sentence_pause'].lower().strip("\"").strip("\'")
 
 # Get Azure variables if applicable
@@ -31,7 +29,7 @@ AZURE_SPEECH_KEY = cloudConfig['azure_speech_key']
 AZURE_SPEECH_REGION = cloudConfig['azure_speech_region']
 
 # Get Google credentials if applicable
-if ttsService == "google" or translateService == "google" or useFallbackGoogleTranslate:
+if ttsService == "google" or translateService == "google" or cloudConfig['use_fallback_google_translate']:
     GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = auth.first_authentication()
 
 # Get List of Voices Available
@@ -340,7 +338,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
 
     # Clear out workingFolder
     for filename in os.listdir('workingFolder'):
-        if not debugMode:
+        if not config['debug_mode']:
             os.remove(os.path.join('workingFolder', filename))
 
     # Loop through payloads and submit to Azure
@@ -378,7 +376,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                 urlResponse = urlopen(resultDownloadLink)
 
                 # If debug mode, save zip file to disk
-                if debugMode:
+                if config['debug_mode']:
                     if secondPass == False:
                         zipName = 'azureBatch.zip'
                     else:
@@ -457,10 +455,10 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                     out.write(audio)
                 
                 # If debug mode, write to files after Google TTS
-                if debugMode and secondPass == False:
+                if config['debug_mode'] and secondPass == False:
                     with open(filePathStem+"_p1.mp3", "wb", encoding='utf-8') as out:
                         out.write(audio)
-                elif debugMode and secondPass == True:
+                elif config['debug_mode'] and secondPass == True:
                     with open(filePathStem+"_p2.mp3", "wb", encoding='utf-8') as out:
                         out.write(audio)
 
@@ -472,9 +470,9 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                 audio.save_to_wav_file(filePath)
                 
                 # If debug mode, write to files after Google TTS
-                if debugMode and secondPass == False:
+                if config['debug_mode'] and secondPass == False:
                     audio.save_to_wav_file(filePathStem+"_p1.mp3")
-                elif debugMode and secondPass == True:
+                elif config['debug_mode'] and secondPass == True:
                     audio.save_to_wav_file(filePathStem+"_p2.mp3")
 
         subsDict[key]['TTS_FilePath'] = filePath

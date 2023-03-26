@@ -42,6 +42,9 @@ elif 'Tools' in os.listdir():
     pass
 else:
     print("Warning: Not currently in the 'Tools' folder. The script may not work properly.")
+
+# Set the path to include the project root folder, so Scripts imports are valid
+sys.path.insert(1, os.getcwd())
 # ---------------------------------------------------------------------------------------
 
 import subprocess as sp

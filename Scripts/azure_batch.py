@@ -12,7 +12,8 @@ import sys
 
 import requests
 import configparser
-from shared_imports import *
+
+from Scripts.shared_imports import *
 
 logging.basicConfig(stream=sys.stdout, level=logging.ERROR,
         format="[%(asctime)s] %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p %Z")

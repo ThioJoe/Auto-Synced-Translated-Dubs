@@ -2,10 +2,10 @@
 # -*- coding: UTF-8 -*-
 
 # Imports
-from shared_imports import *
-import auth
-from utils import parseBool
-import utils
+from Scripts.shared_imports import *
+import Scripts.auth as auth
+from Scripts.utils import parseBool
+import Scripts.utils as utils
 
 import configparser
 from operator import itemgetter

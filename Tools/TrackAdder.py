@@ -32,17 +32,28 @@ defaultLanguage = "eng"
 
 #========================================================================================================
 
+# Set working diretory to one level up, so that the scripts folder is in the path
+import os
+# Check if current folder is named "Tools"
+if os.path.basename(os.getcwd()) == 'Tools':
+    os.chdir('..')
+# Check if current folder contains a folder named "Tools"
+elif 'Tools' in os.listdir():
+    pass
+else:
+    print("Warning: Not currently in the 'Tools' folder. The script may not work properly.")
+# ---------------------------------------------------------------------------------------
 
 import subprocess as sp
-import os
 import pathlib
 import sys
 import shutil
 # Note: Require ffmpepg to be installed and in the PATH environment variable
 from pydub import AudioSegment
 import langcodes
-from utils import parseBool
-from shared_imports import *
+
+from Scripts.utils import parseBool
+from Scripts.shared_imports import *
 
 # Auto fetch tracks from tracksFolder
 tracksToAddDict = {}

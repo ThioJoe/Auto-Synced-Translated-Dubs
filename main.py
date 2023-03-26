@@ -6,16 +6,16 @@
 # License: GPLv3
 # NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
 
-version = '0.11.1'
+version = '0.11.3'
 print(f"------- 'Auto Synced Translated Dubs' script by ThioJoe - Release version {version} -------")
 
 # Import other files
-from shared_imports import *
-import TTS
-import audio_builder
-import auth
-import translate
-from utils import parseBool
+from Scripts.shared_imports import *
+import Scripts.TTS as TTS
+import Scripts.audio_builder as audio_builder
+import Scripts.auth as auth
+import Scripts.translate as translate
+from Scripts.utils import parseBool
 
 # Import built in modules
 import re

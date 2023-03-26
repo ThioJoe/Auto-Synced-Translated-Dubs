@@ -5,7 +5,7 @@ import configparser
 import re
 import regex
 
-from utils import parseBool, parseConfigSetting
+from Scripts.utils import parseBool, parseConfigSetting
 
 # Get Config Values
 configRaw = configparser.ConfigParser()

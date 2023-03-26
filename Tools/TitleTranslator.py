@@ -4,7 +4,6 @@
 # Title and Description Translator
 # Standalone script that makes it easy to translates the title and description of a YouTube video to multiple languages
 
-
 # SET THE TITLE AND DESCRIPTION TEXT, AND VARIABLES IN THIS SECTION
 # Note: Make sure to keep the triple quotes around the text, don't remove the "r" before them
 #===============================================================================================================
@@ -23,23 +22,34 @@ It will also preserve newlines, so you can use them to separate paragraphs
 """
 
 # Characters to avoid translating. Update this with any characters that you don't want translated
-noTranslateList = ['•', '⇨', '▼', '😤', '▬']
+noTranslateList = ['•', '⇨', '▼', '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬']
 originalLanguage = 'en'
 
 # You can export a json file to use with the TitleDescriptionUpdater.py script to update the translated titles and descriptions automatically
-createJsonFile = False
+createJsonFile = True
 
 #===============================================================================================================
+# Set working diretory to one level up, so that the scripts folder is in the path
+import os
+# Check if current folder is named "Tools"
+if os.path.basename(os.getcwd()) == 'Tools':
+    os.chdir('..')
+# Check if current folder contains a folder named "Tools"
+elif 'Tools' in os.listdir():
+    pass
+else:
+    print("Warning: Not currently in the 'Tools' folder. The script may not work properly.")
+# ---------------------------------------------------------------------------------------
 
-import auth
-from utils import parseBool
+import Scripts.auth as auth
+from Scripts.utils import parseBool
+from Scripts.shared_imports import *
 GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = auth.first_authentication()
 
-outputFolder = "Outputs"
+#outputFolder = "Outputs"
 
 import langcodes
 import sys
-import os
 import configparser
 import textwrap
 import re
@@ -78,15 +88,7 @@ for line in description:
 translationList = [title] + description
 
 # Get data from batch config file
-batchConfig = configparser.ConfigParser()
-batchConfig.read('batch.ini')
 languageNums = batchConfig['SETTINGS']['enabled_languages'].replace(' ','').split(',')
-cloudConfig = configparser.ConfigParser()
-cloudConfig.read('cloud_service_settings.ini')
-googleProjectID = cloudConfig['CLOUD']['google_project_id']
-preferredTranslateService = cloudConfig['CLOUD']['translate_service']
-config = configparser.ConfigParser()
-config.read('config.ini')
 
 batchSettings = {}
 for num in languageNums:
@@ -99,12 +101,12 @@ for num in languageNums:
 
 ##### Add additional info to the dictionary for each language #####
 # Later put this function somewhere else
-formalityPreference = config['SETTINGS']['formality_preference']
+formalityPreference = config['formality_preference']
 def set_translation_info(languageBatchDict):
     newBatchSettingsDict = copy.deepcopy(languageBatchDict)
 
     # Set the translation service for each language
-    if preferredTranslateService == 'deepl':
+    if cloudConfig['translate_service'] == 'deepl':
         langSupportResponse = auth.DEEPL_API.get_target_languages()
         supportedLanguagesList = list(map(lambda x: str(x.code).upper(), langSupportResponse))
 
@@ -146,7 +148,7 @@ def set_translation_info(languageBatchDict):
                 newBatchSettingsDict[langNum]['formality'] = None
     
     # If using Google, set all languages to use Google in dictionary
-    elif preferredTranslateService == 'google':
+    elif cloudConfig['translate_service'] == 'google':
         for langNum, langInfo in languageBatchDict.items():
             newBatchSettingsDict[langNum]['translate_service'] = 'google'
             newBatchSettingsDict[langNum]['formality'] = None
@@ -165,7 +167,7 @@ def translate(originalLanguage, singleLangDict, translationList):
 
     if translateService == 'google':
         response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
-            parent='projects/' + googleProjectID,
+            parent='projects/' + cloudConfig['google_project_id'],
             body={
                 'contents':translationList,
                 'sourceLanguageCode': originalLanguage,
@@ -202,7 +204,7 @@ for i in emptyLineIndexes:
         langData['translated_description'].insert(i, '')
 
 # Write the translated text to a file
-with open(os.path.join(outputFolder , 'Translated Titles and Descriptions.txt'), 'w', encoding='utf-8') as f:
+with open(os.path.join(OUTPUT_FOLDER , 'Translated Titles and Descriptions.txt'), 'w', encoding='utf-8') as f:
     for langNum, langData in batchSettings.items():
         title_translated = langData['translated_title']
         description_translated = langData['translated_description']
@@ -227,6 +229,6 @@ if createJsonFile:
         langData['translated_description'] = '\n'.join(langData['translated_description'])
 
     # Write the translated items to a json file
-    with open(os.path.join(outputFolder , 'Translated Items.json'), 'w', encoding='utf-8') as f:
+    with open(os.path.join(OUTPUT_FOLDER , 'Translated Items.json'), 'w', encoding='utf-8') as f:
         json.dump(batchSettings, f, indent=4)
 

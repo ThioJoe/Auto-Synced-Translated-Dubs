@@ -5,9 +5,9 @@ import pathlib
 import os
 import io
 
-from shared_imports import *
-import TTS
-from utils import parseBool
+from Scripts.shared_imports import *
+import Scripts.TTS as TTS
+from Scripts.utils import parseBool
 
 from pydub import AudioSegment
 from pydub.silence import detect_leading_silence

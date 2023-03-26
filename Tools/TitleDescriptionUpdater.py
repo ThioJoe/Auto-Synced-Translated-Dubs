@@ -1,15 +1,7 @@
 # Script to automatically update a YouTube video with the translated title, description, and subtitles for each language
-import auth
-from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaFileUpload
-import copy
-import json
-import os
-import sys
-import langcodes
-
+# ================================================================================================================
 videoID = "abcdefghijkl"
-translatedJsonFile = r"output\Translated Items.json"
+translatedJsonFile = r"Outputs\Translated Items.json"
 subtitlesFolder = r"output"
 
 updateTitleAndDescription = True
@@ -20,7 +12,29 @@ overRiddenLangCodes = {
     "pt": "pt-BR",
 }
 
+# ================================================================================================================
+
+# Set working diretory to one level up, so that the scripts folder is in the path
+import os
+# Check if current folder is named "Tools"
+if os.path.basename(os.getcwd()) == 'Tools':
+    os.chdir('..')
+# Check if current folder contains a folder named "Tools"
+elif 'Tools' in os.listdir():
+    pass
+else:
+    print("Warning: Not currently in the 'Tools' folder. The script may not work properly.")
 # ---------------------------------------------------------------------------------------
+from Scripts.shared_imports import *
+import Scripts.auth as auth
+
+from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaFileUpload
+import copy
+import json
+
+import sys
+import langcodes
 
 # Import translated json file
 with open(translatedJsonFile, "r", encoding='utf-8') as f:
@@ -117,6 +131,7 @@ def update_title_and_description(videoID, translatedJson):
     # Get info about video and original snippet
     originalSnippet, originalLocalizations = get_video_info(videoID)
     newLocals = copy.deepcopy(originalLocalizations)
+    categoryId = originalSnippet['categoryId']
 
     # newSnippet = copy.deepcopy(originalSnippet) 
     # def update_snippet():
@@ -140,16 +155,19 @@ def update_title_and_description(videoID, translatedJson):
         # newLocals will contain the original localizations, but overwritten by the data from the json file
         newLocals[langCode] = {
             "title": title,
-            "description": description
+            "description": description,
+            #"categoryId": categoryId
         }
 
     try:
         # Send request to update localization
         localization_result = YOUTUBE_API.videos().update(
-            part = "localizations",
+            part = "localizations,snippet",
             body = {
                 "id": videoID,
-                "localizations": newLocals
+                "localizations": newLocals,
+                #"categoryId": categoryId
+                #"snippet": originalSnippet
             },
         ).execute()
 

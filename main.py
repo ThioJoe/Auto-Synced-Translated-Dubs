@@ -185,6 +185,15 @@ if not os.path.exists('workingFolder'):
 
 #======================================== Translation and Text-To-Speech ================================================
 
+def manually_prepare_dictionary(dictionaryToPrep):
+    ### Do additional Processing to match the format produced by translation function
+    # Create new key 'translated_text' and set it to the value of 'text'
+    for key, value in dictionaryToPrep.items():
+        dictionaryToPrep[key]['translated_text'] = value['text']
+    
+    # Convert the keys to integers and return the dictionary
+    return {int(k): v for k, v in dictionaryToPrep.items()}
+
 def get_pretranslated_subs_dict(langData):
     # Get list of files in the output folder
     files = os.listdir(OUTPUT_FOLDER)
@@ -199,13 +208,8 @@ def get_pretranslated_subs_dict(langData):
             # Parse the srt file using function
             preTranslatedDict = parse_srt_file(pretranslatedSubLines, preTranslated=True)
 
-            ### Do additional Processing to match the format produced by translation function
-            # Create new key 'translated_text' and set it to the value of 'text'
-            for key, value in preTranslatedDict.items():
-                preTranslatedDict[key]['translated_text'] = value['text']
-
             # Convert the keys to integers
-            preTranslatedDict = {int(k):v for k,v in preTranslatedDict.items()}
+            preTranslatedDict = manually_prepare_dictionary(preTranslatedDict)
 
             # Return the dictionary
             return preTranslatedDict
@@ -236,15 +240,22 @@ def process_language(langData):
         if config['stop_after_translation']:
             print("Stopping at translation is enabled. Skipping TTS and building audio.")
             return
+        
     elif config['skip_translation'] == True:
-        print("Skip translation enabled. Checking for pre-translated subtitles...")
-        # Check if pre-translated subtitles exist
-        pretranslatedSubsDict = get_pretranslated_subs_dict(langData)
-        if pretranslatedSubsDict != None:
-            individualLanguageSubsDict = pretranslatedSubsDict
+        # Check for special case where original language is the same as the target language
+        if langDict['targetLanguage'].lower() == config['original_language'].lower():
+            print("Original language is the same as the target language. Skipping translation.")
+            individualLanguageSubsDict = manually_prepare_dictionary(individualLanguageSubsDict)
+
         else:
-            print(f"Pre-translated subtitles not found for language: {langDict['languageCode']}. Skipping.")
-            return
+            print("Skip translation enabled. Checking for pre-translated subtitles...")
+            # Check if pre-translated subtitles exist
+            pretranslatedSubsDict = get_pretranslated_subs_dict(langData)
+            if pretranslatedSubsDict != None:
+                individualLanguageSubsDict = pretranslatedSubsDict
+            else:
+                print(f"Pre-translated subtitles not found for language: {langDict['languageCode']}. Skipping.")
+                return
 
     # Synthesize
     if cloudConfig['batch_tts_synthesize'] == True and cloudConfig['tts_service'] == 'azure':

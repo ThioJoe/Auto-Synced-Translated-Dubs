@@ -19,17 +19,13 @@ import utils
 from utils import parseBool
 
 # Get variables from config
-ttsService = cloudConfig['tts_service'].lower()
-translateService = cloudConfig['translate_service'].lower()
-audioEncoding = config['synth_audio_encoding'].upper()
-azureSentencePause = config['azure_sentence_pause'].lower().strip("\"").strip("\'")
 
 # Get Azure variables if applicable
 AZURE_SPEECH_KEY = cloudConfig['azure_speech_key']
 AZURE_SPEECH_REGION = cloudConfig['azure_speech_region']
 
 # Get Google credentials if applicable
-if ttsService == "google" or translateService == "google" or cloudConfig['use_fallback_google_translate']:
+if cloudConfig['tts_service'] == "google" or cloudConfig['translate_service'] == "google" or cloudConfig['use_fallback_google_translate']:
     GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = auth.first_authentication()
 
 # Get List of Voices Available
@@ -137,7 +133,8 @@ def add_phoneme_tags(text):
 # =============================================================================================================================
 
 # Build API request for google text to speech, then execute
-def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCode, audioEncoding=audioEncoding):
+def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCode, audioEncoding=config['synth_audio_encoding'].upper()):
+
     # Keep speedFactor between 0.25 and 4.0
     if speedFactor < 0.25:
         speedFactor = 0.25
@@ -201,8 +198,9 @@ def synthesize_text_azure(text, speedFactor, voiceName, languageCode):
         rate = percentSign + str(round((speedFactor - 1.0) * 100, 5)) + '%'
 
     # Create string for sentence pauses, if not default
-    if not azureSentencePause == 'default' and azureSentencePause.isnumeric():
-        pauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{azureSentencePause}ms"/>'
+    if not config['azure_sentence_pause'] == 'default':
+
+        pauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{int(config["azure_sentence_pause"])}ms"/>'
     else:
         pauseTag = ''
     
@@ -272,8 +270,8 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                 pCloseTag = '</prosody>'
 
             # Create string for sentence pauses, if not default
-            if not azureSentencePause == 'default' and azureSentencePause.isnumeric():
-                pauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{azureSentencePause}ms"/>'
+            if not config['azure_sentence_pause'] == 'default':
+                pauseTag = f'<mstts:silence type="Sentenceboundary-exact" value="{int(config["azure_sentence_pause"])}ms"/>'
             else:
                 pauseTag = ''
 
@@ -420,7 +418,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
 
 def synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=False, secondPass=False):
     if not skipSynthesize:
-        if ttsService == 'azure':
+        if cloudConfig['tts_service'] == 'azure':
             subsDict = synthesize_text_azure_batch(subsDict, langDict, skipSynthesize, secondPass)
         else:
             print('ERROR: Batch TTS only supports azure at this time')
@@ -449,7 +447,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                     print("Error creating directory")
 
             # If Google TTS, use Google API
-            if ttsService == "google":
+            if cloudConfig['tts_service'] == "google":
                 audio = synthesize_text_google(value['translated_text'], speedFactor, langDict['voiceName'], langDict['voiceGender'], langDict['languageCode'])
                 with open(filePath, "wb", encoding='utf-8') as out:
                     out.write(audio)
@@ -463,7 +461,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                         out.write(audio)
 
             # If Azure TTS, use Azure API
-            elif ttsService == "azure":
+            elif cloudConfig['tts_service'] == "azure":
                 # Audio variable is an AudioDataStream object
                 audio = synthesize_text_azure(value['translated_text'], speedFactor, langDict['voiceName'], langDict['languageCode'])
                 # Save to file using save_to_wav_file method of audio object

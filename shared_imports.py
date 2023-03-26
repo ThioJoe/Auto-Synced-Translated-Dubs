@@ -3,7 +3,7 @@ import sys
 import traceback
 import configparser
 
-from utils import parseBool
+from utils import parseBool, parseConfigSetting
 
 # Get Config Values
 configRaw = configparser.ConfigParser()
@@ -21,10 +21,10 @@ cloudConfig = {}
 
 for section in configRaw.sections():
     for key in configRaw[section]:
-        config[key] = parseBool(configRaw[section][key], silent=True)
+        config[key] = parseConfigSetting(configRaw[section][key], silent=True)
 
 for section in cloudConfigRaw.sections():
     for key in cloudConfigRaw[section]:
-        cloudConfig[key] = parseBool(cloudConfigRaw[section][key], silent=True)
+        cloudConfig[key] = parseConfigSetting(cloudConfigRaw[section][key], silent=True)
 
 __all__ = ['os', 'sys', 'traceback', 'config', 'cloudConfig', 'batchConfig']

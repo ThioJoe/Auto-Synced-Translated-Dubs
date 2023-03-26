@@ -20,6 +20,23 @@ def parseBool(string, silent=False):
             return False
     else:
         raise ValueError('Not a valid boolean string')
+    
+def parseConfigSetting(setting):
+    # Remove any quotes user may have added in config file
+    setting = setting.strip("\"").strip("\'")
+
+    # Check if it is a boolean
+    if type(parseBool(setting, silent=True)) == bool:
+        return parseBool(setting, silent=True)
+
+    # Check if it is an integer
+    try:
+        return int(setting)
+    except ValueError:
+        pass
+
+    # Otherwise return the string in lower case
+    return setting.lower()
 
 # Returns a list of dictionaries from a csv file. Where the key is the column name and the value is the value in that column
 # The column names are set by the first row of the csv file

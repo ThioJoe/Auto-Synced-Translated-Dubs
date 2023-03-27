@@ -63,6 +63,9 @@ def stretch_audio(audioFileToStretch, speedFactor, num):
 
 
 def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
+    if cloudConfig['tts_service'] == 'azure':
+        twoPassVoiceSynth = False # Azure doesn't need two pass voice synth, so disable it
+
     virtualTrimmedFileDict = {}
     # First trim silence off the audio files
     for key, value in subsDict.items():
@@ -83,16 +86,19 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         print(f" Trimmed Audio: {keyIndex+1} of {len(subsDict)}", end="\r")
     print("\n")
 
-    # Calculate speed factors for each clip, aka how much to stretch the audio
-    for key, value in subsDict.items():
-        #subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
-        subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
-        keyIndex = list(subsDict.keys()).index(key)
-        print(f" Calculated Speed Factor: {keyIndex+1} of {len(subsDict)}", end="\r")
-    print("\n")
+    # Calculates speed factor if necessary. Azure doesn't need this, so skip it
+    if not cloudConfig['tts_service'] == 'azure':
+        # Calculate speed factors for each clip, aka how much to stretch the audio
+        for key, value in subsDict.items():
+            #subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
+            subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
+            keyIndex = list(subsDict.keys()).index(key)
+            print(f" Calculated Speed Factor: {keyIndex+1} of {len(subsDict)}", end="\r")
+        print("\n")
 
     # If two pass voice synth is enabled, have API re-synthesize the clips at the new speed
-    if twoPassVoiceSynth == True:
+    # Azure allows direct specification of audio duration, so no need to re-synthesize
+    if twoPassVoiceSynth == True and not cloudConfig['tts_service'] == 'azure':
         if cloudConfig['batch_tts_synthesize'] == True and cloudConfig['tts_service'] == 'azure':
             subsDict = TTS.synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=config['skip_synthesize'], secondPass=True)
         else:
@@ -123,7 +129,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
 
     # Stretch audio and insert into canvas
     for key, value in subsDict.items():
-        if not twoPassVoiceSynth or config['force_stretch_with_twopass'] == True:
+        if (not twoPassVoiceSynth or config['force_stretch_with_twopass'] == True) and not cloudConfig['tts_service'] == 'azure': # Don't stretch if azure is used
             #stretchedClip = stretch_audio(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'], num=key)
             stretchedClip = stretch_audio(virtualTrimmedFileDict[key], speedFactor=subsDict[key]['speed_factor'], num=key)
         else:

@@ -16,6 +16,7 @@ overRiddenLangCodes = {
 
 # Set working diretory to one level up, so that the scripts folder is in the path
 import os
+import sys
 # Check if current folder is named "Tools"
 if os.path.basename(os.getcwd()) == 'Tools':
     os.chdir('..')
@@ -36,7 +37,6 @@ from googleapiclient.http import MediaFileUpload
 import copy
 import json
 
-import sys
 import langcodes
 
 # Import translated json file

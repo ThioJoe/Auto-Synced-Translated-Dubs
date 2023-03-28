@@ -31,6 +31,7 @@ createJsonFile = True
 #===============================================================================================================
 # Set working diretory to one level up, so that the scripts folder is in the path
 import os
+import sys
 # Check if current folder is named "Tools"
 if os.path.basename(os.getcwd()) == 'Tools':
     os.chdir('..')
@@ -52,7 +53,6 @@ GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = auth.first_authentication()
 #outputFolder = "Outputs"
 
 import langcodes
-import sys
 import configparser
 import textwrap
 import re

@@ -34,6 +34,7 @@ defaultLanguage = "eng"
 
 # Set working diretory to one level up, so that the scripts folder is in the path
 import os
+import sys
 # Check if current folder is named "Tools"
 if os.path.basename(os.getcwd()) == 'Tools':
     os.chdir('..')
@@ -49,7 +50,6 @@ sys.path.insert(1, os.getcwd())
 
 import subprocess as sp
 import pathlib
-import sys
 import shutil
 # Note: Require ffmpepg to be installed and in the PATH environment variable
 from pydub import AudioSegment

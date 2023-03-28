@@ -360,7 +360,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                     print("Reason:" + response.reason)
                     break
                 else:
-                    print(f'Batch synthesis job is still running, status [{status}]')
+                    print(f'Waiting for Azure batch synthesis job to finish. Status: [{status}]')
                     time.sleep(5)
             
             # Download resultig zip file

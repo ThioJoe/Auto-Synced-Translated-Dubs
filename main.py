@@ -234,29 +234,27 @@ def process_language(langData, processedCount, totalLanguages):
     # Print language being processed
     print(f"\n----- Beginning Processing of Language ({processedCount}/{totalLanguages}): {langDict['languageCode']} -----")
 
-    if config['skip_translation'] == False:
+    # Check for special case where original language is the same as the target language
+    if langDict['languageCode'].lower() == config['original_language'].lower():
+        print("Original language is the same as the target language. Skipping translation.")
+        individualLanguageSubsDict = manually_prepare_dictionary(individualLanguageSubsDict)
+
+    elif config['skip_translation'] == False:
         # Translate
         individualLanguageSubsDict = translate.translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=config['skip_translation'])
-
         if config['stop_after_translation']:
             print("Stopping at translation is enabled. Skipping TTS and building audio.")
             return
         
     elif config['skip_translation'] == True:
-        # Check for special case where original language is the same as the target language
-        if langDict['languageCode'].lower() == config['original_language'].lower():
-            print("Original language is the same as the target language. Skipping translation.")
-            individualLanguageSubsDict = manually_prepare_dictionary(individualLanguageSubsDict)
-
+        print("Skip translation enabled. Checking for pre-translated subtitles...")
+        # Check if pre-translated subtitles exist
+        pretranslatedSubsDict = get_pretranslated_subs_dict(langData)
+        if pretranslatedSubsDict != None:
+            individualLanguageSubsDict = pretranslatedSubsDict
         else:
-            print("Skip translation enabled. Checking for pre-translated subtitles...")
-            # Check if pre-translated subtitles exist
-            pretranslatedSubsDict = get_pretranslated_subs_dict(langData)
-            if pretranslatedSubsDict != None:
-                individualLanguageSubsDict = pretranslatedSubsDict
-            else:
-                print(f"Pre-translated subtitles not found for language: {langDict['languageCode']}. Skipping.")
-                return
+            print(f"Pre-translated subtitles not found for language: {langDict['languageCode']}. Skipping.")
+            return
 
     # Synthesize
     if cloudConfig['batch_tts_synthesize'] == True and cloudConfig['tts_service'] == 'azure':

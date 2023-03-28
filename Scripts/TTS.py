@@ -180,18 +180,10 @@ def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCo
     decoded_audio = base64.b64decode(response['audioContent'])
     return decoded_audio
 
-def synthesize_text_azure(text, speedFactor, voiceName, languageCode):
-    # Determine speedFactor value for Azure TTS. It should be either 'default' or a relative change.
-    if speedFactor == 1.0:
-        rate = 'default'
-    else:
-        # Whether to add a plus sign to the number to relative change. A negative will automatically be added
-        if speedFactor >= 1.0:
-            percentSign = '+'
-        else:
-            percentSign = ''
-        # Convert speedFactor float value to a relative percentage    
-        rate = percentSign + str(round((speedFactor - 1.0) * 100, 5)) + '%'
+def synthesize_text_azure(text, duration, voiceName, languageCode):
+
+    # Create tag for desired duration of clip
+    durationTag = f'<mstts:audioduration value="{str(duration)}ms"/>'
 
     # Create string for sentence pauses, if not default
     if not config['azure_sentence_pause'] == 'default':
@@ -204,15 +196,19 @@ def synthesize_text_azure(text, speedFactor, voiceName, languageCode):
         commaPauseTag = f'<mstts:silence type="Comma-exact" value="{str(config["azure_comma_pause"])}ms"/>'
     else:
         commaPauseTag = ''
-    
+
+    # Set string for tag to set leading and trailing silence times to zero
+    leadSilenceTag = '<mstts:silence  type="Leading-exact" value="0ms"/>'
+    tailSilenceTag = '<mstts:silence  type="Tailing-exact" value="0ms"/>'
+
     # Process text using pronunciation customization set by user
     text = add_all_pronunciation_overrides(text)
 
     # Create SSML syntax for Azure TTS
     ssml = f"<speak version='1.0' xml:lang='{languageCode}' xmlns='http://www.w3.org/2001/10/synthesis' " \
         "xmlns:mstts='http://www.w3.org/2001/mstts'>" \
-        f"<voice name='{voiceName}'>{sentencePauseTag}{commaPauseTag}" \
-        f"<prosody rate='{rate}'>{text}</prosody></voice></speak>"
+        f"<voice name='{voiceName}'>{sentencePauseTag}{commaPauseTag}{durationTag}{leadSilenceTag}{tailSilenceTag}" \
+        f"{text}</voice></speak>"
 
     speech_config = speechsdk.SpeechConfig(subscription=AZURE_SPEECH_KEY, region=AZURE_SPEECH_REGION)
     # For Azure voices, see: https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support?tabs=stt-tts
@@ -242,13 +238,6 @@ def format_percentage_change(speedFactor):
     return rate
 
 def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, secondPass=False):
-    # Write speed factor to subsDict in correct format
-    for key, value in subsDict.items():
-        if secondPass:
-            subsDict[key]['speed_factor'] = format_percentage_change(subsDict[key]['speed_factor'])
-        else:
-            #subsDict[key]['speed_factor'] = float(1.0)
-            subsDict[key]['speed_factor'] = 'default'
 
     def create_request_payload(remainingEntriesDict):
         # Create SSML for all subtitles
@@ -257,18 +246,13 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
         tempDict = dict(remainingEntriesDict) # Need to do this to avoid changing the original dict which would mess with the loop
 
         for key, value in tempDict.items():
-            rate = tempDict[key]['speed_factor']
             text = tempDict[key]['translated_text']
+            duration = tempDict[key]['duration_ms_buffered']
             language = langDict['languageCode']
             voice = langDict['voiceName']
 
-            # Create strings for prosody tags. Only add them if rate is not default, because azure charges for characters of optional tags
-            if rate == 'default':
-                pOpenTag = ''
-                pCloseTag = ''
-            else:
-                pOpenTag = f"<prosody rate='{rate}'>"
-                pCloseTag = '</prosody>'
+            # Create tag for desired duration of clip
+            durationTag = f'<mstts:audioduration value="{str(duration)}ms"/>'
 
             # Create string for sentence pauses, if not default
             if not config['azure_sentence_pause'] == 'default':
@@ -282,14 +266,18 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
             else:
                 commaPauseTag = ''
 
+            # Set string for tag to set leading and trailing silence times to zero
+            leadSilenceTag = '<mstts:silence  type="Leading-exact" value="0ms"/>'
+            tailSilenceTag = '<mstts:silence  type="Tailing-exact" value="0ms"/>'    
+
             # Process text using pronunciation customization set by user
             text = add_all_pronunciation_overrides(text)
 
             # Create the SSML for each subtitle
             ssml = f"<speak version='1.0' xml:lang='{language}' xmlns='http://www.w3.org/2001/10/synthesis' " \
             "xmlns:mstts='http://www.w3.org/2001/mstts'>" \
-            f"<voice name='{voice}'>{sentencePauseTag}{commaPauseTag}" \
-            f"{pOpenTag}{text}{pCloseTag}</voice></speak>"
+            f"<voice name='{voice}'>{sentencePauseTag}{commaPauseTag}{durationTag}{leadSilenceTag}{tailSilenceTag}" \
+            f"{text}</voice></speak>"
             ssmlJson.append({"text": ssml})
 
             # Construct request payload with SSML
@@ -440,6 +428,8 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
         filePathStem = os.path.join('workingFolder', f'{str(key)}')
         if not skipSynthesize:
 
+            duration = value['duration_ms_buffered']
+
             if secondPass:
                 # Get speed factor from subsDict
                 speedFactor = subsDict[key]['speed_factor']
@@ -470,7 +460,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
             # If Azure TTS, use Azure API
             elif cloudConfig['tts_service'] == "azure":
                 # Audio variable is an AudioDataStream object
-                audio = synthesize_text_azure(value['translated_text'], speedFactor, langDict['voiceName'], langDict['languageCode'])
+                audio = synthesize_text_azure(value['translated_text'], duration, langDict['voiceName'], langDict['languageCode'])
                 # Save to file using save_to_wav_file method of audio object
                 audio.save_to_wav_file(filePath)
                 

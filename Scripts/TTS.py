@@ -24,13 +24,9 @@ from Scripts.utils import parseBool
 AZURE_SPEECH_KEY = cloudConfig['azure_speech_key']
 AZURE_SPEECH_REGION = cloudConfig['azure_speech_region']
 
-# Get Google credentials if applicable
-if cloudConfig['tts_service'] == "google" or cloudConfig['translate_service'] == "google" or cloudConfig['use_fallback_google_translate']:
-    GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = auth.first_authentication()
-
 # Get List of Voices Available
 def get_voices():
-    voices = GOOGLE_TTS_API.voices().list().execute()
+    voices = auth.GOOGLE_TTS_API.voices().list().execute()
     voices_json = json.dumps(voices)
     return voices_json
 
@@ -144,7 +140,7 @@ def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCo
     # API Info at https://texttospeech.googleapis.com/$discovery/rest?version=v1
     # Try, if error regarding quota, waits a minute and tries again
     def send_request(speedFactor):
-        response = GOOGLE_TTS_API.text().synthesize(
+        response = auth.GOOGLE_TTS_API.text().synthesize(
             body={
                 'input':{
                     "text": text

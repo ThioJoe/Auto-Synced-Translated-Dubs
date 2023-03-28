@@ -200,7 +200,7 @@ def get_pretranslated_subs_dict(langData):
     files = os.listdir(OUTPUT_FOLDER)
     # Check if any files ends with the specific language code and srt file extension
     for file in files:
-        if file.endswith(f" - {langData['translation_target_language']}.srt"):
+        if file.replace(' ', '').endswith(f"-{langData['translation_target_language']}.srt"):
             # If so, open the file and read the lines into a list
             with open(f"{OUTPUT_FOLDER}/{file}", 'r', encoding='utf-8-sig') as f:
                 pretranslatedSubLines = f.readlines()
@@ -253,7 +253,8 @@ def process_language(langData, processedCount, totalLanguages):
         if pretranslatedSubsDict != None:
             individualLanguageSubsDict = pretranslatedSubsDict
         else:
-            print(f"Pre-translated subtitles not found for language: {langDict['languageCode']}. Skipping.")
+            print(f"\nPre-translated subtitles not found for language '{langDict['languageCode']}' in folder '{OUTPUT_FOLDER}'. Skipping.")
+            print(f"Note: Ensure the subtitle filename for this language ends with: ' - {langData['translation_target_language']}.srt'\n")
             return
 
     # Synthesize

@@ -32,6 +32,7 @@ createJsonFile = True
 # Set working diretory to one level up, so that the scripts folder is in the path
 import os
 import sys
+
 # Check if current folder is named "Tools"
 if os.path.basename(os.getcwd()) == 'Tools':
     os.chdir('..')
@@ -47,6 +48,7 @@ sys.path.insert(1, os.getcwd())
 
 import Scripts.auth as auth
 from Scripts.utils import parseBool
+import Scripts.utils as utils
 from Scripts.shared_imports import *
 GOOGLE_TTS_API, GOOGLE_TRANSLATE_API = auth.first_authentication()
 
@@ -60,6 +62,17 @@ import html
 import copy
 import json
 
+# --------------------------- SSML Customization Functions ---------------------------
+from Scripts.translate import add_notranslate_tags_from_notranslate_file, remove_notranslate_tags, add_notranslate_tags_for_manual_translations, replace_manual_translations, process_response_text
+# Import files and put into dictionaries
+noTranslateOverrideFile = os.path.join('SSML_Customization', 'dont_translate_phrases.txt')
+dontTranslateList = utils.txt_to_list(noTranslateOverrideFile)
+manualTranslationOverrideFile = os.path.join('SSML_Customization', 'Manual_Translations.csv')
+manualTranslationsDict = utils.csv_to_dict(manualTranslationOverrideFile)
+urlListFile = os.path.join('SSML_Customization', 'url_list.txt')
+urlList = utils.txt_to_list(urlListFile)
+#--------------------------------------------------------------------------------------
+
 description = textwrap.dedent(description).strip("\n")
 
 # Parse the description for hyperlinks and put the tags <span class="notranslate"></span> around them
@@ -67,12 +80,15 @@ description = textwrap.dedent(description).strip("\n")
 description = re.sub(r'(https?://[^\s]+)', r'<span class="notranslate">\1</span>', description, flags=re.IGNORECASE)
 
 # Use span class="notranslate" to prevent translating certain characters
-for char in noTranslateList:
-    description = re.sub(r'(' + char + r'+)', r'<span class="notranslate">\1</span>', description)
+for item in noTranslateList:
+    description = re.sub(r'(' + item + r'+)', r'<span class="notranslate">\1</span>', description)
 
 # Use span class to prevent translating timestamp numbers, only matching if there is a newline or space before and after the timestamp
 description = re.sub(r'(\n|\s)(\d+:\d+)(\n|\s)', r'\1<span class="notranslate">\2</span>\3', description)
 
+# Add notranslate tags from SSML Customization files
+description = add_notranslate_tags_from_notranslate_file(description, dontTranslateList)
+description = add_notranslate_tags_from_notranslate_file(description, urlList)
 
 # Split the description into a list of lines, so newlines can be preserved and re-applied after translation
 description = description.splitlines()
@@ -168,6 +184,11 @@ def translate(originalLanguage, singleLangDict, translationList):
 
     print(" Translating to " + targetLanguage + " using " + translateService + "...                    ", end='\r')
 
+    # Add notranslate tags for manual translation (This must be done here because it is language dependent)
+    # Run add_notranslate_tags_for_manual_translations on each line in the translationList, then re-join the list
+    for i, line in enumerate(translationList):
+        translationList[i] = add_notranslate_tags_for_manual_translations(line, targetLanguage)
+
     if translateService == 'google':
         response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
             parent='projects/' + cloudConfig['google_project_id'],
@@ -185,10 +206,9 @@ def translate(originalLanguage, singleLangDict, translationList):
         response = auth.DEEPL_API.translate_text(translationList, target_lang=targetLanguage, formality=formality, tag_handling='html')
         translatedTexts = [response[i].text for i in range(len(response))]
 
-    # Remove the span tags from the translated text, and convert the html formatting for special symbols
+    # Remove the span tags from the translated text, unescape HTML symbols, replace manual translations
     for i, line in enumerate(translatedTexts):
-        newText = line.replace('<span class="notranslate">', '').replace('</span>', '')
-        newText = html.unescape(newText)
+        newText = process_response_text(line, targetLanguage)
         translatedTexts[i] = newText
 
     return translatedTexts # Returns a list of translated texts

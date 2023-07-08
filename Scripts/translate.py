@@ -242,6 +242,69 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
 
     return combinedProcessedDict
 
+def download_youtube_auto_translations(languageCodeList, videoID):
+    
+    def get_captions_list(videoID):
+        results = auth.YOUTUBE_API.captions().list(
+            part="snippet",
+            videoId=videoID
+        ).execute()
+        return results
+    captionsTracksResponse = get_captions_list(videoID)
+    
+    # Find the caption ID for a specific language
+    def get_caption_id(captionsTracksResponse, desiredLanguageCode):
+        def check_code(code):
+            matchedID = None
+            for item in captionsTracksResponse["items"]:
+                if item["snippet"]["language"] == code:
+                    matchedID = item["id"]
+                    break
+            return matchedID
+                
+        captionID = check_code(desiredLanguageCode)
+        
+        # If none found, check for two-letter code (first two letters)
+        if captionID == None:
+            captionID = check_code(desiredLanguageCode[:2])
+            
+        return captionID
+      
+    def download_yt_translated_captions_track(captionID, desiredLanguageCode=None, tfmt='srt'):
+        results = auth.YOUTUBE_API.captions().download(
+            id=captionID,
+            tlang=desiredLanguageCode,
+            tfmt=tfmt
+        ).execute()
+        
+        if type(results) is not bytes:
+            print("\nError: YouTube API call failed to return subtitles.")
+            return False
+        
+        # Make output folder if it doesn't exist
+        if not os.path.exists(OUTPUT_FOLDER):
+            os.makedirs(OUTPUT_FOLDER)
+        
+        # Save captions to file. API call returns bytes in specified format
+        with open(os.path.join(OUTPUT_FOLDER, f'{ORIGINAL_VIDEO_NAME} - {desiredLanguageCode}.srt'), 'wb') as f:
+            # Write the captions bytes to file
+            f.write(results)
+            
+        return True
+    
+    # Get native language caption ID
+    nativeCaptionID = get_caption_id(captionsTracksResponse, config['original_language'])
+    
+    # Download the captions for each language
+    for langCode in languageCodeList:
+        langCaptionID = get_caption_id(captionsTracksResponse, langCode)
+        
+        # If no matched language track, use native caption ID then auto-translate
+        if langCaptionID == None:
+            langCaptionID = nativeCaptionID
+        
+        download_yt_translated_captions_track(langCaptionID, langCode)
+    
 
 ##### Add additional info to the dictionary for each language #####
 def set_translation_info(languageBatchDict):

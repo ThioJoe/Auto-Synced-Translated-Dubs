@@ -43,10 +43,10 @@ def delete_caption_track(videoID, captionID):
     ).execute()
     return delete_result
 
-def main():
-    print("\nEnter a video ID to get a list of the subtitle tracks on the video. You will then have the option to delete any of the tracks.")
-
-    videoID = input("\nEnter the Video ID: ")
+def main(videoID=None):
+    if videoID == None:
+        print("\nEnter a video ID to get a list of the subtitle tracks on the video. You will then have the option to delete any of the tracks.")
+        videoID = input("\nEnter the Video ID: ")
 
     # Get video information
     snippet, localizations = get_video_info(videoID)

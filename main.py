@@ -6,7 +6,7 @@
 # License: GPLv3
 # NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
 
-version = '0.14.1'
+version = '0.15.0'
 print(f"------- 'Auto Synced Translated Dubs' script by ThioJoe - Release version {version} -------")
 
 # Import other files
@@ -199,6 +199,23 @@ def manually_prepare_dictionary(dictionaryToPrep):
 def get_pretranslated_subs_dict(langData):
     # Get list of files in the output folder
     files = os.listdir(OUTPUT_FOLDER)
+    # Check if youtube-translated directory/files exist
+    if os.path.exists(OUTPUT_YTSYNCED_FOLDER):
+        altFiles = os.listdir(OUTPUT_YTSYNCED_FOLDER)
+    else:
+        altFiles = None
+    
+    # If alternative translations found in addition to the main output folder, ask user which to use
+    if altFiles and files:
+        print("Found YouTube-synced translations in: " + OUTPUT_YTSYNCED_FOLDER)
+        userResponse = input("Use YouTube-synced translations instead of those in main output folder? (y/n): ")
+        if userResponse.lower() == 'y':
+            files = altFiles
+            print("Using YouTube-synced translations...\n")
+    elif altFiles and not files:
+        print("Found YouTube-synced translations to use in: " + OUTPUT_YTSYNCED_FOLDER)
+        files = altFiles
+    
     # Check if any files ends with the specific language code and srt file extension
     for file in files:
         if file.replace(' ', '').endswith(f"-{langData['translation_target_language']}.srt"):

@@ -31,8 +31,11 @@ for section in cloudConfigRaw.sections():
 
 # ----- Create constants ------
 ORIGINAL_VIDEO_PATH = batchConfig['SETTINGS']['original_video_file_path']
+ORIGINAL_VIDEO_NAME = os.path.splitext(os.path.basename(ORIGINAL_VIDEO_PATH))[0]
 OUTPUT_DIRECTORY = 'Outputs'
-OUTPUT_FOLDER = os.path.join(OUTPUT_DIRECTORY , os.path.splitext(os.path.basename(ORIGINAL_VIDEO_PATH))[0])
+OUTPUT_YTSYNCED_DIRECTORY = 'YouTube Auto-Synced Subtitles'
+OUTPUT_FOLDER = os.path.join(OUTPUT_DIRECTORY , ORIGINAL_VIDEO_NAME)
+OUTPUT_YTSYNCED_FOLDER = os.path.join(OUTPUT_FOLDER, OUTPUT_YTSYNCED_DIRECTORY)
 
 # Fix original video path if debug mode
 if config['debug_mode'] and (ORIGINAL_VIDEO_PATH == '' or ORIGINAL_VIDEO_PATH.lower() == 'none'):
@@ -41,4 +44,4 @@ else:
     ORIGINAL_VIDEO_PATH = os.path.abspath(ORIGINAL_VIDEO_PATH.strip("\""))
 
 # ---------------------------------------------------------------------------------------
-__all__ = ['os', 'sys', 'traceback', 'config', 'cloudConfig', 'batchConfig', 'ORIGINAL_VIDEO_PATH', 'OUTPUT_DIRECTORY', 'OUTPUT_FOLDER', 're', 'regex', 'parseBool']
+__all__ = ['os', 'sys', 'traceback', 'config', 'cloudConfig', 'batchConfig', 'ORIGINAL_VIDEO_PATH', 'ORIGINAL_VIDEO_NAME', 'OUTPUT_DIRECTORY', 'OUTPUT_YTSYNCED_DIRECTORY', 'OUTPUT_FOLDER', 'OUTPUT_YTSYNCED_FOLDER', 're', 'regex', 'parseBool']

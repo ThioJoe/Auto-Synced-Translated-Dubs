@@ -74,8 +74,50 @@ def process_response_text(text, targetLanguage):
     text = replace_manual_translations(text, targetLanguage)
     return text
 
+def split_transcript_chunks(text, max_length=5000):
+    # Calculate the total number of utf-8 codepoints
+    #totalCodepoints = len(text.encode("utf-8"))
+    
+    # Split the transcript into sentences
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    
+    # Initialize a list to store the chunks of text
+    chunks = []
+    
+    # Initialize a string to store a chunk of text
+    chunk = ""
+    
+    # For each sentence in the list of sentences
+    for sentence in sentences:
+        # If adding the sentence to the chunk would keep it within the maximum length
+        if len(chunk.encode("utf-8")) + len(sentence.encode("utf-8")) + 1 <= max_length:  # Adding 1 to account for space
+            # Add the sentence to the chunk
+            chunk += sentence + " "
+        else:
+            # If adding the sentence would exceed the maximum length and chunk is not empty
+            if chunk:
+                # Add the chunk to the list of chunks
+                chunks.append(chunk.strip())
+            # Start a new chunk with the current sentence
+            chunk = sentence + " "
+    
+    # Add the last chunk to the list of chunks (if it's not empty)
+    if chunk:
+        chunks.append(chunk.strip())
+    
+    # Return the list of chunks
+    return chunks
+
+def convertChunkListToCompatibleDict(chunkList):
+    # Create dictionary with numbers as keys and chunks as values
+    chunkDict = {}
+    for i, chunk in enumerate(chunkList, 1):
+        chunkDict[i] = {'text': chunk}
+    return chunkDict
+
+
 # Translate the text entries of the dictionary
-def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
+def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcriptMode=False):
     targetLanguage = langDict['targetLanguage']
     translateService = langDict['translateService']
     formality = langDict['formality']
@@ -200,6 +242,10 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
         for key in inputSubsDict:
             inputSubsDict[key]['translated_text'] = process_response_text(inputSubsDict[key]['text'], targetLanguage) # Skips translating, such as for testing
     print("                                                  ")
+    
+    # If translating transcript, return the translated text
+    if transcriptMode:
+        return inputSubsDict
 
     # # Debug export inputSubsDict as json for offline testing
     # import json

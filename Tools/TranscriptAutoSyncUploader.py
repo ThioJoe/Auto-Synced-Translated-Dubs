@@ -57,7 +57,7 @@ def print_caption_info(videoID):
         print()
 
 
-def upload_caption(videoID, language, name, file, sync=False, isDraft=False):
+def upload_caption(videoID, language, name, file, sync=True, isDraft=False):
     # Convert file to bytes
     subtitleData = MediaFileUpload(file, mimetype="text/plain", resumable=True)
 
@@ -217,7 +217,21 @@ elif userChoice == "uploadMultipleTranscripts":
                 userInput = input("\nContinue Anyway and Skip File? (y/n): ")
                 if userInput.lower() != 'y':
                     sys.exit()
-
+    
+    # Get list of supported auto-sync languages for YouTube
+    supportedLanguages = config['youtube_autosync_languages'].replace(' ','').split(',')
+    unsupportedList = []
+    for langCode in transcriptFilesDict.keys():
+        if langCode not in supportedLanguages:
+            unsupportedList.append(langCode)
+    if unsupportedList:
+        print("\nWARNING: The following languages are not supported for auto-sync by YouTube:")
+        print("         " + ', '.join(unsupportedList))
+        input("\nDo you want to skip these languages? (y/n): ")
+        if userInput.lower() == 'y':
+            for langCode in unsupportedList:
+                transcriptFilesDict.pop(langCode)
+        
     # Begin uploading
     for langCode, fileName in transcriptFilesDict.items():
         filePath = os.path.join(folderPath, fileName)

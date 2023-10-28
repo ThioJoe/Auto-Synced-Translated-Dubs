@@ -25,6 +25,8 @@ Abra o `run-interface.bat` e seja feliz
    - Você vai ter que extrair na pasta ``workingFolder```
    - Vai ter que deixar a opção ``Pular tradução``, ``Pular Síntese`` e ``Forçar esticamento na segunda etapa`` ativado ✅
 
+- Recomendo [RVC](https://br.aihub.wtf/) para clone de voz
+
 ### Como Funciona
 Se você já possui um arquivo de legendas SRT feito por humanos para um vídeo, este programa fará o seguinte:
 1. Utilizará o Google Cloud/DeepL para traduzir automaticamente o texto e criar novos arquivos SRT traduzidos.

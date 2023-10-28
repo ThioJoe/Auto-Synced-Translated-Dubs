@@ -31,6 +31,8 @@ Open `run-interface.bat`
    - You'll have to extract it to the `workingFolder` folder
    - You will have to leave the "Skip translation," "Skip synthesis," and "Force stretching in the second pass" option enabled ✅
  
+- I recommend [RVC](https://aihub.wtf/) for voice clone
+ 
 ## Help the project, translate the UI to your language
 - Open the `i18n` folder, make a copy of the English one, rename it to your language.
 - Open the `.json` file and translate the right column.

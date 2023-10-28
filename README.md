@@ -3,7 +3,8 @@
 If you want me to do this for your channel, send me a message
 
 # Auto-Synced-Translated-Dubs-with-UI
-Automatically translates the text of a video based on a subtitle file, and also uses AI voice to dub the video, while keeping it properly synced to the original video using the subtitle's timings. Now with a UI for easy setup and a more detailed tutorial.
+Automatically translates the subtitle of a video (.srt) and uses TTS to dub it using the newly translated subtitle.
+Now with a user interface for easier configuration and a more detailed tutorial.
 
 ![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1167672262678298657/image.png)
 
@@ -20,7 +21,7 @@ Open `run-interface.bat`
 **WHISPER - Generate automatic subtitles to facilitate editing** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XWig4fk9BN0gwcj9kp3n6yXevAcDLM8j?usp=sharing)
 - Sorry, I didn't translate Google Colab into English
 - Generate automatic subtitles
- - It generates from audio, so convert your video to mp3 and upload (uploading video to Google Colab is very bad)
+ - It generates from audio, so convert your video to mp3 and upload (uploading video to Collab is very bad)
  - After generating and downloading, use [Aegisub](https://github.com/Aegisub/Aegisub) (Just open their website and download) to organize the subtitles. Remember, the better and more synchronized the subtitles are, the better your final result will be.
 
 **EDGE-TTS - TTS without API** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Em_fn0QmN5Bln9uXr4mlnQZLOiG4tO2L?usp=sharing)

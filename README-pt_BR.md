@@ -55,7 +55,7 @@ Se você já possui um arquivo de legendas SRT feito por humanos para um vídeo,
 1. Faça o download ou clone o repositório e instale os requisitos usando `pip install -r requirements.txt`
    - Foi escrito usando o Python 3.9, mas provavelmente funcionará com versões anteriores também.
 2. Instale os programas mencionados nos 'Requisitos Externos' acima.
-3. Execute run_interface.bat ou simplesmente `python interface.py`
+3. Execute `run_interface.bat` ou simplesmente `python interface.py`
    1. Configure seu acesso à API do Google Cloud (consulte o Wiki), Microsoft Azure e/ou token da API DeepL e defina as variáveis em `cloud_service_settings.ini`. 
       - Recomendo o Azure para a síntese de voz TTS porque, em minha opinião, eles têm vozes mais novas e melhores e de alta qualidade (o Azure suporta uma taxa de amostragem de até 48KHz, em comparação com 24KHz com o Google). 
       - O Google Cloud é mais rápido, mais barato e suporta mais idiomas para tradução de texto, mas você também pode usar o DeepL.

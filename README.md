@@ -6,6 +6,7 @@ If you want me to do this for your channel, send me a message
 Automatically translates the text of a video based on a subtitle file, and also uses AI voice to dub the video, while keeping it properly synced to the original video using the subtitle's timings. Now with a UI for easy setup and a more detailed tutorial.
 
 ![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1167672262678298657/image.png)
+
 Open `run-interface.bat`
 
 ## Google Colab

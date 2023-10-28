@@ -58,7 +58,7 @@ If you already have a human-made SRT subtitles file for a video, this program wi
 
 ### External Requirements:
 - ffmpeg must be installed (https://ffmpeg.org/download.html)
-   - Install to PATH for assurance. [RANDOM INTERNET GUIDE](https://academy.streamholics.live/guias/guia-ffmpeg/)
+   - Install to PATH for assurance. [RANDOM INTERNET GUIDE]([https://academy.streamholics.live/guias/guia-ffmpeg/](https://phoenixnap.com/kb/ffmpeg-windows))
 - You'll need the binaries for a program called 'rubberband' (https://breakfastquay.com/rubberband/). Doesn't need to be installed, just put the .exe files and the .dll file in the same directory/folder as the scripts.
 
 ## Setup & Configuration

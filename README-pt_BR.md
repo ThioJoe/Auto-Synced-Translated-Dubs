@@ -4,6 +4,7 @@ Traduz automaticamente o texto de um vídeo com base em um arquivo de legenda e 
 
 ![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1167690635566907412/image.png)
 
+Abra o `run-interface.bat` e seja feliz
 
 ## Google Colab
 ### Colab Auto-Synced-Translated-Dubs [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1MNHeuTBe48kKV4Sfk7yM3CDR8LnEy_He?usp=sharing)

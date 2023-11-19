@@ -2,9 +2,20 @@
 # Dublagens Automáticas Sincronizadas e Traduzidas
 Traduz automaticamente o texto de um vídeo com base em um arquivo de legenda e utiliza a voz de IA para dublar o vídeo, sincronizando-o com os tempos das legendas. Agora com um UI para facilitar a configuração e um tutorial mais detalhado.
 
-![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1167690635566907412/image.png)
+![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1175909726324785192/image.png)
+![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1175909926296617040/image.png)
+![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1175910144337510510/image.png)
 
 Abra o `run-interface.bat` e seja feliz
+
+## Atualização
+Adicionado internacionalização com i18n (pt_BR, en_US, es_ES)
+
+Adicionado EDGE-TTS para TTS sem API
+
+Adicionado BARK-TTS outra opção de TTS sem API (mas muito pesado)
+
+Melhorado interface
 
 ## Google Colab
 ### Colab Auto-Synced-Translated-Dubs [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1MNHeuTBe48kKV4Sfk7yM3CDR8LnEy_He?usp=sharing)

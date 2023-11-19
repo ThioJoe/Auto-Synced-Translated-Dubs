@@ -5,7 +5,17 @@ If you want me to do this for your channel, send me a message
 # Auto-Synced Translated Dubs
 Automatically translates the text of a video based on a subtitle file, and also uses AI voice to dub the video, while keeping it properly synced to the original video using the subtitle's timings. Now with a UI for easy setup and a more detailed tutorial.
 
-![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1167672262678298657/image.png)
+![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1175910532402921472/image.png)
+![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1175912731627491389/image.png)
+
+## Update
+Added internationalization with i18n (pt_BR, en_US, es_ES)
+
+Added EDGE-TTS for TTS without API
+
+Added BARK-TTS another TTS option without API (but very heavy)
+
+Improved interface
 
 ## Google Colab
 ### Colab Auto-Synced Translated Dubs [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1MNHeuTBe48kKV4Sfk7yM3CDR8LnEy_He?usp=sharing)

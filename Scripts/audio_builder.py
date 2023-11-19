@@ -12,6 +12,8 @@ from Scripts.utils import parseBool
 from pydub import AudioSegment
 from pydub.silence import detect_leading_silence
 import langcodes
+from i18n import I18nAuto
+i18n = I18nAuto()
 
 # Set working folder
 workingFolder = "workingFolder"
@@ -83,7 +85,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         trimmedClip.export(tempTrimmedFile, format="wav")
         virtualTrimmedFileDict[key] = tempTrimmedFile
         keyIndex = list(subsDict.keys()).index(key)
-        print(f" Trimmed Audio: {keyIndex+1} of {len(subsDict)}", end="\r")
+        print(f" {i18n('Trimmed Audio')}: {keyIndex+1} {i18n('of')} {len(subsDict)}", end="\r")
     print("\n")
 
     # Calculates speed factor if necessary. Azure doesn't need this, so skip it
@@ -93,11 +95,10 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             #subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
             subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
             keyIndex = list(subsDict.keys()).index(key)
-            print(f" Calculated Speed Factor: {keyIndex+1} of {len(subsDict)}", end="\r")
+            print(f" {i18n('Calculated Speed Factor')}: {keyIndex+1} {i18n('of')} {len(subsDict)}", end="\r")
         print("\n")
 
     # If two pass voice synth is enabled, have API re-synthesize the clips at the new speed
-    # Azure allows direct specification of audio duration, so no need to re-synthesize
     if twoPassVoiceSynth == True and not cloudConfig['tts_service'] == 'azure':
         if cloudConfig['batch_tts_synthesize'] == True and cloudConfig['tts_service'] == 'azure':
             subsDict = TTS.synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=config['skip_synthesize'], secondPass=True)
@@ -114,14 +115,14 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
                 trimmedClip.export(secondPassTrimmedFile, format="wav")
             trimmedClip.export(virtualTrimmedFileDict[key], format="wav")
             keyIndex = list(subsDict.keys()).index(key)
-            print(f" Trimmed Audio (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
+            print(f" {i18n('Trimmed Audio (2nd Pass)')}: {keyIndex+1} {i18n('of')} {len(subsDict)}", end="\r")
         print("\n")
 
         if config['force_stretch_with_twopass'] == True:
             for key, value in subsDict.items():
                 subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
                 keyIndex = list(subsDict.keys()).index(key)
-                print(f" Calculated Speed Factor (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
+                print(f" {i18n('Calculated Speed Factor (2nd Pass)')}: {keyIndex+1} {i18n('of')} {len(subsDict)}", end="\r")
             print("\n")
 
     # Create canvas to overlay audio onto
@@ -139,7 +140,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
 
         canvas = insert_audio(canvas, stretchedClip, value['start_ms'])
         keyIndex = list(subsDict.keys()).index(key)
-        print(f" Final Audio Processed: {keyIndex+1} of {len(subsDict)}", end="\r")
+        print(i18n(f" {i18n('Final Audio Processed')}: {keyIndex+1} {i18n('of')} {len(subsDict)}"), end="\r")
     print("\n")
 
     # Use video file name to use in the name of the output file. Add language name and language code
@@ -168,13 +169,13 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
 
     canvas = canvas.set_channels(2) # Change from mono to stereo
     try:
-        print("\nExporting audio file...")
+        print(i18n("\nExporting audio file..."))
         canvas.export(outputFileName, format=formatString, bitrate="192k")
     except:
         outputFileName = outputFileName + ".bak"
         canvas.export(outputFileName, format=formatString, bitrate="192k")
-        print("\nThere was an issue exporting the audio, it might be a permission error. The file was saved as a backup with the extension .bak")
-        print("Try removing the .bak extension then listen to the file to see if it worked.\n")
-        input("Press Enter to exit...")
+        print(i18n("\nThere was an issue exporting the audio, it might be a permission error. The file was saved as a backup with the extension .bak"))
+        print(i18n("Try removing the .bak extension then listen to the file to see if it worked.\n"))
+        input(i18n("Press Enter to exit..."))
 
     return subsDict

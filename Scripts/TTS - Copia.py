@@ -132,17 +132,14 @@ def add_phoneme_tags(text):
 
 
 # =============================================================================================================================
-# Diretório atual do script
-current_directory = os.path.dirname(os.path.realpath(__file__))
-
 # Caminho real para o arquivo
-script_path = os.path.join(current_directory, "SRT2Edge-tts.py")
+script_path = os.path.join("C:\IA\Auto-Synced-Translated-Dubs-0.13.1", "Scripts", "SRT2Edge-tts.py")
 
 def synthesize_text_srt2edge(text, languageCode, TTS_FilePath, subtitle_num):
     # Chamada ao script srt2edge-tts.py usando subprocess
     subprocess.run(["python", script_path, text, languageCode, TTS_FilePath, subtitle_num])
 
-script_path2 = os.path.join(current_directory, "SRT2Bark.py")
+script_path2 = os.path.join("C:\IA\Auto-Synced-Translated-Dubs-0.13.1", "Scripts", "SRT2Bark.py")
 
 def synthesize_text_with_bark(text, languageCode, output_folder, subtitle_num):
     # Chamada ao script SRT2Bark.py usando subprocess

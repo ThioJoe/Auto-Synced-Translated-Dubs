@@ -5,9 +5,16 @@
 # Author / Project Owner: "ThioJoe" (https://github.com/ThioJoe)
 # License: GPLv3
 # NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
+from i18n import I18nAuto
+i18n = I18nAuto()
 
-version = '0.15.0'
-print(f"------- 'Auto Synced Translated Dubs' script by ThioJoe - Release version {version} -------")
+from version import version
+
+#version = '0.13.1'
+print(f"------- {i18n('Auto Synced Translated Dubs')} {i18n('script by')} ThioJoe - {i18n('Release version')} {version} -------")
+
+#print(f"{i18n('Pre-translated subtitles not found for language')}: {langDict['languageCode']}. {i18n('Skipping')}.")
+
 
 # Import other files
 from Scripts.shared_imports import *
@@ -20,7 +27,6 @@ from Scripts.utils import parseBool
 # Import built in modules
 import re
 import copy
-import winsound
 
 # Import other modules
 import ffprobe
@@ -199,30 +205,13 @@ def manually_prepare_dictionary(dictionaryToPrep):
 def get_pretranslated_subs_dict(langData):
     # Get list of files in the output folder
     files = os.listdir(OUTPUT_FOLDER)
-    # Check if youtube-translated directory/files exist
-    if os.path.exists(OUTPUT_YTSYNCED_FOLDER):
-        altFiles = os.listdir(OUTPUT_YTSYNCED_FOLDER)
-    else:
-        altFiles = None
-    
-    # If alternative translations found in addition to the main output folder, ask user which to use
-    if altFiles and files:
-        print("Found YouTube-synced translations in: " + OUTPUT_YTSYNCED_FOLDER)
-        userResponse = input("Use YouTube-synced translations instead of those in main output folder? (y/n): ")
-        if userResponse.lower() == 'y':
-            files = altFiles
-            print("Using YouTube-synced translations...\n")
-    elif altFiles and not files:
-        print("Found YouTube-synced translations to use in: " + OUTPUT_YTSYNCED_FOLDER)
-        files = altFiles
-    
     # Check if any files ends with the specific language code and srt file extension
     for file in files:
         if file.replace(' ', '').endswith(f"-{langData['translation_target_language']}.srt"):
             # If so, open the file and read the lines into a list
             with open(f"{OUTPUT_FOLDER}/{file}", 'r', encoding='utf-8-sig') as f:
                 pretranslatedSubLines = f.readlines()
-            print(f"Pre-translated file found: {file}")
+            print(f"{i18n('Pre-translated file found')}: {file}")
 
             # Parse the srt file using function
             preTranslatedDict = parse_srt_file(pretranslatedSubLines, preTranslated=True)
@@ -250,28 +239,28 @@ def process_language(langData, processedCount, totalLanguages):
     individualLanguageSubsDict = copy.deepcopy(originalLanguageSubsDict)
 
     # Print language being processed
-    print(f"\n----- Beginning Processing of Language ({processedCount}/{totalLanguages}): {langDict['languageCode']} -----")
+    print(f"\n----- {i18n('Beginning Processing of Language')} ({processedCount}/{totalLanguages}): {langDict['languageCode']} -----")
 
     # Check for special case where original language is the same as the target language
     if langDict['languageCode'].lower() == config['original_language'].lower():
-        print("Original language is the same as the target language. Skipping translation.")
+        print(i18n("Original language is the same as the target language. Skipping translation."))
         individualLanguageSubsDict = manually_prepare_dictionary(individualLanguageSubsDict)
 
     elif config['skip_translation'] == False:
         # Translate
         individualLanguageSubsDict = translate.translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=config['skip_translation'])
         if config['stop_after_translation']:
-            print("Stopping at translation is enabled. Skipping TTS and building audio.")
+            print(i18n("Stopping at translation is enabled. Skipping TTS and building audio."))
             return
         
     elif config['skip_translation'] == True:
-        print("Skip translation enabled. Checking for pre-translated subtitles...")
+        print(i18n("Skip translation enabled. Checking for pre-translated subtitles..."))
         # Check if pre-translated subtitles exist
         pretranslatedSubsDict = get_pretranslated_subs_dict(langData)
         if pretranslatedSubsDict != None:
             individualLanguageSubsDict = pretranslatedSubsDict
         else:
-            print(f"\nPre-translated subtitles not found for language '{langDict['languageCode']}' in folder '{OUTPUT_FOLDER}'. Skipping.")
+            print(f"{i18n('Pre-translated subtitles not found for language')} '{langDict['languageCode']}' {i18n('in folder')} '{OUTPUT_FOLDER}'. {i18n('Skipping')}.")
             print(f"Note: Ensure the subtitle filename for this language ends with: ' - {langData['translation_target_language']}.srt'\n")
             return
 
@@ -291,13 +280,9 @@ processedCount = 0
 totalLanguages = len(batchSettings)
 
 # Process all languages
-print(f"\n----- Beginning Processing of Languages -----")
+print(f"\n----- {i18n('Beginning Processing of Languages')} -----")
 batchSettings = translate.set_translation_info(batchSettings)
 for langNum, langData in batchSettings.items():
     processedCount += 1
     # Process current fallback language
     process_language(langData, processedCount, totalLanguages)
-
-# Play a system sound to indicate completion
-sound_name = winsound.MB_ICONASTERISK  # represents the 'Asterisk' system sound
-winsound.MessageBeep(sound_name)  # Play the system sound

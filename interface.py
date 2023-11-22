@@ -10,6 +10,13 @@ i18n = I18nAuto()
 
 #version = 1
 
+# Função para abrir a caixa de diálogo de arquivo e preencher o campo de entrada
+def open_file_dialog(file_entry, initial_path=""):
+    file_path = filedialog.askopenfilename(initialdir=initial_path)
+    if file_path:
+        file_entry.delete(0, tk.END)
+        file_entry.insert(0, file_path)
+
 # Função para executar o código 'python main.py'
 def run_main_code():
     subprocess.run(['python', 'main.py'])

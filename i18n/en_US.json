@@ -109,6 +109,7 @@
 	"Skip translation enabled. Checking for pre-translated subtitles...": "Skip translation enabled. Checking for pre-translated subtitles...",
 	"Pre-translated subtitles not found for language": "Pre-translated subtitles not found for language",
 	"Skipping": "Skipping",
+	"in folder": "in folder",
 
 	"___comment(3)___": "audio_builder.py",
 
@@ -138,6 +139,7 @@
 	"ERROR: Batch TTS only supports azure at this time": "ERROR: Batch TTS only supports azure at this time",
 	"Press enter to exit...": "Press enter to exit...",
 	"Error creating directory": "Error creating directory",
-	"Synthesizing TTS Line:": "Synthesizing TTS Line:",
-	"Synthesizing TTS Line (2nd Pass):": "Synthesizing TTS Line (2nd Pass):"
+	"Synthesizing TTS Line": "Synthesizing TTS Line:",
+	"Synthesizing TTS Line (2nd Pass):": "Synthesizing TTS Line (2nd Pass):",
+	"Waiting for Azure batch synthesis job to finish. Status:": "Waiting for Azure batch synthesis job to finish. Status:"
 }

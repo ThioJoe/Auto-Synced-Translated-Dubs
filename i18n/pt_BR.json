@@ -139,6 +139,7 @@
 	"ERROR: Batch TTS only supports azure at this time": "ERRO: O TTS em lote só suporta o Azure neste momento",
 	"Press enter to exit...": "Pressione Enter para sair...",
 	"Error creating directory": "Erro ao criar diretório",
-	"Synthesizing TTS Line:": "Sintetizando fala de TTS:",
-	"Synthesizing TTS Line (2nd Pass):": "Sintetizando fala de TTS (2ª Passagem):"
+	"Synthesizing TTS Line": "Sintetizando fala de TTS",
+	"Synthesizing TTS Line (2nd Pass):": "Sintetizando fala de TTS (2ª Passagem):",
+	"Waiting for Azure batch synthesis job to finish. Status:": "Waiting for Azure batch synthesis job to finish. Status:"
 }

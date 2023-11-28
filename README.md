@@ -92,6 +92,27 @@ If you already have a human-made SRT subtitles file for a video, this program wi
    - This will label the tracks so the video file is ready to be uploaded to YouTube. HOWEVER, the multiple audio tracks feature is only available to a limited number of channels. You will most likely need to contact YouTube creator support to ask for access, but there is no guarantee they will grant it.
 - **Optional:** You can use the separate `TitleTranslator.py` script if uploading to YouTube, which lets you enter a video's Title and Description, and the text will be translated into all the languages enabled in `batch.ini`. They wil be placed together in a single text file in the "output" folder.
 
+## How to add more languages?
+
+- Open the file 'idiomas.ini'
+- At the end of the file, duplicate the last language
+- Set a new number for your language. Example: 14 <br>
+
+`translation_target_language` = add the language abbreviation, which identifies the subtitle. Example: pt <br>
+`synth_language_code` = add language code with country. Example: pt-BR <br>
+`synth_voice_name` = add the voice that will be synthetized. Example: pt-BR-FabioNeural <br>
+- But **EDGE** is defined in another file, called `'voice_map.py'` <br>
+  - The languages that are in 'SUPPORTED_VOICES' will be the voices defined for each language. You can see the list of commented language below <br>
+- and **BARK** is defined in `'SRT2Bark.py'` which are inside the SCRIPTS folder <br>
+  - At the end of line 12 you define the SPEAKER, you can see all speakers in this [link](https://suno-ai.notion.site/8b8e8749ed514b0cbf3f699013548683?v=bc67cff786b04b50b3ceb756fd05f68c) <br>
+  - Test the quality first, as the bark is still in development and may have poor results. <br>
+  - Remembering that the BARK option uses 100% of your GPU <br>
+  
+`synth_voice_gender` = add gender. Example: MALE <br>
+
+- When opening the program again, in batch.ini define the new number (Example: 14) and save
+- Enjoy
+
 ----
 
 ## Additional Notes:

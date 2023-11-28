@@ -32,6 +32,7 @@ Improved interface
  - After generating and downloading, use [Aegisub](https://github.com/Aegisub/Aegisub) (Just open their website and download) to organize the subtitles. Remember, the better and more synchronized the subtitles are, the better your final result will be.
 
 **EDGE-TTS - TTS without API** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Em_fn0QmN5Bln9uXr4mlnQZLOiG4tO2L?usp=sharing)
+- The tutorial below is only if you use the COLAB version, if you use edge within the program, ignore the information below
 - Sorry, I didn't translate Google Colab into English
 - I recommend using **EDGE-TTS** for TTS because you don't need an API
    - In this Colab, you send the .SRT file, it does the TTS

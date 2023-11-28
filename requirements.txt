@@ -1,3 +1,8 @@
+tk
+bark
+scipy
+pydub
+edge-tts
 google-cloud-texttospeech
 google_api_python_client
 google_auth_oauthlib

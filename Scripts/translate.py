@@ -74,50 +74,8 @@ def process_response_text(text, targetLanguage):
     text = replace_manual_translations(text, targetLanguage)
     return text
 
-def split_transcript_chunks(text, max_length=5000):
-    # Calculate the total number of utf-8 codepoints
-    #totalCodepoints = len(text.encode("utf-8"))
-    
-    # Split the transcript into sentences
-    sentences = re.split(r'(?<=[.!?])\s+', text)
-    
-    # Initialize a list to store the chunks of text
-    chunks = []
-    
-    # Initialize a string to store a chunk of text
-    chunk = ""
-    
-    # For each sentence in the list of sentences
-    for sentence in sentences:
-        # If adding the sentence to the chunk would keep it within the maximum length
-        if len(chunk.encode("utf-8")) + len(sentence.encode("utf-8")) + 1 <= max_length:  # Adding 1 to account for space
-            # Add the sentence to the chunk
-            chunk += sentence + " "
-        else:
-            # If adding the sentence would exceed the maximum length and chunk is not empty
-            if chunk:
-                # Add the chunk to the list of chunks
-                chunks.append(chunk.strip())
-            # Start a new chunk with the current sentence
-            chunk = sentence + " "
-    
-    # Add the last chunk to the list of chunks (if it's not empty)
-    if chunk:
-        chunks.append(chunk.strip())
-    
-    # Return the list of chunks
-    return chunks
-
-def convertChunkListToCompatibleDict(chunkList):
-    # Create dictionary with numbers as keys and chunks as values
-    chunkDict = {}
-    for i, chunk in enumerate(chunkList, 1):
-        chunkDict[i] = {'text': chunk}
-    return chunkDict
-
-
 # Translate the text entries of the dictionary
-def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcriptMode=False):
+def translate_dictionary(inputSubsDict, langDict, skipTranslation=False):
     targetLanguage = langDict['targetLanguage']
     translateService = langDict['translateService']
     formality = langDict['formality']
@@ -242,10 +200,6 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
         for key in inputSubsDict:
             inputSubsDict[key]['translated_text'] = process_response_text(inputSubsDict[key]['text'], targetLanguage) # Skips translating, such as for testing
     print("                                                  ")
-    
-    # If translating transcript, return the translated text
-    if transcriptMode:
-        return inputSubsDict
 
     # # Debug export inputSubsDict as json for offline testing
     # import json
@@ -288,69 +242,6 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
 
     return combinedProcessedDict
 
-def download_youtube_auto_translations(languageCodeList, videoID):
-    
-    def get_captions_list(videoID):
-        results = auth.YOUTUBE_API.captions().list(
-            part="snippet",
-            videoId=videoID
-        ).execute()
-        return results
-    captionsTracksResponse = get_captions_list(videoID)
-    
-    # Find the caption ID for a specific language
-    def get_caption_id(captionsTracksResponse, desiredLanguageCode):
-        def check_code(code):
-            matchedID = None
-            for item in captionsTracksResponse["items"]:
-                if item["snippet"]["language"] == code:
-                    matchedID = item["id"]
-                    break
-            return matchedID
-                
-        captionID = check_code(desiredLanguageCode)
-        
-        # If none found, check for two-letter code (first two letters)
-        if captionID == None:
-            captionID = check_code(desiredLanguageCode[:2])
-            
-        return captionID
-      
-    def download_yt_translated_captions_track(captionID, desiredLanguageCode=None, tfmt='srt'):
-        results = auth.YOUTUBE_API.captions().download(
-            id=captionID,
-            tlang=desiredLanguageCode,
-            tfmt=tfmt
-        ).execute()
-        
-        if type(results) is not bytes:
-            print("\nError: YouTube API call failed to return subtitles.")
-            return False
-        
-        # Make output folder if it doesn't exist
-        if not os.path.exists(OUTPUT_FOLDER):
-            os.makedirs(OUTPUT_FOLDER)
-        
-        # Save captions to file. API call returns bytes in specified format
-        with open(os.path.join(OUTPUT_FOLDER, f'{ORIGINAL_VIDEO_NAME} - {desiredLanguageCode}.srt'), 'wb') as f:
-            # Write the captions bytes to file
-            f.write(results)
-            
-        return True
-    
-    # Get native language caption ID
-    nativeCaptionID = get_caption_id(captionsTracksResponse, config['original_language'])
-    
-    # Download the captions for each language
-    for langCode in languageCodeList:
-        langCaptionID = get_caption_id(captionsTracksResponse, langCode)
-        
-        # If no matched language track, use native caption ID then auto-translate
-        if langCaptionID == None:
-            langCaptionID = nativeCaptionID
-        
-        download_yt_translated_captions_track(langCaptionID, langCode)
-    
 
 ##### Add additional info to the dictionary for each language #####
 def set_translation_info(languageBatchDict):

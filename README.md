@@ -1,22 +1,65 @@
-# Auto Synced & Translated Dubs
- Automatically translates the text of a video into chosen languages based on a subtitle file, and also uses AI voice to dub the video, while keeping it properly synced to the original video using the subtitle's timings.
- 
-### How It Works
-If you already have a human-made SRT subtitles file for a video, this will:
-1. Use Google Cloud/DeepL to automatically translate the text, and create new translated SRT files
-2. Create text-to-speech audio clips of the translated text (using more realistic neural voices)
-3. Use the timings of the subtitle lines to calculate the correct duration of each spoken audio clip
-4. Stretch or shrink the translated audio clip to be exactly the same length as the original speech, and inserted at the same point in the audio. Therefore the translated speech will remain perfectly in sync with the original video.
-    - Optional (On by Default): Instead of stretching the audio clips, you can instead do a second pass at synthesizing each clip through the API using the proper speaking speed calculated during the first pass. This drastically improves audio quality.
-    
-### Additional Key Features
-- Creates translated versions of the SRT subtitle file
-- Batch processing of multiple languages in sequence
-- Config files to save translation, synthesis, and language settings for re-use
-- Included script for adding all language audio tracks to a video file
-   - With ability to merge a sound effects track into each language track
-- Included script for translating a YouTube video Title and Description to multiple languages
+[English](https://github.com/RafaelGodoyEbert/Auto-Synced-Translated-Dubs-with-UI/blob/main/README.md) | [Português](https://github.com/RafaelGodoyEbert/Auto-Synced-Translated-Dubs-with-UI/blob/main/README-pt_BR.md)
 
+If you want me to do this for your channel, send me a message
+
+# Auto-Synced Translated Dubs
+Automatically translates the text of a video based on a subtitle file, and also uses AI voice to dub the video, while keeping it properly synced to the original video using the subtitle's timings. Now with a UI for easy setup and a more detailed tutorial.
+
+![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1175910532402921472/image.png)
+![UI](https://cdn.discordapp.com/attachments/1124221552779612282/1175912731627491389/image.png)
+
+## Update
+Added internationalization with i18n (pt_BR, en_US, es_ES)
+
+Added EDGE-TTS for TTS without API
+
+Added BARK-TTS another TTS option without API (but very heavy)
+
+Improved interface
+
+## Google Colab
+### Colab Auto-Synced Translated Dubs [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1MNHeuTBe48kKV4Sfk7yM3CDR8LnEy_He?usp=sharing)
+- Sorry, I didn't translate Google Colab into English
+- Yes, I tried to create a version for Google Colab, but only later realized that Rubberband doesn't have a version for Linux.
+- If you have the APIs, the program will probably work very well, as it generates accelerated TTS directly from Azure. (Not sure because I didn't pay for the APIs)
+- So on Colab, you can do everything else, except the rubberband function, which is the acceleration and deceleration of audio.
+
+### Other Recommended Colabs
+**WHISPER - Generate automatic subtitles to facilitate editing** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1XWig4fk9BN0gwcj9kp3n6yXevAcDLM8j?usp=sharing)
+- Sorry, I didn't translate Google Colab into English
+- Generate automatic subtitles
+ - It generates from audio, so convert your video to mp3 and upload (uploading video to Google Colab is very bad)
+ - After generating and downloading, use [Aegisub](https://github.com/Aegisub/Aegisub) (Just open their website and download) to organize the subtitles. Remember, the better and more synchronized the subtitles are, the better your final result will be.
+
+**EDGE-TTS - TTS without API** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Em_fn0QmN5Bln9uXr4mlnQZLOiG4tO2L?usp=sharing)
+- The tutorial below is only if you use the COLAB version, if you use edge within the program, ignore the information below
+- Sorry, I didn't translate Google Colab into English
+- I recommend using **EDGE-TTS** for TTS because you don't need an API
+   - In this Colab, you send the .SRT file, it does the TTS
+   - It downloads the ZIP
+   - You'll have to extract it to the `workingFolder` folder
+   - You will have to leave the "Skip translation," "Skip synthesis," and "Force stretching in the second pass" option enabled ✅
+ 
+## Help the project, translate the UI to your language
+- Open the `i18n` folder, make a copy of the English one, rename it to your language.
+- Open the `.json` file and translate the right column.
+  
+### How It Works
+If you already have a human-made SRT subtitles file for a video, this program will:
+1. Use Google Cloud/DeepL to automatically translate the text and create new translated SRT files.
+   - Optional: Use [EDGE-TTS](https://github.com/rany2/edge-tts), no need for an API.
+2. Create text-to-speech audio clips of the translated text (using more realistic neural voices).
+3. Use the timings of the subtitles to calculate the correct duration of each spoken audio clip.
+4. Stretch or shrink the translated audio clip to be exactly the same length as the original speech, and inserted at the same point in the audio. Therefore, the translated speech will remain perfectly in sync with the original video.
+    - Optional (Enabled by default): Instead of stretching the audio clips, you can do a second pass to synthesize each clip through the API using the proper speaking speed calculated during the first pass. This greatly improves audio quality.
+
+### Additional Key Features
+- Creates translated versions of the SRT subtitle file.
+- Batch processing of multiple languages in sequence.
+- Config files to save translation, synthesis, and language settings for re-use.
+- Included script for adding all language audio tracks to a video file.
+   - With the ability to merge a sound effects track into each language track.
+- Included script for translating a YouTube video Title and Description to multiple languages.
 
 ----
 
@@ -24,7 +67,8 @@ If you already have a human-made SRT subtitles file for a video, this will:
 
 ### External Requirements:
 - ffmpeg must be installed (https://ffmpeg.org/download.html)
-- You'll need the binaries for a program called 'rubberband' ( https://breakfastquay.com/rubberband/ ) . Doesn't need to be installed, just put both exe's and the dll file in the same directory as the scripts.
+   - Install to PATH for assurance. [RANDOM INTERNET GUIDE](https://academy.streamholics.live/guias/guia-ffmpeg/)
+- You'll need the binaries for a program called 'rubberband' (https://breakfastquay.com/rubberband/). Doesn't need to be installed, just put the .exe files and the .dll file in the same directory/folder as the scripts.
 
 ## Setup & Configuration
 1. Download or clone the repo and install the requirements using `pip install -r requirements.txt`
@@ -48,6 +92,27 @@ If you already have a human-made SRT subtitles file for a video, this will:
    - Open the script file with a text editor and change the values in the "User Settings" section at the top.
    - This will label the tracks so the video file is ready to be uploaded to YouTube. HOWEVER, the multiple audio tracks feature is only available to a limited number of channels. You will most likely need to contact YouTube creator support to ask for access, but there is no guarantee they will grant it.
 - **Optional:** You can use the separate `TitleTranslator.py` script if uploading to YouTube, which lets you enter a video's Title and Description, and the text will be translated into all the languages enabled in `batch.ini`. They wil be placed together in a single text file in the "output" folder.
+
+## How to add more languages?
+
+- Open the file 'idiomas.ini'
+- At the end of the file, duplicate the last language
+- Set a new number for your language. Example: 14 <br>
+
+`translation_target_language` = add the language abbreviation, which identifies the subtitle. Example: pt <br>
+`synth_language_code` = add language code with country. Example: pt-BR <br>
+`synth_voice_name` = add the voice that will be synthetized. Example: pt-BR-FabioNeural <br>
+- But **EDGE** is defined in another file, called `'voice_map.py'` <br>
+  - The languages that are in 'SUPPORTED_VOICES' will be the voices defined for each language. You can see the list of commented language below <br>
+- and **BARK** is defined in `'SRT2Bark.py'` which are inside the SCRIPTS folder <br>
+  - At the end of line 12 you define the SPEAKER, you can see all speakers in this [link](https://suno-ai.notion.site/8b8e8749ed514b0cbf3f699013548683?v=bc67cff786b04b50b3ceb756fd05f68c) <br>
+  - Test the quality first, as the bark is still in development and may have poor results. <br>
+  - Remembering that the BARK option uses 100% of your GPU <br>
+  
+`synth_voice_gender` = add gender. Example: MALE <br>
+
+- When opening the program again, in batch.ini define the new number (Example: 14) and save
+- Enjoy
 
 ----
 

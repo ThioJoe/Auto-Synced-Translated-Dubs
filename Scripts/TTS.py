@@ -17,6 +17,11 @@ import Scripts.auth as auth
 import Scripts.azure_batch as azure_batch
 import Scripts.utils as utils
 from Scripts.utils import parseBool
+import subprocess
+import edge_tts
+
+from i18n import I18nAuto
+i18n = I18nAuto()
 
 # Get variables from config
 
@@ -127,6 +132,21 @@ def add_phoneme_tags(text):
 
 
 # =============================================================================================================================
+# Diretório atual do script
+current_directory = os.path.dirname(os.path.realpath(__file__))
+
+# Caminho real para o arquivo
+script_path = os.path.join(current_directory, "SRT2Edge-tts.py")
+
+def synthesize_text_srt2edge(text, languageCode, TTS_FilePath, subtitle_num):
+    # Chamada ao script srt2edge-tts.py usando subprocess
+    subprocess.run(["python", script_path, text, languageCode, TTS_FilePath, subtitle_num])
+
+script_path2 = os.path.join(current_directory, "SRT2Bark.py")
+
+def synthesize_text_with_bark(text, languageCode, output_folder, subtitle_num):
+    # Chamada ao script SRT2Bark.py usando subprocess
+    subprocess.run(["python", script_path2, text, languageCode, output_folder, subtitle_num])
 
 # Build API request for google text to speech, then execute
 def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCode, audioEncoding=config['synth_audio_encoding'].upper()):
@@ -162,18 +182,18 @@ def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCo
     try:
         response = send_request(speedFactor)
     except HttpError as hx:
-        print("Error Message: " + str(hx))
+        print(i18n("Error Message: ") + str(hx))
         if "Resource has been exhausted" in str(hx):
             # Wait 65 seconds, then try again
-            print("Waiting 65 seconds to try again")
+            print(i18n("Waiting 65 seconds to try again"))
             time.sleep(65)
-            print("Trying again...")
+            print(i18n("Trying again..."))
             response = send_request()
         else:
-            input("Press Enter to continue...")
+            input(i18n("Press Enter to continue..."))
     except Exception as ex:
         print("Error Message: " + str(ex))
-        input("Press Enter to continue...")
+        input(i18n("Press Enter to continue..."))
 
 
     # The response's audioContent is base64. Must decode to selected audio format
@@ -324,7 +344,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
     
     # Tell user if request will be broken up into multiple payloads
     if len(payloadList) > 1:
-        print(f'Payload will be broken up into {len(payloadList)} requests (due to Azure size limitations).')
+        print(f"{i18n('Payload will be broken up into')} {len(payloadList)} {i18n('requests (due to Azure size limitations)')}.")
 
     # Use to keep track of filenames downloaded via separate zip files. WIll remove as they are downloaded
     remainingDownloadedEntriesList = list(subsDict.keys())
@@ -352,15 +372,15 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                 response = azure_batch.get_synthesis(job_id)
                 status = response.json()['status']
                 if status == 'Succeeded':
-                    print('Batch synthesis job succeeded')
+                    print(i18n('Batch synthesis job succeeded'))
                     resultDownloadLink = azure_batch.get_synthesis(job_id).json()['outputs']['result']
                     break
                 elif status == 'Failed':
-                    print('ERROR: Batch synthesis job failed!')
-                    print("Reason:" + response.reason)
+                    print(i18n('ERROR: Batch synthesis job failed!'))
+                    print(i18n("Reason:") + response.reason)
                     break
                 else:
-                    print(f'Waiting for Azure batch synthesis job to finish. Status: [{status}]')
+                    print(f"{i18n('Waiting for Azure batch synthesis job to finish. Status:')} [{status}]")
                     time.sleep(5)
             
             # Download resultig zip file
@@ -416,8 +436,8 @@ def synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=False, second
         if cloudConfig['tts_service'] == 'azure':
             subsDict = synthesize_text_azure_batch(subsDict, langDict, skipSynthesize, secondPass)
         else:
-            print('ERROR: Batch TTS only supports azure at this time')
-            input('Press enter to exit...')
+            print(i18n('ERROR: Batch TTS only supports azure at this time'))
+            input(i18n('Press enter to exit...'))
             exit()
     return subsDict
 
@@ -441,7 +461,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                 try:
                     os.makedirs(os.path.dirname(filePath))
                 except OSError:
-                    print("Error creating directory")
+                    print(i18n("Error creating directory"))
 
             # If Google TTS, use Google API
             if cloudConfig['tts_service'] == "google":
@@ -469,6 +489,13 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                     audio.save_to_wav_file(filePathStem+"_p1.mp3")
                 elif config['debug_mode'] and secondPass == True:
                     audio.save_to_wav_file(filePathStem+"_p2.mp3")
+            
+            elif cloudConfig['tts_service'] == "edge":
+                synthesize_text_srt2edge(value['translated_text'], langDict['languageCode'], 'workingFolder', str(key))
+
+            elif cloudConfig['tts_service'] == "bark":
+                synthesize_text_with_bark(value['translated_text'], langDict['languageCode'], 'workingFolder', str(key))
+
 
         subsDict[key]['TTS_FilePath'] = filePath
 
@@ -476,8 +503,8 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
         keyIndex = list(subsDict.keys()).index(key)
         # Print progress and overwrite line next time
         if not secondPass:
-            print(f" Synthesizing TTS Line: {keyIndex+1} of {len(subsDict)}", end="\r")
+            print(f" {i18n('Synthesizing TTS Line')}: {keyIndex+1} {i18n('of')} {len(subsDict)}", end="\r")
         else:
-            print(f" Synthesizing TTS Line (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
+            print(f" {i18n('Synthesizing TTS Line (2nd Pass)')}: {keyIndex+1} {i18n('of')} {len(subsDict)}", end="\r")
     print("                                               ") # Clear the line
     return subsDict

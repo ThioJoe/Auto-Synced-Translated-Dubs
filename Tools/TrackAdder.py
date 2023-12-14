@@ -55,7 +55,6 @@ import shutil
 from pydub import AudioSegment
 import langcodes
 
-from Scripts.utils import parseBool
 from Scripts.shared_imports import *
 
 # Auto fetch tracks from tracksFolder

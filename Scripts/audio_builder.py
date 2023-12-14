@@ -7,7 +7,6 @@ import io
 
 from Scripts.shared_imports import *
 import Scripts.TTS as TTS
-from Scripts.utils import parseBool
 
 from pydub import AudioSegment
 from pydub.silence import detect_leading_silence

@@ -15,7 +15,6 @@ import Scripts.TTS as TTS
 import Scripts.audio_builder as audio_builder
 import Scripts.auth as auth
 import Scripts.translate as translate
-from Scripts.utils import parseBool
 
 # Import built in modules
 import re

@@ -4,7 +4,6 @@
 # Imports
 from Scripts.shared_imports import *
 import Scripts.auth as auth
-from Scripts.utils import parseBool
 import Scripts.utils as utils
 
 import configparser

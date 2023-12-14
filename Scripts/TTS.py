@@ -16,7 +16,6 @@ from Scripts.shared_imports import *
 import Scripts.auth as auth
 import Scripts.azure_batch as azure_batch
 import Scripts.utils as utils
-from Scripts.utils import parseBool
 
 # Get variables from config
 

@@ -28,6 +28,11 @@ for section in configRaw.sections():
 for section in cloudConfigRaw.sections():
     for key in cloudConfigRaw[section]:
         cloudConfig[key] = parseConfigSetting(cloudConfigRaw[section][key])
+        
+# ----- Validation Checks ------ (Add these to their own file eventually)
+if config['skip_synthesize'] == True and cloudConfig['batch_tts_synthesize'] == True:
+    raise ValueError(f'\nERROR: Cannot skip voice synthesis when batch mode is enabled. Please disable batch_tts_synthesize or set skip_synthesize to False.')
+
 
 # ----- Create constants ------
 ORIGINAL_VIDEO_PATH = batchConfig['SETTINGS']['original_video_file_path']

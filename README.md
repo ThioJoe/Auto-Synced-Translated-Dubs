@@ -4,10 +4,12 @@
 ### How It Works
 If you already have a human-made SRT subtitles file for a video, this will:
 1. Use Google Cloud/DeepL to automatically translate the text, and create new translated SRT files
-2. Create text-to-speech audio clips of the translated text (using more realistic neural voices)
-3. Use the timings of the subtitle lines to calculate the correct duration of each spoken audio clip
-4. Stretch or shrink the translated audio clip to be exactly the same length as the original speech, and inserted at the same point in the audio. Therefore the translated speech will remain perfectly in sync with the original video.
+2. Use the timings of the subtitle lines to calculate the correct duration of each spoken audio clip
+3. Create text-to-speech audio clips of the translated text (using more realistic neural voices)
+4. Stretch or shrink the translated audio clip to be exactly the same length as the original speech.
     - Optional (On by Default): Instead of stretching the audio clips, you can instead do a second pass at synthesizing each clip through the API using the proper speaking speed calculated during the first pass. This drastically improves audio quality.
+    - If using Azure TTS, this entire step is not necessary because it allows specifying the desired duration of the speech before synthesis
+5. Builds the audio track by inserting the new audio clips at their correct time points. Therefore the translated speech will remain perfectly in sync with the original video.
     
 ### More Key Features
 - Creates translated versions of the SRT subtitle file

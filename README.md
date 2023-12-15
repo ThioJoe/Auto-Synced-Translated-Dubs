@@ -9,22 +9,30 @@ If you already have a human-made SRT subtitles file for a video, this will:
 4. Stretch or shrink the translated audio clip to be exactly the same length as the original speech, and inserted at the same point in the audio. Therefore the translated speech will remain perfectly in sync with the original video.
     - Optional (On by Default): Instead of stretching the audio clips, you can instead do a second pass at synthesizing each clip through the API using the proper speaking speed calculated during the first pass. This drastically improves audio quality.
     
-### Additional Key Features
+### More Key Features
 - Creates translated versions of the SRT subtitle file
 - Batch processing of multiple languages in sequence
 - Config files to save translation, synthesis, and language settings for re-use
-- Included script for adding all language audio tracks to a video file
+- Allows detailed control over how the text is translated and synthesized
+   - Including: A "Don't Translate" phrase list, a manual translation list, a phoneme pronunciation list, and more
+
+### Additional Included Tools
+- `TrackAdder.py`: Adds all language audio tracks to a video file
    - With ability to merge a sound effects track into each language track
-- Included script for translating a YouTube video Title and Description to multiple languages
-
-
+- `TitleTranslator.py`: Translates a YouTube video Title and Description to multiple languages
+- `TitleDescriptionUpdater.py`: Uses YouTube API to update the localized titles and descriptions for a YouTube video using output of TitleTranslator.py
+- `SubtitleTrackRemover.py`: Uses YouTube API to remove a specific audio track from a YouTube video
+- `TranscriptTranslator.py`: Translates an entire transcript of text
+- `TranscriptAutoSyncUploader.py`: Using YouTube API, it lets you upload a transcript for a video, then have YouTube sync the text to the video
+   - You can also upload multiple pre-translated transcripts and have YouTube sync it, assuming the language is supported
+- `YouTube_Synced_Translations_Downloader.py`: Using YouTube API, translate the captions of a video into the specified languages, then download the auto-synced subtitle file created by YouTube
 ----
 
 # Instructions
 
 ### External Requirements:
 - ffmpeg must be installed (https://ffmpeg.org/download.html)
-- You'll need the binaries for a program called 'rubberband' ( https://breakfastquay.com/rubberband/ ) . Doesn't need to be installed, just put both exe's and the dll file in the same directory as the scripts.
+- If using local time stretching only: You'll need the binaries for a program called 'rubberband' ( https://breakfastquay.com/rubberband/ ) . Doesn't need to be installed, just put both exe's and the dll file in the same directory as the scripts.
 
 ## Setup & Configuration
 1. Download or clone the repo and install the requirements using `pip install -r requirements.txt`

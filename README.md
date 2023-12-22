@@ -34,7 +34,9 @@ If you already have a human-made SRT subtitles file for a video, this will:
 
 ### External Requirements:
 - ffmpeg must be installed (https://ffmpeg.org/download.html)
-- If using local time stretching only: You'll need the binaries for a program called 'rubberband' ( https://breakfastquay.com/rubberband/ ) . Doesn't need to be installed, just put both exe's and the dll file in the same directory as the scripts.
+- If using local time stretching only: You'll need the binaries for a program called 'rubberband' (https://breakfastquay.com/rubberband/)
+  - Specifically on that page, find the download link for "Rubber Band Library v3.3.0 command-line utility" (The Windows one). Then in the zip folder find rubberband.exe, rubberband-r3.exe, and sndfile.dll
+  - Doesn't need to be installed, just put both exe's and the dll file in the same directory as the scripts
 
 ## Setup & Configuration
 1. Download or clone the repo and install the requirements using `pip install -r requirements.txt`

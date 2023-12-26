@@ -4,6 +4,7 @@ import configparser
 import pathlib
 import os
 import io
+from platform import system as sysPlatform
 
 from Scripts.shared_imports import *
 import Scripts.TTS as TTS
@@ -14,6 +15,10 @@ import langcodes
 
 # Set working folder
 workingFolder = "workingFolder"
+
+# If macOS, add current working directory to path for session for rubberband
+if sysPlatform() == "Darwin":
+    os.environ['PATH'] += os.pathsep + os.getcwd()
 
 
 def trim_clip(inputSound):

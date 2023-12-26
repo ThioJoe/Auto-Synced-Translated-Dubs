@@ -10,3 +10,4 @@ language_data
 numpy
 deepl
 regex
+soundfile>=12.1

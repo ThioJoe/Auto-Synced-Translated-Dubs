@@ -19,7 +19,9 @@ import Scripts.translate as translate
 # Import built in modules
 import re
 import copy
-import winsound
+# Import winsound if on Windows
+if os.name == 'nt':
+    import winsound
 
 # Import other modules
 import ffprobe
@@ -298,5 +300,6 @@ for langNum, langData in batchSettings.items():
     process_language(langData, processedCount, totalLanguages)
 
 # Play a system sound to indicate completion
-sound_name = winsound.MB_ICONASTERISK  # represents the 'Asterisk' system sound
-winsound.MessageBeep(sound_name)  # Play the system sound
+if os.name == 'nt':
+    sound_name = winsound.MB_ICONASTERISK  # represents the 'Asterisk' system sound
+    winsound.MessageBeep(sound_name)  # Play the system sound

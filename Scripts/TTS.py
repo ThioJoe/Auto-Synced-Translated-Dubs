@@ -450,10 +450,10 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                 
                 # If debug mode, write to files after Google TTS
                 if config['debug_mode'] and secondPass == False:
-                    with open(filePathStem+"_p1.mp3", "wb", encoding='utf-8') as out:
+                    with open(filePathStem+"_p1.mp3", "wb") as out:
                         out.write(audio)
                 elif config['debug_mode'] and secondPass == True:
-                    with open(filePathStem+"_p2.mp3", "wb", encoding='utf-8') as out:
+                    with open(filePathStem+"_p2.mp3", "wb") as out:
                         out.write(audio)
 
             # If Azure TTS, use Azure API

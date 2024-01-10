@@ -1,5 +1,11 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
 
 rubberband
 rubberband-r3
 test.py
+
+# Miscellaneous
 .DS_Store

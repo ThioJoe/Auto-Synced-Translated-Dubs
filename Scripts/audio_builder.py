@@ -4,6 +4,7 @@ import configparser
 import pathlib
 import os
 import io
+import math
 from platform import system as sysPlatform
 
 from Scripts.shared_imports import *
@@ -12,6 +13,8 @@ import Scripts.TTS as TTS
 from pydub import AudioSegment
 from pydub.silence import detect_leading_silence
 import langcodes
+import numpy
+import ffmpeg
 
 # Set working folder
 workingFolder = "workingFolder"
@@ -52,16 +55,63 @@ def get_speed_factor(subsDict, trimmedAudio, desiredDuration, num):
     subsDict[num]['speed_factor'] = speedFactor
     return subsDict
 
+def stretch_with_rubberband(y, sampleRate, speedFactor):
+    rubberband_streched_audio = pyrubberband.time_stretch(y, sampleRate, speedFactor, rbargs={'--fine': '--fine'}) # Need to add rbarges in weird way because it demands a dictionary of two values
+    return rubberband_streched_audio
+
+def stretch_with_ffmpeg(audio, speed_factor):
+    min_speed_factor = 0.5
+    max_speed_factor = 100.0
+    filter_loop_count = 1
+    # Initialize the input stream
+    stream = ffmpeg.input(audio)
+    
+    if speed_factor < 0.5:
+        # If between 0.25 and 0.5, can do 2 steps with each run's speed factor of square root the speed factor, between 0.125 and 0.25 cube root and so on.
+        # Uses logarithms to calculate the number of steps and speed factor of each step
+        filter_loop_count = math.ceil(math.log(speed_factor) / math.log(min_speed_factor))
+        speed_factor = speed_factor ** (1 / filter_loop_count)
+        # Catch if speed factor is ridiculously low, likely an error
+        if speed_factor < 0.001:
+            raise ValueError(f"ERROR: Speed factor is extremely low, and likely an error. It was: {speed_factor}")
+    elif speed_factor > max_speed_factor:
+        # If speed factor over 100 just throw an error, because that's crazy
+        raise ValueError(f"ERROR: Speed factor cannot be over 100. It was {speed_factor}.")
+    
+    # Run the filter loop as many times as needed
+    for i in range(filter_loop_count):
+        # Apply the filter
+        stream = ffmpeg.filter(stream, 'atempo', speed_factor)
+    
+    # Define the output stream with format
+    stream = ffmpeg.output(stream, 'pipe:', format='wav')
+    # Run the ffmpeg process and capture output
+    out, _ = ffmpeg.run(stream, capture_stdout=True, capture_stderr=True)
+    
+    # Convert the output bytes to a NumPy array to be compatible with rest of program
+    audio_data = numpy.frombuffer(out, numpy.int16)
+    # Convert to float64 (which is the format used by pyrubberband)
+    audio_data = audio_data.astype(numpy.float64)
+    # Normalize the data to the range of float64 audio
+    audio_data /= numpy.iinfo(numpy.int16).max
+    
+    return audio_data
+
 def stretch_audio(audioFileToStretch, speedFactor, num):
     virtualTempAudioFile = io.BytesIO()
     # Write the raw string to virtualtempaudiofile
-    y, sampleRate = soundfile.read(audioFileToStretch)
-
-    streched_audio = pyrubberband.time_stretch(y, sampleRate, speedFactor, rbargs={'--fine': '--fine'}) # Need to add rbarges in weird way because it demands a dictionary of two values
+    audioObj, sampleRate = soundfile.read(audioFileToStretch)
+    
+    # Stretch the audio using user specified method
+    if config['local_audio_stretch_method'] == 'ffmpeg':
+        stretched_audio = stretch_with_ffmpeg(audioFileToStretch, speedFactor)
+    elif config['local_audio_stretch_method'] == 'rubberband':
+        stretched_audio = stretch_with_rubberband(audioObj, sampleRate, speedFactor)
+    
     #soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
-    soundfile.write(virtualTempAudioFile, streched_audio, sampleRate, format='wav')
+    soundfile.write(virtualTempAudioFile, stretched_audio, sampleRate, format='wav')
     if config['debug_mode']:
-        soundfile.write(os.path.join(workingFolder, f'{num}_s.wav'), streched_audio, sampleRate) # For debugging, saves the stretched audio files
+        soundfile.write(os.path.join(workingFolder, f'{num}_s.wav'), stretched_audio, sampleRate) # For debugging, saves the stretched audio files
     #return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
     return AudioSegment.from_file(virtualTempAudioFile, format="wav")
 

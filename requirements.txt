@@ -11,4 +11,3 @@ numpy
 deepl
 regex
 soundfile>=12.1
-ffmpeg-python

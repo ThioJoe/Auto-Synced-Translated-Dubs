@@ -14,7 +14,7 @@ from pydub import AudioSegment
 from pydub.silence import detect_leading_silence
 import langcodes
 import numpy
-import ffmpeg
+import subprocess
 
 # Set working folder
 workingFolder = "workingFolder"
@@ -41,7 +41,7 @@ def insert_audio(canvas, audioToOverlay, startTimeMs):
     return canvasCopy
 
 # Function to create a canvas of a specific duration in miliseconds
-def create_canvas(canvasDuration, frame_rate=int(config['synth_sample_rate'])):
+def create_canvas(canvasDuration, frame_rate=48000):
     canvas = AudioSegment.silent(duration=canvasDuration, frame_rate=frame_rate)
     return canvas
 
@@ -59,67 +59,60 @@ def stretch_with_rubberband(y, sampleRate, speedFactor):
     rubberband_streched_audio = pyrubberband.time_stretch(y, sampleRate, speedFactor, rbargs={'--fine': '--fine'}) # Need to add rbarges in weird way because it demands a dictionary of two values
     return rubberband_streched_audio
 
-def stretch_with_ffmpeg(audio, speed_factor):
+def stretch_with_ffmpeg(audioInput, speed_factor):
     min_speed_factor = 0.5
     max_speed_factor = 100.0
     filter_loop_count = 1
-    # Initialize the input stream
-    stream = ffmpeg.input(audio)
-    
-    if speed_factor < 0.5:
-        # If between 0.25 and 0.5, can do 2 steps with each run's speed factor of square root the speed factor, between 0.125 and 0.25 cube root and so on.
-        # Uses logarithms to calculate the number of steps and speed factor of each step
+
+    # Validate speed_factor and calculate filter_loop_count
+    if speed_factor < min_speed_factor:
         filter_loop_count = math.ceil(math.log(speed_factor) / math.log(min_speed_factor))
         speed_factor = speed_factor ** (1 / filter_loop_count)
-        # Catch if speed factor is ridiculously low, likely an error
         if speed_factor < 0.001:
             raise ValueError(f"ERROR: Speed factor is extremely low, and likely an error. It was: {speed_factor}")
     elif speed_factor > max_speed_factor:
-        # If speed factor over 100 just throw an error, because that's crazy
         raise ValueError(f"ERROR: Speed factor cannot be over 100. It was {speed_factor}.")
-    
-    # Run the filter loop as many times as needed
-    for i in range(filter_loop_count):
-        # Apply the filter
-        stream = ffmpeg.filter(stream, 'atempo', speed_factor)
-    
-    # Define the output stream with format
-    stream = ffmpeg.output(stream, 'pipe:', format='wav')
-    # Run the ffmpeg process and capture output
-    out, _ = ffmpeg.run(stream, capture_stdout=True, capture_stderr=True)
-    
-    # Convert the output bytes to a NumPy array to be compatible with rest of program
-    audio_data = numpy.frombuffer(out, numpy.int16)
+
+    # Prepare ffmpeg command
+    command = ['ffmpeg', '-i', 'pipe:0', '-filter:a', f'atempo={speed_factor}', '-f', 'wav', 'pipe:1']
+    process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # Pass the audio data to ffmpeg and read the processed data
+    out, err = process.communicate(input=audioInput.getvalue())
+
+    # Check for errors
+    if process.returncode != 0:
+        raise Exception(f'ffmpeg error: {err.decode()}')
+
+    # Convert the output bytes to a NumPy array to be compatible with rest of the program
+    # audio_data = numpy.frombuffer(out, numpy.int16)
     # Convert to float64 (which is the format used by pyrubberband)
-    audio_data = audio_data.astype(numpy.float64)
-    # Normalize the data to the range of float64 audio
-    audio_data /= numpy.iinfo(numpy.int16).max
-    
-    return audio_data
+    # audio_data = audio_data.astype(numpy.float64)
+    # # Normalize the data to the range of float64 audio
+    # audio_data /= numpy.iinfo(numpy.int16).max
+
+    return out # Returns bytes
 
 def stretch_audio(audioFileToStretch, speedFactor, num):
     virtualTempAudioFile = io.BytesIO()
     # Write the raw string to virtualtempaudiofile
-    audioObj, sampleRate = soundfile.read(audioFileToStretch)
+    audioObj, sampleRate = soundfile.read(audioFileToStretch) # auddioObj is a numpy array
     
     # Stretch the audio using user specified method
     if config['local_audio_stretch_method'] == 'ffmpeg':
         stretched_audio = stretch_with_ffmpeg(audioFileToStretch, speedFactor)
+        virtualTempAudioFile.write(stretched_audio)
     elif config['local_audio_stretch_method'] == 'rubberband':
         stretched_audio = stretch_with_rubberband(audioObj, sampleRate, speedFactor)
-    
-    #soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
-    soundfile.write(virtualTempAudioFile, stretched_audio, sampleRate, format='wav')
-    if config['debug_mode']:
-        soundfile.write(os.path.join(workingFolder, f'{num}_s.wav'), stretched_audio, sampleRate) # For debugging, saves the stretched audio files
+        #soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
+        soundfile.write(virtualTempAudioFile, stretched_audio, sampleRate, format='wav')
+        if config['debug_mode']:
+            soundfile.write(os.path.join(workingFolder, f'{num}_s.wav'), stretched_audio, sampleRate) # For debugging, saves the stretched audio files
     #return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
     return AudioSegment.from_file(virtualTempAudioFile, format="wav")
 
 
 def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
-    if cloudConfig['tts_service'] == 'azure':
-        twoPassVoiceSynth = False # Azure doesn't need two pass voice synth, so disable it
-
     virtualTrimmedFileDict = {}
     # First trim silence off the audio files
     for key, value in subsDict.items():
@@ -127,7 +120,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         subsDict[key]['TTS_FilePath_Trimmed'] = filePathTrimmed
 
         # Trim the clip and re-write file
-        rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=int(config['synth_sample_rate']))
+        rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3")
         trimmedClip = trim_clip(rawClip)
         if config['debug_mode']:
             trimmedClip.export(filePathTrimmed, format="wav")
@@ -149,10 +142,18 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             keyIndex = list(subsDict.keys()).index(key)
             print(f" Calculated Speed Factor: {keyIndex+1} of {len(subsDict)}", end="\r")
         print("\n")
+        
+    # Decide if doing two pass voice synth
+    servicesToUseTwoPass = ['google']
+    servicesSupportingExactDuration = ['azure']
+    if cloudConfig['tts_service'] not in servicesToUseTwoPass:
+        twoPassVoiceSynth = False
+    if cloudConfig['tts_service'] in servicesSupportingExactDuration:
+        twoPassVoiceSynth = False
 
     # If two pass voice synth is enabled, have API re-synthesize the clips at the new speed
     # Azure allows direct specification of audio duration, so no need to re-synthesize
-    if twoPassVoiceSynth == True and not cloudConfig['tts_service'] == 'azure':
+    if twoPassVoiceSynth == True:
         if cloudConfig['batch_tts_synthesize'] == True and cloudConfig['tts_service'] == 'azure':
             subsDict = TTS.synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=config['skip_synthesize'], secondPass=True)
         else:
@@ -160,7 +161,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             
         for key, value in subsDict.items():
             # Trim the clip and re-write file
-            rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3", frame_rate=int(config['synth_sample_rate']))
+            rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3")
             trimmedClip = trim_clip(rawClip)
             if config['debug_mode']:
                 # Remove '.wav' from the end of the file path
@@ -183,7 +184,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
 
     # Stretch audio and insert into canvas
     for key, value in subsDict.items():
-        if (not twoPassVoiceSynth or config['force_stretch_with_twopass'] == True) and not cloudConfig['tts_service'] == 'azure': # Don't stretch if azure is used
+        if (not twoPassVoiceSynth or config['force_stretch_with_twopass'] == True) and cloudConfig['tts_service'] not in servicesSupportingExactDuration: # Don't stretch if azure is used
             #stretchedClip = stretch_audio(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'], num=key)
             stretchedClip = stretch_audio(virtualTrimmedFileDict[key], speedFactor=subsDict[key]['speed_factor'], num=key)
         else:

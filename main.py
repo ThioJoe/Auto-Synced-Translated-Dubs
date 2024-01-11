@@ -61,11 +61,26 @@ for num in languageNums:
 # Create a dictionary of the settings from each section
 batchSettings = {}
 for num in languageNums:
+
+    # Set voice model if applicable (different from voice name, only used by some services)
+    if not batchConfig.has_option(f'LANGUAGE-{num}', 'model'):
+        model = "default"
+    else:
+        model = batchConfig[f'LANGUAGE-{num}']['model']
+        
+    if cloudConfig['tts_service'] == 'elevenlabs':
+        if model == "default":
+            model = cloudConfig['elevenlabs_default_model']
+    else:
+        model = "default"
+
+    # Set the dictionary values for each language
     batchSettings[num] = {
         'synth_language_code': batchConfig[f'LANGUAGE-{num}']['synth_language_code'],
         'synth_voice_name': batchConfig[f'LANGUAGE-{num}']['synth_voice_name'],
         'translation_target_language': batchConfig[f'LANGUAGE-{num}']['translation_target_language'],
-        'synth_voice_gender': batchConfig[f'LANGUAGE-{num}']['synth_voice_gender']
+        'synth_voice_gender': batchConfig[f'LANGUAGE-{num}']['synth_voice_gender'],
+        'synth_voice_model': model,
     }
 
 
@@ -245,7 +260,8 @@ def process_language(langData, processedCount, totalLanguages):
         'languageCode': langData['synth_language_code'], 
         'voiceGender': langData['synth_voice_gender'],
         'translateService': langData['translate_service'],
-        'formality': langData['formality']
+        'formality': langData['formality'],
+        'voiceModel': langData['synth_voice_model'],
         }
 
     individualLanguageSubsDict = copy.deepcopy(originalLanguageSubsDict)

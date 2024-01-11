@@ -11,6 +11,7 @@ import io
 import copy
 import re
 from urllib.request import urlopen
+import elevenlabs
 
 from Scripts.shared_imports import *
 import Scripts.auth as auth
@@ -22,6 +23,11 @@ import Scripts.utils as utils
 # Get Azure variables if applicable
 AZURE_SPEECH_KEY = cloudConfig['azure_speech_key']
 AZURE_SPEECH_REGION = cloudConfig['azure_speech_region']
+ELEVENLABS_API_KEY = cloudConfig['elevenlabs_api_key']
+
+# Set api key environment variable for Eleven Labs if applicable
+if cloudConfig['tts_service'] == 'elevenlabs':
+    elevenlabs.set_api_key(ELEVENLABS_API_KEY)
 
 # Get List of Voices Available
 def get_voices():
@@ -178,6 +184,14 @@ def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCo
     # The response's audioContent is base64. Must decode to selected audio format
     decoded_audio = base64.b64decode(response['audioContent'])
     return decoded_audio
+
+def synthesize_text_elevenlabs(text, voiceName, model):
+    audio = elevenlabs.generate(
+        text=text,
+        voice=voiceName,
+        model=model
+    )
+    return audio
 
 def synthesize_text_azure(text, duration, voiceName, languageCode):
 
@@ -468,6 +482,19 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                     audio.save_to_wav_file(filePathStem+"_p1.mp3")
                 elif config['debug_mode'] and secondPass == True:
                     audio.save_to_wav_file(filePathStem+"_p2.mp3")
+                    
+            elif cloudConfig['tts_service'] == "elevenlabs":
+                audio = synthesize_text_elevenlabs(value['translated_text'], langDict['voiceName'], langDict['voiceModel'])
+                with open(filePath, "wb") as out:
+                    out.write(audio)
+                
+                # If debug mode, write to files after Google TTS
+                if config['debug_mode'] and secondPass == False:
+                    with open(filePathStem+"_p1.mp3", "wb") as out:
+                        out.write(audio)
+                elif config['debug_mode'] and secondPass == True:
+                    with open(filePathStem+"_p2.mp3", "wb") as out:
+                        out.write(audio)
 
         subsDict[key]['TTS_FilePath'] = filePath
 

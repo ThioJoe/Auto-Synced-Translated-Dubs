@@ -459,6 +459,7 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
     progress = 0
     total_tasks = len(subsDict)
 
+    print("Beginning TTS Synthesis...")
     async def synthesize_and_save(key, value):
         nonlocal progress
         # Use this to set max concurrent jobs
@@ -478,7 +479,7 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
         # Update and display progress
         async with lock:
             progress += 1
-            print(f"Synthesizing TTS: {progress} of {total_tasks}", end="\r")
+            print(f" Synthesizing TTS: {progress} of {total_tasks}", end="\r")
 
     tasks = []
 

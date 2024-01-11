@@ -19,6 +19,7 @@ import Scripts.translate as translate
 # Import built in modules
 import re
 import copy
+import asyncio
 # Import winsound if on Windows
 if os.name == 'nt':
     import winsound
@@ -295,6 +296,8 @@ def process_language(langData, processedCount, totalLanguages):
     # Synthesize
     if cloudConfig['batch_tts_synthesize'] == True and cloudConfig['tts_service'] == 'azure':
         individualLanguageSubsDict = TTS.synthesize_dictionary_batch(individualLanguageSubsDict, langDict, skipSynthesize=config['skip_synthesize'])
+    elif cloudConfig['tts_service'] == 'elevenlabs':
+        individualLanguageSubsDict = asyncio.run(TTS.synthesize_dictionary_async(individualLanguageSubsDict, langDict, skipSynthesize=config['skip_synthesize'], max_concurrent_jobs=cloudConfig['elevenlabs_max_concurrent']))
     else:
         individualLanguageSubsDict = TTS.synthesize_dictionary(individualLanguageSubsDict, langDict, skipSynthesize=config['skip_synthesize'])
 

@@ -93,7 +93,7 @@ def stretch_with_ffmpeg(audioInput, speed_factor):
 
     return out # Returns bytes
 
-def stretch_audio(audioFileToStretch, speedFactor, num):
+def stretch_audio_clip(audioFileToStretch, speedFactor, num):
     virtualTempAudioFile = io.BytesIO()
     # Write the raw string to virtualtempaudiofile
     audioObj, sampleRate = soundfile.read(audioFileToStretch) # auddioObj is a numpy array
@@ -185,8 +185,8 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     # Stretch audio and insert into canvas
     for key, value in subsDict.items():
         if (not twoPassVoiceSynth or config['force_stretch_with_twopass'] == True) and cloudConfig['tts_service'] not in servicesSupportingExactDuration: # Don't stretch if azure is used
-            #stretchedClip = stretch_audio(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'], num=key)
-            stretchedClip = stretch_audio(virtualTrimmedFileDict[key], speedFactor=subsDict[key]['speed_factor'], num=key)
+            #stretchedClip = stretch_audio_clip(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'], num=key)
+            stretchedClip = stretch_audio_clip(virtualTrimmedFileDict[key], speedFactor=subsDict[key]['speed_factor'], num=key)
         else:
             #stretchedClip = AudioSegment.from_file(value['TTS_FilePath_Trimmed'], format="wav")
             stretchedClip = AudioSegment.from_file(virtualTrimmedFileDict[key], format="wav")

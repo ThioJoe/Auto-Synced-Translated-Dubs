@@ -11,7 +11,8 @@ import io
 import copy
 import re
 from urllib.request import urlopen
-import elevenlabs
+import aiohttp
+import asyncio
 
 from Scripts.shared_imports import *
 import Scripts.auth as auth
@@ -24,10 +25,6 @@ import Scripts.utils as utils
 AZURE_SPEECH_KEY = cloudConfig['azure_speech_key']
 AZURE_SPEECH_REGION = cloudConfig['azure_speech_region']
 ELEVENLABS_API_KEY = cloudConfig['elevenlabs_api_key']
-
-# Set api key environment variable for Eleven Labs if applicable
-if cloudConfig['tts_service'] == 'elevenlabs':
-    elevenlabs.set_api_key(ELEVENLABS_API_KEY)
 
 # Get List of Voices Available
 def get_voices():
@@ -185,13 +182,37 @@ def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCo
     decoded_audio = base64.b64decode(response['audioContent'])
     return decoded_audio
 
-def synthesize_text_elevenlabs(text, voiceName, model):
-    audio = elevenlabs.generate(
-        text=text,
-        voice=voiceName,
-        model=model
-    )
-    return audio
+async def synthesize_text_elevenlabs_async_http(text, voiceID, modelID, apiKey=ELEVENLABS_API_KEY):
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voiceID}"
+    headers = {
+        "Accept": "audio/mpeg",
+        "Content-Type": "application/json",
+        "xi-api-key": apiKey
+    }
+    data = {
+        "text": text,
+        "model_id": modelID,
+        # "voice_settings": {
+        #     "stability": 0.5,
+        #     "similarity_boost": 0.5
+        # }
+    }
+    
+    audio_bytes = b''  # Initialize an empty bytes object
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=data, headers=headers) as response:
+            if response.status == 200:
+                while True:
+                    chunk = await response.content.read(1024)
+                    if not chunk:
+                        break
+                    audio_bytes += chunk
+            else:
+                print(f"Error: {response.status}")
+                return None
+
+    return audio_bytes
 
 def synthesize_text_azure(text, duration, voiceName, languageCode):
 
@@ -419,8 +440,6 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                         zipdata.extract(file, 'workingFolder')
                         # Remove entry from remainingDownloadedEntriesList
                         remainingDownloadedEntriesList.pop(0)
-                    
-
     return subsDict
 
 
@@ -432,6 +451,37 @@ def synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=False, second
             print('ERROR: Batch TTS only supports azure at this time')
             input('Press enter to exit...')
             exit()
+    return subsDict
+
+async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, max_concurrent_jobs=2, secondPass=False):
+    semaphore = asyncio.Semaphore(max_concurrent_jobs)
+    
+    async def synthesize_and_save(key, value):
+        # Use this to set max concurrent jobs
+        async with semaphore:
+            audio = await synthesize_text_elevenlabs_async_http(
+                value['translated_text'], 
+                langDict['voiceName'], 
+                langDict['voiceModel']
+            )
+
+            if audio:
+                filePath = os.path.join('workingFolder', f'{str(key)}.mp3')
+                with open(filePath, "wb") as out:
+                    out.write(audio)
+                subsDict[key]['TTS_FilePath'] = filePath
+
+    tasks = []
+
+    for key, value in subsDict.items():
+        if not skipSynthesize and cloudConfig['tts_service'] == "elevenlabs":
+            task = asyncio.create_task(synthesize_and_save(key, value))
+            tasks.append(task)
+
+    # Wait for all tasks to complete
+    await asyncio.gather(*tasks)
+
+    print("Synthesis Complete")
     return subsDict
 
 def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=False):
@@ -483,19 +533,6 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                 elif config['debug_mode'] and secondPass == True:
                     audio.save_to_wav_file(filePathStem+"_p2.mp3")
                     
-            elif cloudConfig['tts_service'] == "elevenlabs":
-                audio = synthesize_text_elevenlabs(value['translated_text'], langDict['voiceName'], langDict['voiceModel'])
-                with open(filePath, "wb") as out:
-                    out.write(audio)
-                
-                # If debug mode, write to files after Google TTS
-                if config['debug_mode'] and secondPass == False:
-                    with open(filePathStem+"_p1.mp3", "wb") as out:
-                        out.write(audio)
-                elif config['debug_mode'] and secondPass == True:
-                    with open(filePathStem+"_p2.mp3", "wb") as out:
-                        out.write(audio)
-
         subsDict[key]['TTS_FilePath'] = filePath
 
         # Get key index

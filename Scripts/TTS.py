@@ -11,6 +11,8 @@ import io
 import copy
 import re
 from urllib.request import urlopen
+import aiohttp
+import asyncio              
 
 from Scripts.shared_imports import *
 import Scripts.auth as auth
@@ -28,6 +30,7 @@ i18n = I18nAuto()
 # Get Azure variables if applicable
 AZURE_SPEECH_KEY = cloudConfig['azure_speech_key']
 AZURE_SPEECH_REGION = cloudConfig['azure_speech_region']
+ELEVENLABS_API_KEY = cloudConfig['elevenlabs_api_key']                                                      
 
 # Get List of Voices Available
 def get_voices():
@@ -200,6 +203,38 @@ def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCo
     decoded_audio = base64.b64decode(response['audioContent'])
     return decoded_audio
 
+async def synthesize_text_elevenlabs_async_http(text, voiceID, modelID, apiKey=ELEVENLABS_API_KEY):
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voiceID}"
+    headers = {
+        "Accept": "audio/mpeg",
+        "Content-Type": "application/json",
+        "xi-api-key": apiKey
+    }
+    data = {
+        "text": text,
+        "model_id": modelID,
+        # "voice_settings": {
+        #     "stability": 0.5,
+        #     "similarity_boost": 0.5
+        # }
+    }
+    
+    audio_bytes = b''  # Initialize an empty bytes object
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=data, headers=headers) as response:
+            if response.status == 200:
+                while True:
+                    chunk = await response.content.read(1024)
+                    if not chunk:
+                        break
+                    audio_bytes += chunk
+            else:
+                print(f"Error: {response.status}")
+                return None
+
+    return audio_bytes
+    
 def synthesize_text_azure(text, duration, voiceName, languageCode):
 
     # Create tag for desired duration of clip
@@ -441,6 +476,47 @@ def synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=False, second
             exit()
     return subsDict
 
+async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, max_concurrent_jobs=2, secondPass=False):
+    semaphore = asyncio.Semaphore(max_concurrent_jobs)
+    lock = asyncio.Lock()
+    progress = 0
+    total_tasks = len(subsDict)
+
+    print("Beginning TTS Synthesis...")
+    async def synthesize_and_save(key, value):
+        nonlocal progress
+        # Use this to set max concurrent jobs
+        async with semaphore:
+            audio = await synthesize_text_elevenlabs_async_http(
+                value['translated_text'], 
+                langDict['voiceName'], 
+                langDict['voiceModel']
+            )
+
+            if audio:
+                filePath = os.path.join('workingFolder', f'{str(key)}.mp3')
+                with open(filePath, "wb") as out:
+                    out.write(audio)
+                subsDict[key]['TTS_FilePath'] = filePath
+
+        # Update and display progress
+        async with lock:
+            progress += 1
+            print(f" Synthesizing TTS: {progress} of {total_tasks}", end="\r")
+
+    tasks = []
+
+    for key, value in subsDict.items():
+        if not skipSynthesize and cloudConfig['tts_service'] == "elevenlabs":
+            task = asyncio.create_task(synthesize_and_save(key, value))
+            tasks.append(task)
+
+    # Wait for all tasks to complete
+    await asyncio.gather(*tasks)
+
+    print("\nSynthesis Complete")
+    return subsDict 
+    
 def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=False):
     for key, value in subsDict.items():
         # TTS each subtitle text, write to file, write filename into dictionary
@@ -466,15 +542,15 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
             # If Google TTS, use Google API
             if cloudConfig['tts_service'] == "google":
                 audio = synthesize_text_google(value['translated_text'], speedFactor, langDict['voiceName'], langDict['voiceGender'], langDict['languageCode'])
-                with open(filePath, "wb", encoding='utf-8') as out:
+                with open(filePath, "wb") as out:
                     out.write(audio)
                 
                 # If debug mode, write to files after Google TTS
                 if config['debug_mode'] and secondPass == False:
-                    with open(filePathStem+"_p1.mp3", "wb", encoding='utf-8') as out:
+                    with open(filePathStem+"_p1.mp3", "wb") as out:
                         out.write(audio)
                 elif config['debug_mode'] and secondPass == True:
-                    with open(filePathStem+"_p2.mp3", "wb", encoding='utf-8') as out:
+                    with open(filePathStem+"_p2.mp3", "wb") as out:
                         out.write(audio)
 
             # If Azure TTS, use Azure API

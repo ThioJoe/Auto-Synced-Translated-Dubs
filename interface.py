@@ -56,9 +56,12 @@ def save_settings():
         'batch_tts_synthesize': batch_tts_synthesize_var.get(),
         'google_project_id': google_project_id_var.get(),
         'deepl_api_key': deepl_api_key_var.get(),
-        'azure_api_key': azure_speech_key_var.get(),  # Corrigir a variável aqui
+        'azure_api_key': azure_speech_key_var.get(),
         'azure_speech_key': azure_speech_key_var.get(),
-        'azure_speech_region': azure_speech_region_var.get()
+        'azure_speech_region': azure_speech_region_var.get(),
+        'elevenlabs_api_key': elevenlabs_api_key_var.get(),
+        'elevenlabs_default_model': elevenlabs_default_model_var.get(),
+        'elevenlabs_max_concurrent': elevenlabs_max_concurrent_var.get()
     }
 
     with open('cloud_service_settings.ini', 'w') as cloud_file:
@@ -77,11 +80,13 @@ def save_settings():
         'formality_preference': formality_preference_var.get(),
         'output_format': output_format_var.get(),
         'synth_audio_encoding': synth_audio_encoding_var.get(),
+        'local_audio_stretch_method': local_audio_stretch_method_var.get(),
         'azure_comma_pause': azure_comma_pause_var.get(),
         'synth_sample_rate': synth_sample_rate_var.get(),
         'combine_subtitles_max_chars': combine_subtitles_max_chars_var.get(),
         'add_line_buffer_milliseconds': add_line_buffer_milliseconds_var.get(),
-        'azure_sentence_pause': azure_sentence_pause_var.get()
+        'azure_sentence_pause': azure_sentence_pause_var.get(),
+        'youtube_autosync_languages': youtube_autosync_languages_var.get()
     }
     with open('config.ini', 'w') as config_file:
         config_config.write(config_file)
@@ -109,6 +114,9 @@ def read_ini_settings():
     deepl_api_key_var.set(config_cloud['CLOUD']['deepl_api_key'])
     azure_speech_key_var.set(config_cloud['CLOUD']['azure_speech_key'])
     azure_speech_region_var.set(config_cloud['CLOUD']['azure_speech_region'])
+    elevenlabs_api_key_var.set(config_cloud['CLOUD']['elevenlabs_api_key'])
+    elevenlabs_default_model_var.set(config_cloud['CLOUD']['elevenlabs_default_model'])
+    elevenlabs_max_concurrent_var.set(config_cloud['CLOUD']['elevenlabs_max_concurrent'])
 
     # Lê as configurações de config.ini
     config_config = configparser.ConfigParser()
@@ -129,6 +137,9 @@ def read_ini_settings():
 
     # Corrija synth_audio_encoding_var para definir como StringVar
     synth_audio_encoding_var.set(config_config['SETTINGS']['synth_audio_encoding'])
+    youtube_autosync_languages_var.set(config_config['SETTINGS']['youtube_autosync_languages'])
+    
+    local_audio_stretch_method_var.set(config_config['SETTINGS']['local_audio_stretch_method'])
     
     azure_comma_pause_var.set("")
     azure_comma_pause_var.set(config_config['SETTINGS']['azure_comma_pause'])
@@ -246,6 +257,9 @@ original_video_file_path_var = tk.StringVar()
 srt_file_path_var = tk.StringVar()
 azure_speech_region_var = tk.StringVar()
 azure_speech_key_var = tk.StringVar()
+elevenlabs_api_key_var = tk.StringVar()
+elevenlabs_default_model_var = tk.StringVar()
+elevenlabs_max_concurrent_var = tk.StringVar()
 projeto_id_var = tk.StringVar()
 enabled_languages_var = tk.StringVar()
 original_video_var = tk.StringVar()
@@ -258,12 +272,14 @@ skip_translation_var = tk.BooleanVar()
 skip_synthesize_var = tk.BooleanVar()
 stop_after_translation_var = tk.BooleanVar()
 two_pass_voice_synth_var = tk.BooleanVar()
+local_audio_stretch_method_var = tk.BooleanVar()
 force_stretch_with_twopass_var = tk.BooleanVar()
 debug_mode_var = tk.BooleanVar()
 original_language_var = tk.StringVar()
 formality_preference_var = tk.StringVar()
 output_format_var = tk.StringVar()
 synth_audio_encoding_var = tk.StringVar()
+youtube_autosync_languages_var = tk.StringVar()
 azure_comma_pause_var = tk.StringVar()
 synth_sample_rate_var = tk.StringVar()
 combine_subtitles_max_chars_var = tk.StringVar()
@@ -297,7 +313,7 @@ srt_button.grid(row=2, column=2)  # Adicione um botão "Procurar" ao lado do cam
 tts_service_label = tk.Label(frame_cloud, text=i18n("Serviço de TTS:"))
 tts_service_label.grid(row=0, column=0)
 tts_service_var = tk.StringVar()
-tts_service_combo = ttk.Combobox(frame_cloud, textvariable=tts_service_var, values=["Azure", "Google", "edge", "bark"])
+tts_service_combo = ttk.Combobox(frame_cloud, textvariable=tts_service_var, values=["Azure", "Google", "edge", "bark", "elevenlabs"])
 tts_service_combo.grid(row=0, column=1)
 
 translate_service_label = tk.Label(frame_cloud, text=i18n("Serviço de Tradução:"))
@@ -334,6 +350,22 @@ azure_speech_region_label.grid(row=6, column=0)
 azure_speech_region_var = tk.StringVar()  # Adicione a variável correspondente
 azure_speech_region_entry = tk.Entry(frame_cloud, textvariable=azure_speech_region_var)  # Defina a variável no Entry
 azure_speech_region_entry.grid(row=6, column=1)
+
+elevenlabs_api_key_label = tk.Label(frame_cloud, text=i18n("Chave da API do ElevenLabs:"))
+elevenlabs_api_key_label.grid(row=7, column=0)
+elevenlabs_api_key_entry = tk.Entry(frame_cloud, textvariable=elevenlabs_api_key_var)
+elevenlabs_api_key_entry.grid(row=7, column=1)
+
+elevenlabs_default_model_label = tk.Label(frame_cloud, text=i18n("Modelo de voz EleveLabs"))
+elevenlabs_default_model_label.grid(row=8, column=0)
+elevenlabs_default_model_var = tk.StringVar()
+elevenlabs_default_model_combo = ttk.Combobox(frame_cloud, textvariable=elevenlabs_default_model_var, values=["eleven_monolingual_v1", "eleven_multilingual_v2", "default"])
+elevenlabs_default_model_combo.grid(row=8, column=1)
+
+elevenlabs_max_concurrent_label = tk.Label(frame_cloud, text=i18n("Numero de Request ElevenLabs"))
+elevenlabs_max_concurrent_label.grid(row=9, column=0)
+elevenlabs_max_concurrent_entry = tk.Entry(frame_cloud, textvariable=elevenlabs_max_concurrent_var)
+elevenlabs_max_concurrent_entry.grid(row=9, column=1)
 
 # Adaptações para o frame de config.ini
 skip_translation_label = tk.Label(frame_config, text=i18n("Pular Tradução:"))
@@ -389,22 +421,24 @@ output_format_var = tk.StringVar()
 output_format_combo = ttk.Combobox(frame_config, textvariable=output_format_var, values=["mp3", "aac", "wav"])
 output_format_combo.grid(row=8, column=1)
 
-audio_encoding_options = ["mp3", "wav", "aac"]
+audio_encoding_options = ["mp3", "wav", "aaca"]
 synth_audio_encoding_label = tk.Label(frame_config, text=i18n("Codificação de Áudio de Síntese:"))
 synth_audio_encoding_label.grid(row=9, column=0)
 synth_audio_encoding_var = tk.StringVar()
 synth_audio_encoding_combo = ttk.Combobox(frame_config, textvariable=synth_audio_encoding_var, values=audio_encoding_options)
 synth_audio_encoding_combo.grid(row=9, column=1)
 
+local_audio_stretch_method_options = ["ffmpeg", "rubberband"]
+local_audio_stretch_method_label = tk.Label(frame_config, text=i18n("Método de esticamento:"))
+local_audio_stretch_method_label.grid(row=10, column=0)
+local_audio_stretch_method_var = tk.StringVar()
+local_audio_stretch_method_combo = ttk.Combobox(frame_config, textvariable=local_audio_stretch_method_var, values=local_audio_stretch_method_options)
+local_audio_stretch_method_combo.grid(row=10, column=1)
+
 azure_sentence_pause_label = tk.Label(frame_config, text=i18n("Pausa após período (Azure):"))
 azure_sentence_pause_label.grid(row=13, column=0)
 azure_sentence_pause_var = tk.Entry(frame_config)
 azure_sentence_pause_var.grid(row=13, column=1)
-
-synth_sample_rate_label = tk.Label(frame_config, text=i18n("Taxa de Amostragem de Síntese:"))
-synth_sample_rate_label.grid(row=15, column=0)
-synth_sample_rate_var = tk.Entry(frame_config)
-synth_sample_rate_var.grid(row=15, column=1)
 
 combine_subtitles_max_chars_label = tk.Label(frame_config, text=i18n("Máximo de caracteres para combinar legendas:"))
 combine_subtitles_max_chars_label.grid(row=12, column=0)
@@ -420,6 +454,16 @@ azure_sentence_pause_label = tk.Label(frame_config, text=i18n("Pausa após perí
 azure_sentence_pause_label.grid(row=14, column=0)
 azure_sentence_pause_var = tk.Entry(frame_config)
 azure_sentence_pause_var.grid(row=14, column=1)
+
+synth_sample_rate_label = tk.Label(frame_config, text=i18n("Taxa de Amostragem de Síntese:"))
+synth_sample_rate_label.grid(row=15, column=0)
+synth_sample_rate_var = tk.Entry(frame_config)
+synth_sample_rate_var.grid(row=15, column=1)
+
+youtube_autosync_languages_label = tk.Label(frame_config, text=i18n("Idiomas Youtube:"))
+youtube_autosync_languages_label.grid(row=16, column=0)
+youtube_autosync_languages_entry = tk.Entry(frame_config)
+youtube_autosync_languages_entry.grid(row=16, column=1)
 
 #===========================TOOLTIPS===========================
 #batch.ini
@@ -484,6 +528,24 @@ info_label_azure_speech_region = ttk.Label(frame_cloud, image=info_azure_speech_
 info_label_azure_speech_region.grid(row=6, column=4, padx=(5, 0))  
 criar_tooltip(info_label_azure_speech_region, f"{i18n('O local/região do recurso de fala. Isso deve estar listado na mesma página que as chaves de API.')}\n\n {i18n('Exemplo:')} brazilsouth")
 
+# Adicionando ícone e tooltip para o campo "ElevenLabs | API"
+info_elevenlabs_api_key = criar_imagem(caminho_information, 20, 20)
+info_label_elevenlabs_api_key = ttk.Label(frame_cloud, image=info_elevenlabs_api_key)
+info_label_elevenlabs_api_key.grid(row=7, column=4, padx=(5, 0))  
+criar_tooltip(info_label_elevenlabs_api_key, i18n("Chave de API para seu recurso de fala no ElevenLabs(fala cognitiva)"))
+
+# Adicionando ícone e tooltip para o campo "ElevenLabs | Modelo de voz"
+info_elevenlabs_default_model = criar_imagem(caminho_information, 20, 20)
+info_label_elevenlabs_default_model = ttk.Label(frame_cloud, image=info_elevenlabs_default_model)
+info_label_elevenlabs_default_model.grid(row=8, column=4, padx=(5, 0))  
+criar_tooltip(info_label_elevenlabs_default_model, i18n("Escolha o seu modelo de voz"))
+
+# Adicionando ícone e tooltip para o campo "ElevenLabs | Quantidade de requests"
+info_elevenlabs_max_concurrent = criar_imagem(caminho_information, 20, 20)
+info_label_elevenlabs_max_concurrent = ttk.Label(frame_cloud, image=info_elevenlabs_max_concurrent)
+info_label_elevenlabs_max_concurrent.grid(row=9, column=4, padx=(5, 0))  
+criar_tooltip(info_label_elevenlabs_max_concurrent, i18n("Quantidade de request"))
+
 #config.ini
 # Adicionando ícone e tooltip para o campo "Pular Tradução:"
 info_skip_translation = criar_imagem(caminho_information, 20, 20)
@@ -545,10 +607,16 @@ info_label_synth_audio_encoding = ttk.Label(frame_config, image=info_synth_audio
 info_label_synth_audio_encoding.grid(row=9, column=4, padx=(5, 0))
 criar_tooltip(info_label_synth_audio_encoding, f"{i18n('Deve ser um codec da seção (Codificações de áudio compatíveis) aqui:')} https://cloud.google.com/speech-to-text/docs/encoding#audio-encodings.\n{i18n('Isso determina o codec retornado pela API, não aquele produzido pelo programa! Você provavelmente não deveria mudar isso, caso contrário, pode não funcionar')}")
 
+# Adicionando ícone e tooltip para o campo "Codificação de Áudio da Síntese:"
+info_local_audio_stretch_method = criar_imagem(caminho_information, 20, 20)
+info_label_local_audio_stretch_method = ttk.Label(frame_config, image=info_local_audio_stretch_method)
+info_label_local_audio_stretch_method.grid(row=10, column=4, padx=(5, 0))
+criar_tooltip(info_label_local_audio_stretch_method, f"{i18n('Teste')}")
+
 # Adicionando ícone e tooltip para o campo "Pausa da Sentença Azure:"
 info_azure_sentence_pause = criar_imagem(caminho_information, 20, 20)
 info_label_azure_sentence_pause = ttk.Label(frame_config, image=info_azure_sentence_pause)
-info_label_azure_sentence_pause.grid(row=10, column=4, padx=(5, 0))
+info_label_azure_sentence_pause.grid(row=11, column=4, padx=(5, 0))
 criar_tooltip(info_label_azure_sentence_pause, f"{i18n('Somente Azure: define a pausa exata em milissegundos que a voz TTS fará após um período entre as frases.')}\n{i18n('Defina-a como (padrão) para mantê-la padrão, o que é bastante lento. Acho que 80 ms é muito bom.')}\n{i18n('Observação: alterar isso do padrão adiciona cerca de 60 caracteres por linha à contagem total de uso de caracteres do Azure')}")
 
 # Adicionando ícone e tooltip para o campo "Taxa de Amostragem da Síntese:"
@@ -580,6 +648,12 @@ info_synth_sample_rate = criar_imagem(caminho_information, 20, 20)
 info_label_synth_sample_rate = ttk.Label(frame_config, image=info_synth_sample_rate)
 info_label_synth_sample_rate.grid(row=15, column=4, padx=(5, 0))
 criar_tooltip(info_label_synth_sample_rate, f"{i18n('Insira a taxa de amostragem nativa para o áudio de voz fornecido pelo serviço TTS')}\n{i18n('Isso geralmente é 24KHz (24.000), mas alguns serviços como o Azure oferecem áudio de qualidade superior a 48KHz (48.000)')}\n{i18n('Insira apenas dígitos numéricos, sem vírgulas ou qualquer coisa')}")
+
+# Adicionando ícone e tooltip para o campo "Idioma Original:"
+info_youtube_autosync_languages = criar_imagem(caminho_information, 20, 20)
+info_label_youtube_autosync_languages = ttk.Label(frame_config, image=info_youtube_autosync_languages)
+info_label_youtube_autosync_languages.grid(row=16, column=4, padx=(5, 0))
+criar_tooltip(info_label_youtube_autosync_languages, i18n("Lista de idiomas que o YouTube permite a sincronização automática ao enviar uma transcrição."))
 
 
 # Botões

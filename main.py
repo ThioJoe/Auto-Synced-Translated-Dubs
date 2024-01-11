@@ -27,7 +27,11 @@ from Scripts.utils import parseBool
 # Import built in modules
 import re
 import copy
-
+import asyncio
+# Import winsound if on Windows
+if os.name == 'nt':
+    import winsound             
+    
 # Import other modules
 import ffprobe
 
@@ -66,13 +70,27 @@ for num in languageNums:
 # Create a dictionary of the settings from each section
 batchSettings = {}
 for num in languageNums:
+
+    # Set voice model if applicable (different from voice name, only used by some services)
+    if not batchConfig.has_option(f'LANGUAGE-{num}', 'model'):
+        model = "default"
+    else:
+        model = batchConfig[f'LANGUAGE-{num}']['model']
+        
+    if cloudConfig['tts_service'] == 'elevenlabs':
+        if model == "default":
+            model = cloudConfig['elevenlabs_default_model']
+    else:
+        model = "default"
+
+    # Set the dictionary values for each language
     batchSettings[num] = {
         'synth_language_code': batchConfig[f'LANGUAGE-{num}']['synth_language_code'],
         'synth_voice_name': batchConfig[f'LANGUAGE-{num}']['synth_voice_name'],
         'translation_target_language': batchConfig[f'LANGUAGE-{num}']['translation_target_language'],
-        'synth_voice_gender': batchConfig[f'LANGUAGE-{num}']['synth_voice_gender']
+        'synth_voice_gender': batchConfig[f'LANGUAGE-{num}']['synth_voice_gender'],
+        'synth_voice_model': model,
     }
-
 
 #======================================== Parse SRT File ================================================
 
@@ -205,6 +223,22 @@ def manually_prepare_dictionary(dictionaryToPrep):
 def get_pretranslated_subs_dict(langData):
     # Get list of files in the output folder
     files = os.listdir(OUTPUT_FOLDER)
+    # Check if youtube-translated directory/files exist
+    if os.path.exists(OUTPUT_YTSYNCED_FOLDER):
+        altFiles = os.listdir(OUTPUT_YTSYNCED_FOLDER)
+    else:
+        altFiles = None
+    
+    # If alternative translations found in addition to the main output folder, ask user which to use
+    if altFiles and files:
+        print("Found YouTube-synced translations in: " + OUTPUT_YTSYNCED_FOLDER)
+        userResponse = input("Use YouTube-synced translations instead of those in main output folder? (y/n): ")
+        if userResponse.lower() == 'y':
+            files = altFiles
+            print("Using YouTube-synced translations...\n")
+    elif altFiles and not files:
+        print("Found YouTube-synced translations to use in: " + OUTPUT_YTSYNCED_FOLDER)
+        files = altFiles
     # Check if any files ends with the specific language code and srt file extension
     for file in files:
         if file.replace(' ', '').endswith(f"-{langData['translation_target_language']}.srt"):
@@ -233,7 +267,8 @@ def process_language(langData, processedCount, totalLanguages):
         'languageCode': langData['synth_language_code'], 
         'voiceGender': langData['synth_voice_gender'],
         'translateService': langData['translate_service'],
-        'formality': langData['formality']
+        'formality': langData['formality'],
+        'voiceModel': langData['synth_voice_model'],                                                    
         }
 
     individualLanguageSubsDict = copy.deepcopy(originalLanguageSubsDict)
@@ -267,6 +302,8 @@ def process_language(langData, processedCount, totalLanguages):
     # Synthesize
     if cloudConfig['batch_tts_synthesize'] == True and cloudConfig['tts_service'] == 'azure':
         individualLanguageSubsDict = TTS.synthesize_dictionary_batch(individualLanguageSubsDict, langDict, skipSynthesize=config['skip_synthesize'])
+    elif cloudConfig['tts_service'] == 'elevenlabs':
+        individualLanguageSubsDict = asyncio.run(TTS.synthesize_dictionary_async(individualLanguageSubsDict, langDict, skipSynthesize=config['skip_synthesize'], max_concurrent_jobs=cloudConfig['elevenlabs_max_concurrent']))                                                                                      
     else:
         individualLanguageSubsDict = TTS.synthesize_dictionary(individualLanguageSubsDict, langDict, skipSynthesize=config['skip_synthesize'])
 
@@ -286,3 +323,8 @@ for langNum, langData in batchSettings.items():
     processedCount += 1
     # Process current fallback language
     process_language(langData, processedCount, totalLanguages)
+
+## Play a system sound to indicate completion
+#if os.name == 'nt':
+#    sound_name = winsound.MB_ICONASTERISK  # represents the 'Asterisk' system sound
+#    winsound.MessageBeep(sound_name)  # Play the system sound

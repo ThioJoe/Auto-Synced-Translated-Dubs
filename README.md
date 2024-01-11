@@ -7,7 +7,7 @@ If you already have a human-made SRT subtitles file for a video, this will:
 2. Use the timings of the subtitle lines to calculate the correct duration of each spoken audio clip
 3. Create text-to-speech audio clips of the translated text (using more realistic neural voices)
 4. Stretch or shrink the translated audio clip to be exactly the same length as the original speech.
-    - Optional (On by Default): Instead of stretching the audio clips, you can instead do a second pass at synthesizing each clip through the API using the proper speaking speed calculated during the first pass. This drastically improves audio quality.
+    - Optional (On by Default): Instead of stretching the audio clips, you can instead do a second pass at synthesizing each clip through the API using the proper speaking speed calculated during the first pass. This slightly improves audio quality.
     - If using Azure TTS, this entire step is not necessary because it allows specifying the desired duration of the speech before synthesis
 5. Builds the audio track by inserting the new audio clips at their correct time points. Therefore the translated speech will remain perfectly in sync with the original video.
     
@@ -34,8 +34,11 @@ If you already have a human-made SRT subtitles file for a video, this will:
 
 ### External Requirements:
 - ffmpeg must be installed (https://ffmpeg.org/download.html)
-- If using local time stretching only: You'll need the binaries for a program called 'rubberband' (https://breakfastquay.com/rubberband/)
-  - Specifically on that page, find the download link for "Rubber Band Library v3.3.0 command-line utility" (Pick the Windows or MacOS version depending). Then extract the archive to find:
+
+### Optional External Tools:
+- Optional: Instead of ffmpeg for audio stretching, you could use the program'rubberband'
+  - I've actually found ffmpeg works better, but I'll still leave the option for rubberband if you want.
+  - If using Rubberband, yoou'll need the rubberband binaries. Specifically on [this page]((https://breakfastquay.com/rubberband/), find the download link for "Rubber Band Library v3.3.0 command-line utility" (Pick the Windows or MacOS version depending). Then extract the archive to find:
      - On Windows: rubberband.exe, rubberband-r3.exe, and sndfile.dll
      - On MacOS: rubberband, rubberband-r3
   - Doesn't need to be installed, just put the above mentioned files in the same directory as main.py
@@ -68,12 +71,21 @@ If you already have a human-made SRT subtitles file for a video, this will:
 ## Additional Notes:
 - This works best with subtitles that do not remove gaps between sentences and lines.
 - For now the process only assumes there is one speaker. However, if you can make separate SRT files for each speaker, you could generate each TTS track separately using different voices, then combine them afterwards.
-- It supports both Google Translate API and DeepL for text translation, and both Google and Azure for Text-To-Speech with neural voices.
+- It supports both Google Translate API and DeepL for text translation, and Google, Azure, and Eleven Labs for Text-To-Speech with neural voices.
 - This script was written with my own personal workflow in mind. That is:
     - I use [**OpenAI Whisper**](https://github.com/openai/whisper) to transcribe the videos locally, then use [**Descript**](https://www.descript.com/) to sync that transcription and touch it up with corrections.
     - Then I export the SRT file with Descript, which is ideal because it does not just butt the start and end times of each subtitle line next to each other. This means the resulting dub will preserve the pauses between sentences from the original speech. If you use subtitles from another program, you might find the pauses between lines are too short.
     - The SRT export settings in Descript that seem to work decently for dubbing are *150 max characters per line*, and *1 max line per card*.
 - The "Two Pass" synthesizing feature (can be enabled in the config) will drastically improve the quality of the final result, but will require synthesizing each clip twice, therefore doubling any API costs.
+
+### Currently Supported Text-To-Speech Services:
+- Microsoft Azure
+- Google Cloud
+- Eleven Labs
+
+### Currently Supported Translation Services:
+- Google Translate
+- DeepL
 
 ## For more information on supported languages by service:
 - [Google Cloud Translation Supported Languages](https://cloud.google.com/translate/docs/languages)

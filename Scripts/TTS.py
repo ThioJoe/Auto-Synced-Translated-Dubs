@@ -455,8 +455,12 @@ def synthesize_dictionary_batch(subsDict, langDict, skipSynthesize=False, second
 
 async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, max_concurrent_jobs=2, secondPass=False):
     semaphore = asyncio.Semaphore(max_concurrent_jobs)
-    
+    lock = asyncio.Lock()
+    progress = 0
+    total_tasks = len(subsDict)
+
     async def synthesize_and_save(key, value):
+        nonlocal progress
         # Use this to set max concurrent jobs
         async with semaphore:
             audio = await synthesize_text_elevenlabs_async_http(
@@ -471,6 +475,11 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
                     out.write(audio)
                 subsDict[key]['TTS_FilePath'] = filePath
 
+        # Update and display progress
+        async with lock:
+            progress += 1
+            print(f"Synthesizing TTS: {progress} of {total_tasks}", end="\r")
+
     tasks = []
 
     for key, value in subsDict.items():
@@ -481,7 +490,7 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
     # Wait for all tasks to complete
     await asyncio.gather(*tasks)
 
-    print("Synthesis Complete")
+    print("\nSynthesis Complete")
     return subsDict
 
 def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=False):

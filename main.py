@@ -6,7 +6,7 @@
 # License: GPLv3
 # NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
 
-version = '0.17.0'
+version = '0.17.1'
 print(f"------- 'Auto Synced Translated Dubs' script by ThioJoe - Release version {version} -------")
 
 # Import other files
@@ -48,7 +48,7 @@ for num in languageNums:
     if not batchConfig.has_section(f'LANGUAGE-{num}'):
         raise ValueError(f'Invalid language number in batch.ini: {num} - Make sure the section [LANGUAGE-{num}] exists')
 
-# Validate the settings in each section
+# Validate the settings in each batch section
 for num in languageNums:
     if not batchConfig.has_option(f'LANGUAGE-{num}', 'synth_language_code'):
         raise ValueError(f'Invalid configuration in batch.ini: {num} - Make sure the option "synth_language_code" exists under [LANGUAGE-{num}]')

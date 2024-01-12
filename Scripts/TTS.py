@@ -209,8 +209,15 @@ async def synthesize_text_elevenlabs_async_http(text, voiceID, modelID, apiKey=E
                         break
                     audio_bytes += chunk
             else:
-                print(f"Error: {response.status}")
-                return None
+                print(f"\n\nERROR: ElevenLabs API returned code: {response.status}  -  Reason: {response.reason}")
+                if response.status == 401:
+                    print("  > ElevenLabs did not accept the API key or you are unauthorized to use that voice.")
+                    print("  > Did you set the correct ElevenLabs API key in the cloud_service_settings.ini file?")
+                elif response.status == 400:
+                    print("  > Did you set the correct ElevenLabs API key in the cloud_service_settings.ini file?")
+                elif response.status == 429:
+                    print("  > You may have exceeded the ElevenLabs API rate limit. Did you set the 'elevenlabs_max_concurrent' setting too high for your plan?")
+                exit()
 
     return audio_bytes
 

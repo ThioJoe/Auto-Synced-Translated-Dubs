@@ -209,15 +209,24 @@ async def synthesize_text_elevenlabs_async_http(text, voiceID, modelID, apiKey=E
                         break
                     audio_bytes += chunk
             else:
-                print(f"\n\nERROR: ElevenLabs API returned code: {response.status}  -  Reason: {response.reason}")
-                if response.status == 401:
-                    print("  > ElevenLabs did not accept the API key or you are unauthorized to use that voice.")
-                    print("  > Did you set the correct ElevenLabs API key in the cloud_service_settings.ini file?")
-                elif response.status == 400:
-                    print("  > Did you set the correct ElevenLabs API key in the cloud_service_settings.ini file?")
-                elif response.status == 429:
-                    print("  > You may have exceeded the ElevenLabs API rate limit. Did you set the 'elevenlabs_max_concurrent' setting too high for your plan?")
-                exit()
+                try:
+                    error_message = await response.text()
+                    error_dict = json.loads(error_message)
+                    print(f"\n\nERROR: ElevenLabs API returned code: {response.status}  -  {response.reason}")
+                    print(f"Returned Error Status: {error_dict['detail']['status']}")
+                    print(f"Returned Error Message: {error_dict['detail']['message']}")
+                    print(f"Test: {error_dict['detail']['test']}")
+                except KeyError:
+                    if response.status == 401:
+                        print("  > ElevenLabs did not accept the API key or you are unauthorized to use that voice.")
+                        print("  > Did you set the correct ElevenLabs API key in the cloud_service_settings.ini file?\n")
+                    elif response.status == 400:
+                        print("  > Did you set the correct ElevenLabs API key in the cloud_service_settings.ini file?\n")
+                    elif response.status == 429:
+                        print("  > You may have exceeded the ElevenLabs API rate limit. Did you set the 'elevenlabs_max_concurrent' setting too high for your plan?\n")
+                except Exception as ex:
+                    print(f"ElevenLabs API error occurred.\n")
+                return None
 
     return audio_bytes
 

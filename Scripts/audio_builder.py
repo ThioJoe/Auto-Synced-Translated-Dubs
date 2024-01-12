@@ -120,7 +120,11 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         subsDict[key]['TTS_FilePath_Trimmed'] = filePathTrimmed
 
         # Trim the clip and re-write file
-        rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3")
+        try:
+            rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3")
+        except KeyError:
+            print("\nERROR: An expected file was not found. This is likely because the TTS service failed to synthesize the audio. Refer to any error messages above.")
+            sys.exit()
         trimmedClip = trim_clip(rawClip)
         if config['debug_mode']:
             trimmedClip.export(filePathTrimmed, format="wav")

@@ -6,7 +6,7 @@
 # License: GPLv3
 # NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
 
-version = '0.17.1'
+version = '0.17.2'
 print(f"------- 'Auto Synced Translated Dubs' script by ThioJoe - Release version {version} -------")
 
 # Import other files
@@ -306,6 +306,10 @@ def process_language(langData, processedCount, totalLanguages):
 
 
 #======================================== Main Program ================================================
+# Set asyncio event loop policy to WindowsSelectorEventLoopPolicy if on Windows to avoid errors
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 # Counter for number of languages processed
 processedCount = 0
 totalLanguages = len(batchSettings)

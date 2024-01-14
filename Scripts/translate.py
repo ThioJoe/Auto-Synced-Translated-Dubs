@@ -114,6 +114,20 @@ def convertChunkListToCompatibleDict(chunkList):
         chunkDict[i] = {'text': chunk}
     return chunkDict
 
+def translate_with_google(text, targetLanguage):
+    response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
+        parent='projects/' + cloudConfig['google_project_id'],
+        body={
+            'contents': text,
+            'sourceLanguageCode': config['original_language'],
+            'targetLanguageCode': targetLanguage,
+            'mimeType': 'text/html',
+            #'model': 'nmt',
+            #'glossaryConfig': {}
+        }
+    ).execute()
+    return response
+
 
 # Translate the text entries of the dictionary
 def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcriptMode=False):
@@ -159,17 +173,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
                 if translateService == 'google':
                     # Print status with progress
                     print(f'[Google] Translating text group {j+1} of {len(chunkedTexts)}')
-                    response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
-                        parent='projects/' + cloudConfig['google_project_id'],
-                        body={
-                            'contents': chunk,
-                            'sourceLanguageCode': config['original_language'],
-                            'targetLanguageCode': targetLanguage,
-                            'mimeType': 'text/html',
-                            #'model': 'nmt',
-                            #'glossaryConfig': {}
-                        }
-                    ).execute()
+                    response = translate_with_google(chunk, targetLanguage)
 
                     # Extract the translated texts from the response
                     translatedTexts = [process_response_text(response['translations'][i]['translatedText'], targetLanguage) for i in range(len(response['translations']))]
@@ -204,17 +208,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
         else:
             if translateService == 'google':
                 print("Translating text using Google...")
-                response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
-                    parent='projects/' + cloudConfig['google_project_id'],
-                    body={
-                        'contents':textToTranslate,
-                        'sourceLanguageCode': config['original_language'],
-                        'targetLanguageCode': targetLanguage,
-                        'mimeType': 'text/html',
-                        #'model': 'nmt',
-                        #'glossaryConfig': {}
-                    }
-                ).execute()
+                response = translate_with_google(textToTranslate, targetLanguage)
                 translatedTexts = [process_response_text(response['translations'][i]['translatedText'], targetLanguage) for i in range(len(response['translations']))]
                 
                 # Add the translated texts to the dictionary

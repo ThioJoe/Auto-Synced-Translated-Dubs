@@ -114,7 +114,7 @@ def convertChunkListToCompatibleDict(chunkList):
         chunkDict[i] = {'text': chunk}
     return chunkDict
 
-def translate_with_google(text, targetLanguage):
+def translate_with_google_and_process(text, targetLanguage):
     response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
         parent='projects/' + cloudConfig['google_project_id'],
         body={
@@ -126,8 +126,14 @@ def translate_with_google(text, targetLanguage):
             #'glossaryConfig': {}
         }
     ).execute()
-    return response
+    translatedTexts = [process_response_text(response['translations'][i]['translatedText'], targetLanguage) for i in range(len(response['translations']))]
+    return translatedTexts
 
+def translate_with_deepl_and_process(text, targetLanguage, formality=None):
+    result = auth.DEEPL_API.translate_text(text, target_lang=targetLanguage, formality=formality, tag_handling='html')
+    # Extract the translated texts from the response and process them
+    translatedTexts = [process_response_text(result[i].text, targetLanguage) for i in range(len(result))]
+    return translatedTexts
 
 # Translate the text entries of the dictionary
 def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcriptMode=False):
@@ -171,66 +177,47 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
                 
                 # Send the request
                 if translateService == 'google':
+                    serviceName = "Google"
                     # Print status with progress
                     print(f'[Google] Translating text group {j+1} of {len(chunkedTexts)}')
-                    response = translate_with_google(chunk, targetLanguage)
-
-                    # Extract the translated texts from the response
-                    translatedTexts = [process_response_text(response['translations'][i]['translatedText'], targetLanguage) for i in range(len(response['translations']))]
-
-                    # Add the translated texts to the dictionary
-                    # Divide the dictionary into chunks of 100
-                    for i in range(chunkSize):
-                        key = str((i+1+j*chunkSize))
-                        inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i], targetLanguage)
-                        # Print progress, ovwerwrite the same line
-                        print(f' Translated with Google: {key} of {len(inputSubsDict)}', end='\r')
+                    translatedTexts = translate_with_google_and_process(chunk, targetLanguage)
 
                 elif translateService == 'deepl':
+                    serviceName = "DeepL"
                     print(f'[DeepL] Translating text group {j+1} of {len(chunkedTexts)}')
 
-                    # Send the request
-                    result = auth.DEEPL_API.translate_text(chunk, target_lang=targetLanguage, formality=formality, tag_handling='html')
+                    translatedTexts = translate_with_deepl_and_process(chunk, targetLanguage, formality=formality)
                     
-                    # Extract the translated texts from the response
-                    translatedTexts = [process_response_text(result[i].text, targetLanguage) for i in range(len(result))]
-
-                    # Add the translated texts to the dictionary
-                    for i in range(chunkSize):
-                        key = str((i+1+j*chunkSize))
-                        inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i], targetLanguage)
-                        # Print progress, ovwerwrite the same line
-                        print(f' Translated with DeepL: {key} of {len(inputSubsDict)}', end='\r')
                 else:
                     print("Error: Invalid translate_service setting. Only 'google' and 'deepl' are supported.")
                     sys.exit()
+                    
+                # Add the translated texts to the dictionary
+                for i in range(chunkSize):
+                    key = str((i+1+j*chunkSize))
+                    inputSubsDict[key]['translated_text'] = translatedTexts[i]
+                    # Print progress, ovwerwrite the same line
+                    print(f' Translated with {serviceName}: {key} of {len(inputSubsDict)}', end='\r')
                 
         else:
             if translateService == 'google':
                 print("Translating text using Google...")
-                response = translate_with_google(textToTranslate, targetLanguage)
-                translatedTexts = [process_response_text(response['translations'][i]['translatedText'], targetLanguage) for i in range(len(response['translations']))]
+                translatedTexts = translate_with_google_and_process(textToTranslate, targetLanguage)
                 
-                # Add the translated texts to the dictionary
-                for i, key in enumerate(inputSubsDict):
-                    inputSubsDict[key]['translated_text'] = process_response_text(translatedTexts[i], targetLanguage)
-                    # Print progress, overwrite the same line
-                    print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
-
             elif translateService == 'deepl':
                 print("Translating text using DeepL...")
-
-                # Send the request
-                result = auth.DEEPL_API.translate_text(textToTranslate, target_lang=targetLanguage, formality=formality, tag_handling='html')
-
-                # Add the translated texts to the dictionary
-                for i, key in enumerate(inputSubsDict):
-                    inputSubsDict[key]['translated_text'] = process_response_text(result[i].text, targetLanguage)
-                    # Print progress, overwrite the same line
-                    print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')
+                translatedTexts = translate_with_deepl_and_process(textToTranslate, targetLanguage, formality=formality)
+                
             else:
                 print("Error: Invalid translate_service setting. Only 'google' and 'deepl' are supported.")
                 sys.exit()
+                
+            # Add the translated texts to the dictionary
+            for i, key in enumerate(inputSubsDict):
+                inputSubsDict[key]['translated_text'] = translatedTexts[i]
+                # Print progress, overwrite the same line
+                print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')    
+                
     else:
         for key in inputSubsDict:
             inputSubsDict[key]['translated_text'] = process_response_text(inputSubsDict[key]['text'], targetLanguage) # Skips translating, such as for testing

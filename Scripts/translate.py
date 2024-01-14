@@ -126,14 +126,14 @@ def translate_with_google_and_process(text, targetLanguage):
             #'glossaryConfig': {}
         }
     ).execute()
-    translatedTexts = [process_response_text(response['translations'][i]['translatedText'], targetLanguage) for i in range(len(response['translations']))]
-    return translatedTexts
+    translatedTextsList = [process_response_text(response['translations'][i]['translatedText'], targetLanguage) for i in range(len(response['translations']))]
+    return translatedTextsList
 
 def translate_with_deepl_and_process(text, targetLanguage, formality=None):
     result = auth.DEEPL_API.translate_text(text, target_lang=targetLanguage, formality=formality, tag_handling='html')
     # Extract the translated texts from the response and process them
-    translatedTexts = [process_response_text(result[i].text, targetLanguage) for i in range(len(result))]
-    return translatedTexts
+    translatedTextsList = [process_response_text(result[i].text, targetLanguage) for i in range(len(result))]
+    return translatedTextsList
 
 # Translate the text entries of the dictionary
 def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcriptMode=False):
@@ -203,7 +203,6 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
                 # Print progress, ovwerwrite the same line
                 print(f' Translated with {serviceName}: {key} of {len(inputSubsDict)}', end='\r')
 
-                
     else:
         for key in inputSubsDict:
             inputSubsDict[key]['translated_text'] = process_response_text(inputSubsDict[key]['text'], targetLanguage) # Skips translating, such as for testing

@@ -443,10 +443,7 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                     considerNext = False
                 else:
                     considerNext = True
-
-                # Check if current entry is still in the list - if it has been combined with another entry, it will not be
-
-                
+              
                 # Get the char_rate of the next and previous entries, if they exist, and calculate the difference
                 # If the diff is positive, then it is lower than the current char_rate
                 try:
@@ -487,7 +484,6 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                 entryListLocal[i-1]['duration_ms_buffered'] = int(entryListLocal[i]['end_ms_buffered']) - int(entryListLocal[i-1]['start_ms_buffered'])
                 entryListLocal[i-1]['srt_timestamps_line'] = entryListLocal[i-1]['srt_timestamps_line'].split(' --> ')[0] + ' --> ' + entryListLocal[i]['srt_timestamps_line'].split(' --> ')[1]
                 del entryListLocal[i]
-
 
             # Choose whether to consider next and previous entries, and if neither then continue to next loop
             if data['char_rate'] > charRateGoal:

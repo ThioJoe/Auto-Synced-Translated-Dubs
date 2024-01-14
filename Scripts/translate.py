@@ -154,69 +154,55 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
         # Add the text to the list of text to be translated
         textToTranslate.append(processedText)
    
-    # Calculate the total number of utf-8 codepoints
-    codepoints = 0
-    for text in textToTranslate:
-        codepoints += len(text.encode("utf-8"))
+    # Calculate the total number of utf-8 codepoints - No longer needed, but keeping just in case
+    # codepoints = 0
+    # for text in textToTranslate:
+    #     codepoints += len(text.encode("utf-8"))
     
-    # If the codepoints are greater than 28000, split the request into multiple
     # Google's API limit is 30000 Utf-8 codepoints per request, while DeepL's is 130000, but we leave some room just in case
     if skipTranslation == False:
-        if translateService == 'google' and codepoints > 27000 or translateService == 'deepl' and codepoints > 120000:
-            # GPT-3 Description of what the following line does:
-            # If Google Translate is being used:
-            # Splits the list of text to be translated into smaller chunks of 100 texts.
-            # It does this by looping over the list in steps of 100, and slicing out each chunk from the original list. 
-            # Each chunk is appended to a new list, chunkedTexts, which then contains the text to be translated in chunks.
-            # The same thing is done for DeepL, but the chunk size is 400 instead of 100.
-            chunkSize = 100 if translateService == 'google' else 400
-            chunkedTexts = [textToTranslate[x:x+chunkSize] for x in range(0, len(textToTranslate), chunkSize)]
+        # GPT-3 Description of what the following line does:
+        # If Google Translate is being used:
+        # Splits the list of text to be translated into smaller chunks of 100 texts.
+        # It does this by looping over the list in steps of 100, and slicing out each chunk from the original list. 
+        # Each chunk is appended to a new list, chunkedTexts, which then contains the text to be translated in chunks.
+        # The same thing is done for DeepL, but the chunk size is 400 instead of 100.
+        
+        # Set chunk size based on translate service - Chunk size is the max size of the list of texts to send to API at once
+        if translateService == 'google':
+            chunkSize = 100
+        elif translateService == 'deepl':
+            chunkSize = 400
+
+        chunkedTexts = [textToTranslate[x:x+chunkSize] for x in range(0, len(textToTranslate), chunkSize)]
+        
+        subIndexToAddTo = 1 # Need to start at 1 because the dictionary keys start at 1, not 0
+        # Handle each chunk in sequence, instead of all (chunkedTexts) at once
+        for j,chunk in enumerate(chunkedTexts):
             
-            # Send and receive the batch requests
-            for j,chunk in enumerate(chunkedTexts):
-                
-                # Send the request
-                if translateService == 'google':
-                    serviceName = "Google"
-                    # Print status with progress
-                    print(f'[Google] Translating text group {j+1} of {len(chunkedTexts)}')
-                    translatedTexts = translate_with_google_and_process(chunk, targetLanguage)
-
-                elif translateService == 'deepl':
-                    serviceName = "DeepL"
-                    print(f'[DeepL] Translating text group {j+1} of {len(chunkedTexts)}')
-
-                    translatedTexts = translate_with_deepl_and_process(chunk, targetLanguage, formality=formality)
-                    
-                else:
-                    print("Error: Invalid translate_service setting. Only 'google' and 'deepl' are supported.")
-                    sys.exit()
-                    
-                # Add the translated texts to the dictionary
-                for i in range(chunkSize):
-                    key = str((i+1+j*chunkSize))
-                    inputSubsDict[key]['translated_text'] = translatedTexts[i]
-                    # Print progress, ovwerwrite the same line
-                    print(f' Translated with {serviceName}: {key} of {len(inputSubsDict)}', end='\r')
-                
-        else:
+            # Send the request
             if translateService == 'google':
-                print("Translating text using Google...")
-                translatedTexts = translate_with_google_and_process(textToTranslate, targetLanguage)
-                
+                serviceName = "Google"
+                print(f'[Google] Translating text group {j+1} of {len(chunkedTexts)}')
+                translatedTexts = translate_with_google_and_process(chunk, targetLanguage)
+
             elif translateService == 'deepl':
-                print("Translating text using DeepL...")
-                translatedTexts = translate_with_deepl_and_process(textToTranslate, targetLanguage, formality=formality)
+                serviceName = "DeepL"
+                print(f'[DeepL] Translating text group {j+1} of {len(chunkedTexts)}')
+                translatedTexts = translate_with_deepl_and_process(chunk, targetLanguage, formality=formality)
                 
             else:
                 print("Error: Invalid translate_service setting. Only 'google' and 'deepl' are supported.")
                 sys.exit()
                 
             # Add the translated texts to the dictionary
-            for i, key in enumerate(inputSubsDict):
+            for i in range(len(chunkedTexts[j])):
+                key = str(subIndexToAddTo) 
                 inputSubsDict[key]['translated_text'] = translatedTexts[i]
-                # Print progress, overwrite the same line
-                print(f' Translated: {key} of {len(inputSubsDict)}', end='\r')    
+                subIndexToAddTo += 1
+                # Print progress, ovwerwrite the same line
+                print(f' Translated with {serviceName}: {key} of {len(inputSubsDict)}', end='\r')
+
                 
     else:
         for key in inputSubsDict:

@@ -213,9 +213,13 @@ async def synthesize_text_elevenlabs_async_http(text, voiceID, modelID, apiKey=E
                     error_message = await response.text()
                     error_dict = json.loads(error_message)
                     print(f"\n\nERROR: ElevenLabs API returned code: {response.status}  -  {response.reason}")
-                    print(f"Returned Error Status: {error_dict['detail']['status']}")
-                    print(f"Returned Error Message: {error_dict['detail']['message']}")
-                    print(f"Test: {error_dict['detail']['test']}")
+                    print(f" - Returned Error Status: {error_dict['detail']['status']}")
+                    print(f" - Returned Error Message: {error_dict['detail']['message']}")
+                    
+                    # Handle specific errors:
+                    if error_dict['detail']['status'] == "invalid_uid" or error_dict['detail']['status'] == "voice_not_found":
+                        print("    > You may have forgotten to set the voice name in batch.ini to an Elevenlabs Voice ID. The above message should tell you what invalid voice is currently set.")
+                        print("    > See this article for how to find a voice ID: https://help.elevenlabs.io/hc/en-us/articles/14599760033937-How-do-I-find-my-voices-ID-of-my-voices-via-the-website-and-through-the-API-")
                 except KeyError:
                     if response.status == 401:
                         print("  > ElevenLabs did not accept the API key or you are unauthorized to use that voice.")
@@ -474,10 +478,17 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
     lock = asyncio.Lock()
     progress = 0
     total_tasks = len(subsDict)
+    errorsOccured = False
 
     print("Beginning TTS Synthesis...")
     async def synthesize_and_save(key, value):
         nonlocal progress
+        
+        # Update and display progress
+        async with lock:
+            progress += 1
+            print(f" Synthesizing TTS: {progress} of {total_tasks}", end="\r")
+            
         # Use this to set max concurrent jobs
         async with semaphore:
             audio = await synthesize_text_elevenlabs_async_http(
@@ -491,11 +502,10 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
                 with open(filePath, "wb") as out:
                     out.write(audio)
                 subsDict[key]['TTS_FilePath'] = filePath
-
-        # Update and display progress
-        async with lock:
-            progress += 1
-            print(f" Synthesizing TTS: {progress} of {total_tasks}", end="\r")
+            else:
+                nonlocal errorsOccured
+                errorsOccured = True
+                subsDict[key]['TTS_FilePath'] = "Failed"
 
     tasks = []
 
@@ -506,8 +516,14 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
 
     # Wait for all tasks to complete
     await asyncio.gather(*tasks)
-
-    print("\nSynthesis Complete")
+    
+    print("                                        ") # Clear the line
+    
+    # If errors occurred, tell user
+    if errorsOccured:
+        print("Warning: Errors occurred during TTS synthesis. Please check any error messages above for details.")
+    else:
+        print("Synthesis Finished")
     return subsDict
 
 def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=False):

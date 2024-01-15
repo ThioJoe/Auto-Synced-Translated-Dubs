@@ -125,6 +125,12 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
         except KeyError:
             print("\nERROR: An expected file was not found. This is likely because the TTS service failed to synthesize the audio. Refer to any error messages above.")
             sys.exit()
+        except FileNotFoundError:
+            if value['TTS_FilePath'] == "Failed":
+                print("\nProgram failed because some audio was not synthesized. Refer to any error messages above.")
+            else:
+                print("\nERROR: An expected file was not found. This is likely because the TTS service failed to synthesize the audio. Refer to any error messages above.")
+            sys.exit()
         trimmedClip = trim_clip(rawClip)
         if config['debug_mode']:
             trimmedClip.export(filePathTrimmed, format="wav")

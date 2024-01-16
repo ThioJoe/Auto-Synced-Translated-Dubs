@@ -58,6 +58,8 @@ def print_caption_info(videoID):
 
 
 def upload_caption(videoID, language, name, file, sync=True, isDraft=False):
+    # Prepare filepath by stripping any quotes
+    file = file.strip('"').strip("'")
     # Convert file to bytes
     subtitleData = MediaFileUpload(file, mimetype="text/plain", resumable=True)
 
@@ -109,51 +111,70 @@ def get_video_title(videoID):
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 
-# Get video ID from user
-print("\nEnter the video ID of the video you want to apply the translations to.")
-videoID = input("Video ID: ")
 
-# Get video title to confirm
-videoTitle = get_video_title(videoID)
-print("----------------------------------------")
-print("\nConfirm this is the video you want to apply the translations to.")
-print(f"\n >>> Video To Be Updated: {videoTitle} <<<")
-choice = input("\nIs the above video correct? (y/n) ")
-if choice.lower() == "n":
-    print("Exiting...")
-    exit()
-elif choice.lower() == "y":
-    pass
+# Get video ID from user and confirm. Ask again if they enter an invalid ID or say not correct.
+while True:
+    print("\nEnter the video ID of the video you want to apply the translations to.")
+    videoID = input("Video ID: ")
 
-# Ask what to do
-print("\nWhat would you like to do?")
-print("  1. Upload a single transcripti file to YouTube, and sync it to the video.")
-print("  2. Upload multiple transcript files to YouTube, and sync them to the video.")
-print("  ---------------------------------------------------------------------------")
-print("  3. Check the existing captions (including sync status) for this video.")
-print("  4. Remove a caption track from this video.")
-userInput = input("\nEnter 1 or 2: ")
-if userInput == "1":
-    userChoice = "uploadSingleTranscript"
-if userInput == "2":
-    userChoice = "uploadMultipleTranscripts"
-elif userInput == "3":
-    userChoice = "checkCaptionStatus"
-elif userInput == "4":
-    userChoice = "removeCaptionTrack"
+    # Get video title to confirm
+    videoTitle = get_video_title(videoID)
+    if videoTitle is None:
+        print("\nInvalid video ID (Video lookup result returned 'None'). Please try again.")
+        continue
+    
+    print("----------------------------------------")
+    print("\nConfirm this is the video you want to apply the translations to.")
+    print(f"\n >>> Video To Be Updated: {videoTitle} <<<")
+    choice = input("\nIs the above video correct? (y/n) ")
+    if choice.lower() == "n":
+        continue
+    elif choice.lower() == "y":
+        break
+    else:
+        print("\nInvalid input. Please try again.")
+        continue
+
+
+# Ask what to do, ask again if invalid choice
+while True:
+    print("\nWhat would you like to do?")
+    print("  1. Upload a single transcript file to YouTube, and sync it to the video.")
+    print("  2. Upload multiple transcript files to YouTube, and sync them to the video.")
+    print("  ---------------------------------------------------------------------------")
+    print("  3. Check the existing captions (including sync status) for this video.")
+    print("  4. Remove a caption track from this video.")
+    userInput = input("\nEnter 1 or 2: ")
+    if userInput == "1":
+        userChoice = "uploadSingleTranscript"
+    elif userInput == "2":
+        userChoice = "uploadMultipleTranscripts"
+    elif userInput == "3":
+        userChoice = "checkCaptionStatus"
+    elif userInput == "4":
+        userChoice = "removeCaptionTrack"
+    else:
+        print("\nInvalid input. Please try again.")
+        continue
+    break
 
 if userChoice == "uploadSingleTranscript":
-    # Get two-letter language code from user
+    # Get two-letter language code from user. Confirm it's correct, and ask again if they say no.
     print("\nManual Transcript Sync Mode: Upload a transcript file to YouTube, and it will be synced to the video.")
-    langCode = input("\nEnter two-letter language code: ")
-    languageDisplayName = langcodes.get(langCode).display_name()
+    while True:
+        langCode = input("\nEnter two-letter or four-letter language code: ")
+        languageDisplayName = langcodes.get(langCode).display_name()
 
-    # Confirm language
-    print("\nConfirm language code: " + languageDisplayName + " (" + langCode + ")")
-    choice = input("\nIs the above language code correct? (y/n) ")
-    if choice.lower() == "n":
-        print("Exiting...")
-        exit()
+        # Confirm language
+        print("\nConfirm language code: " + languageDisplayName + " (" + langCode + ")")
+        choice = input("\nIs the above language code correct? (y/n) ")
+        if choice.lower() == "n":
+            continue
+        elif choice.lower() == "y":
+            break
+        else:
+            print("\nInvalid input. Please try again.")
+            continue
 
     # Get file path of transcript file from user
     filePath = input("\nEnter file path of transcript file (Drag file into window): ")

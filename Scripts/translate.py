@@ -111,7 +111,7 @@ def convertChunkListToCompatibleDict(chunkList):
     # Create dictionary with numbers as keys and chunks as values
     chunkDict = {}
     for i, chunk in enumerate(chunkList, 1):
-        chunkDict[i] = {'text': chunk}
+        chunkDict[str(i)] = {'text': chunk}
     return chunkDict
 
 def translate_with_google_and_process(text, targetLanguage):

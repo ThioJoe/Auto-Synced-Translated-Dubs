@@ -220,6 +220,7 @@ async def synthesize_text_elevenlabs_async_http(text, voiceID, modelID, apiKey=E
                     if error_dict['detail']['status'] == "invalid_uid" or error_dict['detail']['status'] == "voice_not_found":
                         print("    > You may have forgotten to set the voice name in batch.ini to an Elevenlabs Voice ID. The above message should tell you what invalid voice is currently set.")
                         print("    > See this article for how to find a voice ID: https://help.elevenlabs.io/hc/en-us/articles/14599760033937-How-do-I-find-my-voices-ID-of-my-voices-via-the-website-and-through-the-API-")
+                # These are for errors that don't have a 'detail' key
                 except KeyError:
                     if response.status == 401:
                         print("  > ElevenLabs did not accept the API key or you are unauthorized to use that voice.")

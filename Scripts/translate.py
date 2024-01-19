@@ -26,26 +26,36 @@ urlListFile = os.path.join('SSML_Customization', 'url_list.txt')
 urlList = utils.txt_to_list(urlListFile)
 
 # Add span tags around certain words to exclude them from being translated
-def add_notranslate_tags_from_notranslate_file(text, phraseList):
+def add_notranslate_tags_from_notranslate_file(text, phraseList, customTag=None):
     for word in phraseList:
         findWordRegex = rf'(\p{{Z}}|^)(["\'()]?{word}[.,!?()]?["\']?)(\p{{Z}}|$)' #\p ensures it works with unicode characters
         findWordRegexCompiled = regex.compile(findWordRegex, flags=re.IGNORECASE | re.UNICODE)
         # Find the word, with optional punctuation after, and optional quotes before or after
-        text = findWordRegexCompiled.sub(r'\1<span class="notranslate">\2</span>\3', text)
+        if not customTag:
+            text = findWordRegexCompiled.sub(r'\1<span class="notranslate">\2</span>\3', text)
+        else:
+            # Add custom XML tag
+            text = findWordRegexCompiled.sub(rf'\1<{customTag}>\2</{customTag}>\3', text)
     return text
 
-def remove_notranslate_tags(text):
-    text = text.replace('<span class="notranslate">', '').replace('</span>', '')
+def remove_notranslate_tags(text, customTag=None):
+    if customTag == None:
+        text = text.replace('<span class="notranslate">', '').replace('</span>', '')
+    else:
+        text = text.replace(f'<{customTag}>', '').replace(f'</{customTag}>', '')
     return text
 
-def add_notranslate_tags_for_manual_translations(text, langcode):
+def add_notranslate_tags_for_manual_translations(text, langcode, customTag=None):
     for manualTranslatedText in manualTranslationsDict:
         # Only replace text if the language matches the entry in the manual translations file
         if manualTranslatedText['Language Code'] == langcode: 
             originalText = manualTranslatedText['Original Text']
             findWordRegex = rf'(\p{{Z}}|^)(["\'()]?{originalText}[.,!?()]?["\']?)(\p{{Z}}|$)'
             findWordRegexCompiled = regex.compile(findWordRegex, flags=re.IGNORECASE | re.UNICODE)
-            text = findWordRegexCompiled.sub(r'\1<span class="notranslate">\2</span>\3', text)
+            if customTag == None:
+                text = findWordRegexCompiled.sub(r'\1<span class="notranslate">\2</span>\3', text)
+            else:
+                text = findWordRegexCompiled.sub(rf'\1<{customTag}>\2</{customTag}>\3', text)
     return text
 
 # Replace certain words or phrases with their manual translation
@@ -67,9 +77,9 @@ def replace_manual_translations(text, langcode):
 # Note: This function was almost entirely written by GPT-3 after feeding it my original code and asking it to change it so it
 # would break up the text into chunks if it was too long. It appears to work
 
-def process_response_text(text, targetLanguage):
+def process_response_text(text, targetLanguage, customTag=None):
     text = html.unescape(text)
-    text = remove_notranslate_tags(text)
+    text = remove_notranslate_tags(text, customTag)
     text = replace_manual_translations(text, targetLanguage)
     return text
 
@@ -129,11 +139,41 @@ def translate_with_google_and_process(text, targetLanguage):
     translatedTextsList = [process_response_text(response['translations'][i]['translatedText'], targetLanguage) for i in range(len(response['translations']))]
     return translatedTextsList
 
-def translate_with_deepl_and_process(text, targetLanguage, formality=None):
-    result = auth.DEEPL_API.translate_text(text, target_lang=targetLanguage, formality=formality, tag_handling='html')
+def translate_with_deepl_and_process(textList, targetLanguage, formality=None, customTag='zzz'):
+    # Create combined string of all the text in the textList, but add custom marker tags <zzz> to the end to note where the original text was split. But don't add to last line.
+    # In future can possibly add information such as index to tag, such as <zzz=#>.
+    combinedChunkText  = ""
+    for i, text in enumerate(textList):
+        # If last line don't add the tag
+        if i == len(textList) - 1:
+            combinedChunkText += text
+        else:
+            combinedChunkText += text + " <xxx> "
+            
+    # Put string into list by itself, as apparently required by DeepL API
+    textListToSend = [combinedChunkText]
+    
+    # Send the Request
+    result = auth.DEEPL_API.translate_text(textListToSend, target_lang=targetLanguage, formality=formality, tag_handling='xml', ignore_tags=[customTag, 'xxx'])
+    
+    # Extract translated text as string from the response
+    translatedText = result[0].text
+    
+    # Handle weird quirk of DeepL where it adds parenthesis around the tag sometimes
+    # Pattern to find parentheses around the custom tag with potential spaces. Also handles full width parenthesis
+    pattern = r'[（(]\s*<xxx>\s*[）)]'
+    translatedText = re.sub(pattern, ' <xxx> ', translatedText)
+    
+    # Split the translated text into chunks based on the custom marker tags, and remove the tags
+    translatedTextsList = translatedText.split('<xxx>')
+    # Strip spaces off ends of lines, then remove tag, and strip spaces again to remove any leftover
+    translatedTextsList = [text.strip() for text in translatedTextsList]
+    translatedTextsList = [text.replace('<xxx>', '') for text in translatedTextsList]
+    translatedTextsList = [text.strip() for text in translatedTextsList]
+   
     # Extract the translated texts from the response and process them
-    translatedTextsList = [process_response_text(result[i].text, targetLanguage) for i in range(len(result))]
-    return translatedTextsList
+    translatedProcessedTextsList = [process_response_text(translatedTextsList[i], targetLanguage, customTag=customTag) for i in range(len(translatedTextsList))]
+    return translatedProcessedTextsList
 
 # Translate the text entries of the dictionary
 def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcriptMode=False):
@@ -143,43 +183,62 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
 
     # Create a container for all the text to be translated
     textToTranslate = []
+    
+    # Set Custom Tag if supported by the translation service
+    if translateService == 'deepl':
+        customTag = 'zzz'
+    else:
+        customTag = None
 
     for key in inputSubsDict:
         originalText = inputSubsDict[key]['text']
         # Add any 'notranslate' tags to the text
-        processedText = add_notranslate_tags_from_notranslate_file(originalText, dontTranslateList)
-        processedText = add_notranslate_tags_from_notranslate_file(processedText, urlList)
-        processedText = add_notranslate_tags_for_manual_translations(processedText, targetLanguage)
+        processedText = add_notranslate_tags_from_notranslate_file(originalText, dontTranslateList, customTag)
+        processedText = add_notranslate_tags_from_notranslate_file(processedText, urlList, customTag)
+        processedText = add_notranslate_tags_for_manual_translations(processedText, targetLanguage, customTag)
 
         # Add the text to the list of text to be translated
         textToTranslate.append(processedText)
    
-    # Calculate the total number of utf-8 codepoints - No longer needed, but keeping just in case
+    #Calculate the total number of utf-8 codepoints - No longer needed, but keeping just in case
     # codepoints = 0
     # for text in textToTranslate:
     #     codepoints += len(text.encode("utf-8"))
-    
-    # Google's API limit is 30000 Utf-8 codepoints per request, while DeepL's is 130000, but we leave some room just in case
+      
     if skipTranslation == False:
-        # GPT-3 Description of what the following line does:
-        # If Google Translate is being used:
-        # Splits the list of text to be translated into smaller chunks of 100 texts.
-        # It does this by looping over the list in steps of 100, and slicing out each chunk from the original list. 
-        # Each chunk is appended to a new list, chunkedTexts, which then contains the text to be translated in chunks.
-        # The same thing is done for DeepL, but the chunk size is 400 instead of 100.
         
-        # Set chunk size based on translate service - Chunk size is the max size of the list of texts to send to API at once
+        # Set maxCodePoints based on translate service. This will determine the chunk size
+        # Google's API limit is 30000 Utf-8 codepoints per request, while DeepL's is 130000, but we leave some room just in case
         if translateService == 'google':
-            chunkSize = 100
+            maxCodePoints = 27000  # example value, set this to the actual limit
         elif translateService == 'deepl':
-            chunkSize = 400
+            maxCodePoints = 120000  # example value, set this to the actual limit
+            
+        chunkedTexts = []
+        currentChunk = []
+        currentCodePoints = 0
 
-        chunkedTexts = [textToTranslate[x:x+chunkSize] for x in range(0, len(textToTranslate), chunkSize)]
+        # Create a list of lists - 'chunkedTexts' where each list is a 'chunk', which in itself contains a list of strings of text to be translated
+        for text in textToTranslate:
+            textCodePoints = len(text.encode("utf-8"))
+            
+            if currentCodePoints + textCodePoints > maxCodePoints and currentChunk:
+                chunkedTexts.append(currentChunk)
+                currentChunk = []
+                currentCodePoints = 0
+
+            currentChunk.append(text)
+            currentCodePoints += textCodePoints
+            
+        # Add the last chunk if it's not empty
+        if currentChunk:
+            chunkedTexts.append(currentChunk)
+        # ---------------------------------------------
         
         subIndexToAddTo = 1 # Need to start at 1 because the dictionary keys start at 1, not 0
         # Handle each chunk in sequence, instead of all (chunkedTexts) at once
         for j,chunk in enumerate(chunkedTexts):
-            
+                      
             # Send the request
             if translateService == 'google':
                 serviceName = "Google"
@@ -189,7 +248,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
             elif translateService == 'deepl':
                 serviceName = "DeepL"
                 print(f'[DeepL] Translating text group {j+1} of {len(chunkedTexts)}')
-                translatedTexts = translate_with_deepl_and_process(chunk, targetLanguage, formality=formality)
+                translatedTexts = translate_with_deepl_and_process(chunk, targetLanguage, formality=formality, customTag=customTag)
                 
             else:
                 print("Error: Invalid translate_service setting. Only 'google' and 'deepl' are supported.")

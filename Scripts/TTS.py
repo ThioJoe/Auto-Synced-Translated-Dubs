@@ -481,15 +481,11 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
     total_tasks = len(subsDict)
     errorsOccured = False
 
-    print("Beginning TTS Synthesis...")
+    print("Beginning Text-To-Speech Audio Synthesis...")
+
     async def synthesize_and_save(key, value):
         nonlocal progress
-        
-        # Update and display progress
-        async with lock:
-            progress += 1
-            print(f" Synthesizing TTS: {progress} of {total_tasks}", end="\r")
-            
+
         # Use this to set max concurrent jobs
         async with semaphore:
             audio = await synthesize_text_elevenlabs_async_http(
@@ -507,6 +503,11 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
                 nonlocal errorsOccured
                 errorsOccured = True
                 subsDict[key]['TTS_FilePath'] = "Failed"
+
+        # Update and display progress after task completion
+        async with lock:
+            progress += 1
+            print(f" TTS Progress: {progress} of {total_tasks}", end="\r")
 
     tasks = []
 
@@ -526,6 +527,7 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
     else:
         print("Synthesis Finished")
     return subsDict
+
 
 def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=False):
     for key, value in subsDict.items():

@@ -6,6 +6,7 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
+# from google.cloud import translate_v2
 
 from Scripts.shared_imports import *
 
@@ -54,8 +55,8 @@ def get_authenticated_service(youtubeAuth = False):
   # Translate API Info
   # https://translate.googleapis.com/$discovery/rest?version=v3 # v3 or beta v3beta1
   GOOGLE_TRANSLATE_API_SERVICE_NAME = 'translate'
-  GOOGLE_TRANSLATE_API_VERSION = 'v3beta1'
-  TRANSLATE_DISCOVERY_SERVICE_URL = "https://translate.googleapis.com/$discovery/rest?version=v3beta1"
+  GOOGLE_TRANSLATE_API_VERSION = 'v3beta1' # V2, V3, or V3beta1
+  TRANSLATE_DISCOVERY_SERVICE_URL = "https://translate.googleapis.com/$discovery/rest?version=v3beta1" # Don't forget to set the version number here too
 
   # YouTube API Info
   YT_READ_WRITE_SSL_SCOPE = ['https://www.googleapis.com/auth/youtube.force-ssl']
@@ -117,6 +118,7 @@ def get_authenticated_service(youtubeAuth = False):
   # Build tts and translate API objects    
   GOOGLE_TTS_API = build(GOOGLE_TTS_API_SERVICE_NAME, GOOGLE_TTS_API_VERSION, credentials=creds, discoveryServiceUrl=TTS_DISCOVERY_SERVICE_URL)
   GOOGLE_TRANSLATE_API = build(GOOGLE_TRANSLATE_API_SERVICE_NAME, GOOGLE_TRANSLATE_API_VERSION, credentials=creds, discoveryServiceUrl=TRANSLATE_DISCOVERY_SERVICE_URL)
+  # GOOGLE_TRANSLATE_V2_API = translate_v2.Client(credentials=creds)
   
   return GOOGLE_TTS_API, GOOGLE_TRANSLATE_API
 

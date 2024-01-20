@@ -24,6 +24,7 @@ overRiddenLangCodes = {
 
 import Scripts.auth as auth
 import copy
+from googleapiclient.errors import HttpError
 
 YOUTUBE_API = auth.youtube_authentication()
 
@@ -290,6 +291,8 @@ def main(videoID=None):
     # Put localizations (aka title and description translations) into dictionary
     videoLanguagesDict = add_localizations_to_dict(videoID, videoLanguagesDict, videoDefaultLanguage)
     
+    # Example of filled videoLanguagesDict:
+    # videoLanguagesDict = {'en': {'subtitles': {1: {'subtitleName': 'English Subtitles 1', 'subtitleID': 'en_001'}, 2: {'subtitleName': 'English Subtitles 2', 'subtitleID': 'en_002'}}, 'localizations': {'title': 'Example English Title', 'description': 'Description in English'}}, 'es': {'subtitles': {1: {'subtitleName': 'Spanish Subtitles 1', 'subtitleID': 'es_001'}, }, 'localizations': {'title': 'Ejemplo de Título en Español', 'description': 'Descripción en Español'}}, 'ko': {'subtitles': {1: {'subtitleName': 'Korean Subtitles 1', 'subtitleID': 'ko_001'}, 2: {'subtitleName': 'Korean Subtitles 2', 'subtitleID': 'ko_002'}}, 'localizations': {}}} 
     
     # Display languages
     display_languages(videoLanguagesDict)

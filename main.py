@@ -273,7 +273,9 @@ def process_language(langData, processedCount, totalLanguages):
     # Check for special case where original language is the same as the target language
     if langDict['languageCode'].lower() == config['original_language'].lower():
         print("Original language is the same as the target language. Skipping translation.")
-        individualLanguageSubsDict = manually_prepare_dictionary(individualLanguageSubsDict)
+        # individualLanguageSubsDict = manually_prepare_dictionary(individualLanguageSubsDict)
+        # Runs through translation function and skips translation process, but still combines subtitles and prints srt file for native language
+        individualLanguageSubsDict = translate.translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=True, forceNativeSRTOutput=True)
 
     elif config['skip_translation'] == False:
         # Translate

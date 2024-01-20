@@ -72,6 +72,21 @@ def replace_manual_translations(text, langcode):
     return text
 
 
+def ends_with_sentence_terminator(text):
+    # List of sentence terminators in different languages
+    sentence_terminators = [
+        '.', '. ', '!', '! ', '?', '? ', '."', '." ',  # English and similar
+        '。',  # Japanese, Chinese
+        '…',  # Ellipsis
+        '¿', '¡',  # Spanish inverted punctuation
+        '۔',  # Arabic full stop
+        '।',  # Devanagari (Hindi, etc.)
+        '๏',  # Thai full stop
+        # Add additional language-specific terminators as needed
+    ]
+    # Returns boolean
+    return any(text.endswith(terminator) for terminator in sentence_terminators)
+
 
 #======================================== Translate Text ================================================
 # Note: This function was almost entirely written by GPT-3 after feeding it my original code and asking it to change it so it
@@ -225,7 +240,7 @@ def translate_with_deepl_and_process(textList, targetLanguage, formality=None, c
     return translatedProcessedTextsList
 
 # Translate the text entries of the dictionary
-def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcriptMode=False):
+def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcriptMode=False, forceNativeSRTOutput=False):
     targetLanguage = langDict['targetLanguage']
     translateService = langDict['translateService']
     formality = langDict['formality']
@@ -366,7 +381,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
 
     combinedProcessedDict = combine_subtitles_advanced(inputSubsDict, int(config['combine_subtitles_max_chars']))
 
-    if skipTranslation == False or config['debug_mode'] == True:
+    if skipTranslation == False or config['debug_mode'] == True or forceNativeSRTOutput == True:
         # Use video file name to use in the name of the translate srt file, also display regular language name
         lang = langcodes.get(targetLanguage).display_name()
         if config['debug_mode']:
@@ -374,6 +389,8 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
                 translatedSrtFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f" - {lang} - {targetLanguage}.DEBUG.txt"
             else:
                 translatedSrtFileName = "debug" + f" - {lang} - {targetLanguage}.DEBUG.txt"
+        elif forceNativeSRTOutput:
+            translatedSrtFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f"- Original_Combined - {lang} - {targetLanguage}.srt"
         else:
             translatedSrtFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f" - {lang} - {targetLanguage}.srt"
         # Set path to save translated srt file
@@ -548,7 +565,8 @@ def combine_subtitles_advanced(inputDict, maxCharacters=200):
     # Convert the list back to a dictionary then return it
     return dict(enumerate(entryList, start=1))
 
-def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacters):
+def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacters):   
+    ## Don't change these, they are not options, they are for keeping track ##
     # Want to restart the loop if a change is made, so use this variable, otherwise break only if the end is reached
     reachedEndOfList = False
     noMorePossibleCombines = True # Will be set to False if a combination is made
@@ -566,7 +584,7 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
         # Need to calculate the char_rate for each entry, any time something changes, so put it at the top of this loop
         entryListLocal = calc_list_speaking_rates(entryListLocal, charRateGoal)
 
-        # Sort the list by the difference in speaking speed from charRateGoal
+        # Sort the list by the difference in speaking speed from charRateGoal, this will ensure the most extreme fast or slow segments are combined first
         priorityOrderedList = sorted(entryListLocal, key=itemgetter('char_rate_diff'), reverse=True) 
 
         # Iterates through the list in order of priority, and uses that index to operate on entryListLocal
@@ -661,10 +679,37 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
             if not considerNext and not considerPrev:
                 continue
 
-            # Should only reach this point if two entries are to be combined
+            #### Should only reach this point if two entries are to be combined ####
+            
+            # If either direction of combining is possible, then prefer the one that will combine partial sentence fragments - !!!EXPERIMENTAL!!!
+            # Also will prefer to not combine such that it adds a line after a sentence terminator
+            if 'prioritize_avoiding_fragmented_speech' in config: # In case user didn't update config file
+                preferSentenceEnd = config['prioritize_avoiding_fragmented_speech']
+            else:
+                preferSentenceEnd = True
+            if considerNext and considerPrev and preferSentenceEnd == True:
+                # If current doesn't end a sentence and next ends a sentence, combine with next
+                if not ends_with_sentence_terminator(entryListLocal[i]['translated_text']) and ends_with_sentence_terminator(entryListLocal[i+1]['translated_text']):
+                    combine_with_next()
+                    noMorePossibleCombines = False
+                    break
+                # If current ends a sentence and previous doesn't, combine with previous
+                elif ends_with_sentence_terminator(entryListLocal[i]['translated_text']) and not ends_with_sentence_terminator(entryListLocal[i-1]['translated_text']):
+                    combine_with_prev()
+                    noMorePossibleCombines = False
+                    break
+                # Check if previous ends a sentence, if so combine with next, unless current also ends a sentence
+                elif ends_with_sentence_terminator(entryListLocal[i-1]['translated_text']) and not ends_with_sentence_terminator(entryListLocal[i]['translated_text']):
+                    combine_with_next()
+                    noMorePossibleCombines = False
+                    break
+
+            
+            # Case where char_rate is lower than goal
             if data['char_rate'] > charRateGoal:
-                # If both are to be considered, then choose the one with the lower char_rate
+                # If both are to be considered, then choose the one with the lower char_rate.
                 if considerNext and considerPrev:
+                    # Choose lower char rate
                     if nextDiff < prevDiff:
                         combine_with_next()
                         noMorePossibleCombines = False
@@ -687,9 +732,11 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                     print(f"Current Entry Text = {data['text']}")
                     continue
             
+            # Case where char_rate is lower than goal
             elif data['char_rate'] < charRateGoal:
-                # If both are to be considered, then choose the one with the higher char_rate
-                if considerNext and considerPrev:
+                # If both are to be considered, then choose the one with the higher char_rate.
+                if considerNext and considerPrev:                  
+                    # Choose higher char rate
                     if nextDiff > prevDiff:
                         combine_with_next()
                         noMorePossibleCombines = False

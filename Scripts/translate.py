@@ -153,8 +153,25 @@ def split_and_clean_marked_combined_string(originalCombinedString, customMarkerT
     if removeExtraAddedTag:
         textList = [text.replace(removeExtraAddedTag, '') for text in textList]
         
-    # Remove blank lines
-    textList = [text for text in textList if text]
+    # Handle blank lines. DeepL seems to do this and sometimes combines the line after the blank line
+    # This will find the index of a blank line, then split the following line into approximately 2 equal parts, ensuring not to split a word by splitting at the next space near the middle
+    # It will put the first half into the blank line, and the second half into the next line
+    for i, text in enumerate(textList):
+        if text == '':
+            nextLineIndex = i + 1
+            while textList[nextLineIndex] == '':
+                nextLineIndex += 1
+            # Find the middle index
+            middle = len(textList[nextLineIndex]) // 2
+            # Adjust middle index to avoid splitting a word
+            while middle < len(textList[nextLineIndex]) and textList[nextLineIndex][middle] not in [' ', '\n']:
+                middle += 1
+            # Split the next line at the adjusted middle index
+            textList[i] = textList[nextLineIndex][:middle].rstrip()
+            textList[nextLineIndex] = textList[nextLineIndex][middle:].lstrip()
+
+            # In future may need to split line with text into however many blank lines there are plus 1 for itself
+               
     
     return textList
 

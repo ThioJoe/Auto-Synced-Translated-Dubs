@@ -25,9 +25,9 @@ elif 'Tools' in os.listdir():
     pass
 else:
     print("Warning: Not currently in the 'Tools' folder. The script may not work properly.")
-	
+    
 # Set the path to include the project root folder, so Scripts imports are valid
-sys.path.insert(1, os.getcwd())	
+sys.path.insert(1, os.getcwd())
 # ---------------------------------------------------------------------------------------
 from Scripts.shared_imports import *
 import Scripts.auth as auth
@@ -38,10 +38,12 @@ import copy
 import json
 
 import langcodes
-
 # Import translated json file
-with open(translatedJsonFile, "r", encoding='utf-8') as f:
-    translatedJson = json.load(f)
+if updateTitleAndDescription:
+    with open(translatedJsonFile, "r", encoding='utf-8') as f:
+        translatedJson = json.load(f)
+else:
+    translatedJson = None
 
 YOUTUBE_API = auth.youtube_authentication()
 
@@ -245,4 +247,4 @@ if uploadSubtitles:
         print("\nUploading caption for language: " + languageDisplayName + " (" + langCode + ")")
         upload_caption(videoID, langCode, "", filePath) # Use empty string as the name, so it will apply as the default caption for that language
 
-print("\nDone!")
+print("\nDone! It might take a couple minutes for the subtitles to show up on YouTube.")

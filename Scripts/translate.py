@@ -391,6 +391,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
                     f.write(f"DEBUG: end_ms = {combinedProcessedDict[key]['end_ms']}" + '\n')
                     f.write(f"DEBUG: start_ms_buffered = {combinedProcessedDict[key]['start_ms_buffered']}" + '\n')
                     f.write(f"DEBUG: end_ms_buffered = {combinedProcessedDict[key]['end_ms_buffered']}" + '\n')
+                    f.write(f"DEBUG: Number of chars = {len(combinedProcessedDict[key]['translated_text'])}" + '\n')
                 f.write('\n')
 
     # FOR TESTING - Put all translated text into single string
@@ -532,7 +533,7 @@ def set_translation_info(languageBatchDict):
 #======================================== Combine Subtitle Lines ================================================
 def combine_subtitles_advanced(inputDict, maxCharacters=200):
     charRateGoal = 20 #20
-    gapThreshold = 100 # The maximum gap between subtitles to combine
+    gapThreshold = 200 # The maximum gap between subtitles to combine
     noMorePossibleCombines = False
     # Convert dictionary to list of dictionaries of the values
     entryList = []

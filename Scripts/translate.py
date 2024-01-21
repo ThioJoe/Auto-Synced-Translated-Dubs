@@ -550,7 +550,13 @@ def set_translation_info(languageBatchDict):
 #======================================== Combine Subtitle Lines ================================================
 def combine_subtitles_advanced(inputDict, maxCharacters=200):
     charRateGoal = 20 #20
-    gapThreshold = 200 # The maximum gap between subtitles to combine
+    # Set gap threshold, the maximum gap between subtitles to combine
+    if 'subtitle_gap_threshold_milliseconds' in config:
+        gapThreshold = int(config['subtitle_gap_threshold_milliseconds'])
+    else:
+        gapThreshold = 200
+    
+    # Don't change this, it is not an option, it is for keeping track
     noMorePossibleCombines = False
     # Convert dictionary to list of dictionaries of the values
     entryList = []

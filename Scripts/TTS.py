@@ -420,6 +420,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
             
             # Download resultig zip file
             if resultDownloadLink is not None:
+                print("Downloading audio files...")
                 # Download zip file
                 urlResponse = urlopen(resultDownloadLink)
 
@@ -435,7 +436,6 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                         f.write(urlResponse.read())
                     # Reset urlResponse so it can be read again
                     urlResponse = urlopen(resultDownloadLink)
-
                 # Process zip file    
                 virtualResultZip = io.BytesIO(urlResponse.read())
                 zipdata = zipfile.ZipFile(virtualResultZip)

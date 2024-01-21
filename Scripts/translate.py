@@ -384,24 +384,36 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
     if skipTranslation == False or config['debug_mode'] == True or forceNativeSRTOutput == True:
         # Use video file name to use in the name of the translate srt file, also display regular language name
         lang = langcodes.get(targetLanguage).display_name()
-        if config['debug_mode']:
-            if os.path.isfile(ORIGINAL_VIDEO_PATH):
-                translatedSrtFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f" - {lang} - {targetLanguage}.DEBUG.txt"
-            else:
-                translatedSrtFileName = "debug" + f" - {lang} - {targetLanguage}.DEBUG.txt"
-        elif forceNativeSRTOutput:
+
+        if forceNativeSRTOutput:
             translatedSrtFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f"- Original_Combined - {lang} - {targetLanguage}.srt"
         else:
             translatedSrtFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f" - {lang} - {targetLanguage}.srt"
         # Set path to save translated srt file
         translatedSrtFileName = os.path.join(OUTPUT_FOLDER, translatedSrtFileName)
+        
         # Write new srt file with translated text
         with open(translatedSrtFileName, 'w', encoding='utf-8-sig') as f:
             for key in combinedProcessedDict:
                 f.write(str(key) + '\n')
                 f.write(combinedProcessedDict[key]['srt_timestamps_line'] + '\n')
                 f.write(combinedProcessedDict[key]['translated_text'] + '\n')
-                if config['debug_mode']:
+                f.write('\n')
+        
+        # Write debug version if applicable
+        if config['debug_mode']:
+            if os.path.isfile(ORIGINAL_VIDEO_PATH):
+                DebugSrtFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f" - {lang} - {targetLanguage}.DEBUG.txt"
+            else:
+                DebugSrtFileName = "debug" + f" - {lang} - {targetLanguage}.DEBUG.txt"
+                
+            DebugSrtFileName = os.path.join(OUTPUT_FOLDER, DebugSrtFileName)
+            
+            with open(DebugSrtFileName, 'w', encoding='utf-8-sig') as f:
+                for key in combinedProcessedDict:
+                    f.write(str(key) + '\n')
+                    f.write(combinedProcessedDict[key]['srt_timestamps_line'] + '\n')
+                    f.write(combinedProcessedDict[key]['translated_text'] + '\n')
                     f.write(f"DEBUG: duration_ms = {combinedProcessedDict[key]['duration_ms']}" + '\n')
                     f.write(f"DEBUG: char_rate = {combinedProcessedDict[key]['char_rate']}" + '\n')
                     f.write(f"DEBUG: start_ms = {combinedProcessedDict[key]['start_ms']}" + '\n')
@@ -409,7 +421,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
                     f.write(f"DEBUG: start_ms_buffered = {combinedProcessedDict[key]['start_ms_buffered']}" + '\n')
                     f.write(f"DEBUG: end_ms_buffered = {combinedProcessedDict[key]['end_ms_buffered']}" + '\n')
                     f.write(f"DEBUG: Number of chars = {len(combinedProcessedDict[key]['translated_text'])}" + '\n')
-                f.write('\n')
+                    f.write('\n')
 
     # FOR TESTING - Put all translated text into single string
     # translatedText = ""
@@ -549,12 +561,23 @@ def set_translation_info(languageBatchDict):
 
 #======================================== Combine Subtitle Lines ================================================
 def combine_subtitles_advanced(inputDict, maxCharacters=200):
-    charRateGoal = 20 #20
     # Set gap threshold, the maximum gap between subtitles to combine
     if 'subtitle_gap_threshold_milliseconds' in config:
         gapThreshold = int(config['subtitle_gap_threshold_milliseconds'])
     else:
         gapThreshold = 200
+    
+    if ('speech_rate_goal' in config and config['speech_rate_goal'] == 'auto') or ('speech_rate_goal' not in config):
+        # Calculate average char rate goal by dividing the total number of characters by the total duration in seconds from the last subtitle timetsamp
+        totalCharacters = 0
+        totalDuration = 0
+        for key, value in inputDict.items():
+            totalCharacters += len(value['translated_text'])
+            totalDuration = int(value['end_ms']) / 1000 # Just ends up staying as last subtitle timestamp
+        charRateGoal = totalCharacters / totalDuration
+        charRateGoal = round(charRateGoal, 2)
+    else:
+        charRateGoal = config['speech_rate_goal']
     
     # Don't change this, it is not an option, it is for keeping track
     noMorePossibleCombines = False

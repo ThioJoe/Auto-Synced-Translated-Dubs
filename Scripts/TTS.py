@@ -411,8 +411,13 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                     resultDownloadLink = azure_batch.get_synthesis(job_id).json()['outputs']['result']
                     break
                 elif status == 'Failed':
+                    errorCode = response.json()['properties']['error']['code']
+                    errorMessage = response.json()['properties']['error']['message']
                     print('ERROR: Batch synthesis job failed!')
                     print("Reason:" + response.reason)
+                    print("Error Code: " + errorCode)
+                    print("Error Message: " + errorMessage)
+                    print()
                     break
                 else:
                     print(f'Waiting for Azure batch synthesis job to finish. Status: [{status}]')

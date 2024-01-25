@@ -690,6 +690,8 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                     tempMaxChars = maxCharacters + 70
                 elif data['char_rate'] > 25:
                     tempMaxChars = maxCharacters + 50
+                else:
+                    tempMaxChars = maxCharacters
             else:
                 tempMaxChars = maxCharacters
 
@@ -697,7 +699,7 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
             if data['char_rate'] > charRateGoal:
                 # Check to ensure next/previous rates are lower than current rate, and the combined entry is not too long, and the gap between entries is not too large
                 # Need to add check for considerNext and considerPrev first, because if run other checks when there is no next/prev value to check, it will throw an error
-                if considerNext == False or nextDiff or nextDiff < 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > tempMaxChars):
+                if considerNext == False or not nextDiff or nextDiff < 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > tempMaxChars):
                     considerNext = False
                 try:
                     if considerPrev == False or not prevDiff or prevDiff < 0 or (entryListLocal[i-1]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i-1]['translated_text']) + len(entryListLocal[i]['translated_text']) > tempMaxChars):

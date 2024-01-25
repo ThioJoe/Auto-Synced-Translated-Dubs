@@ -1,34 +1,56 @@
 
-#========================================= USER SETTINGS ===============================================
+# USES OF THIS SCRIPT (Either one or both): 
+#  1. Embedding multi-language audio tracks into video files
+#  2. Adding sound effects or music to audio tracks
 
+#========================================================================================================
+#========================================= USER SETTINGS ================================================
+#========================================================================================================
 # REMEMBER: Unlike the .ini config files, the variable values here must be surrounded by "quotation" marks
+
+# TO DO: 
+    # Fix the outputTracksFormat to actually work
+    # Make embedTracksInVideo work
+    # Make sure it works if no video is selected but embedTracksInVideo is false
+    # Add progress status for everything - checking if stereo, merging effects, adding tracks, etc
+
+
+# ------------------------------------------- Essential Settings -------------------------------------------
 
     # The folder (or path relative to this script file) containing the audio track files to add to the video
     # Note: ALL audio tracks in the folder will be added, so ensure only the tracks you want are in there
     # A resulting copy of the original video, now with all tracks added, will also be placed in this folder
-tracksFolder = r"output" 
 
-    # The video can be anywhere as long as you use the full absolute filepath. Or you can use a relative path.
-    # The original will remain the same, and a copy with "MultiTrack" added to the name will be created in the output folder
-    # This script assumes the video is an mp4 file. I'm not sure if it will work with other formats/containers.
-videoToProcess = r"whatever\path\here"
-
-    # Whether to merge a sound effect track into each audio track before adding to the video
+    # Whether to merge a sound effect track into each audio track, and before adding to the video if applicable
     # The original audio track files will remain unchanged
-useSoundEffectsTrack = False
+mergeEffectsTrack = True
 
-    # If applicable, the filename of the sound effects or music track to add to each audio track before adding to the video
-    # If "useSoundEffectsTrack" is set to False, this will be ignored
-    # Must be in the same folder as the audio tracks!
-effectsTrackFileName = r"your_sound_effects_file.mp3"
+    # Whether to embed the audio tracks into the video file. 
+embedTracksInVideo = True 
+
+# ------------------------------------ Sound Effects Track Merging Options ------------------------------------
 
     # Whether to save a copy of each audio track with the sound effects track merged into it
     # They will go into a folder called "Merged Effects Tracks"
     # Note: The original audio track files will always remain unchanged no matter this setting
 saveMergedTracks = True
 
+outputTracksFormat = "mp3" # mp3, wav, aac, or 'same' to keep the same format as the original file
+
+    # If applicable, the filename of the sound effects or music track to add to each audio track before adding to the video
+    # If "useSoundEffectsTrack" is set to False, this will be ignored
+    # Must be in the same folder as the audio tracks!
+effectsTrackFileName = r"B:\Dropbox\Youtube\Video Dubs\Auto Translate Dub App Demo\Sound Effects Track.wav"
+
+# ------------------------------------ Track Video Embedding Options ------------------------------------
+
+    # The video can be anywhere as long as you use the full absolute filepath. Or you can use a relative path.
+    # The original will remain the same, and a copy with "MultiTrack" added to the name will be created in the output folder
+    # This script assumes the video is an mp4 file. I'm not sure if it will work with other formats/containers.
+videoToProcess = r"E:\YouTube Videos\ThioJoe\2022\Auto Translate Dub App Demo.mp4"
+
     # The three letter language code for the default track. English = eng, Spanish = spa, etc
-defaultLanguage = "eng" 
+defaultLanguage = "eng"
 
 #========================================================================================================
 
@@ -147,7 +169,7 @@ def convert_to_stereo(tracksDict):
             tracksDict[langcode] = tempFilePath
 
             # Add to list of files to delete later when done, unless need to save merged tracks
-            if parseBool(useSoundEffectsTrack) and parseBool(saveMergedTracks) and langcode != "effects":
+            if parseBool(mergeEffectsTrack) and parseBool(saveMergedTracks) and langcode != "effects":
                 pass
             else:
                 tempFilesToDelete.append(tempFilePath)
@@ -161,7 +183,7 @@ print("\nChecking if tracks are stereo...")
 tracksToAddDict = convert_to_stereo(tracksToAddDict)
 
 # Use pydub to combine the sound effects track with each audio track
-if parseBool(useSoundEffectsTrack):
+if parseBool(mergeEffectsTrack):
     # Ensure the sound effects track is stereo, if not make it stereo
     soundEffectsDict = convert_to_stereo(soundEffectsDict)
 
@@ -194,11 +216,20 @@ if parseBool(useSoundEffectsTrack):
             # Get file extension
             fileExtension = os.path.splitext(trackFilePath)[1][1:]
             # Determine the format needed for pydub to export
-            if fileExtension == "aac":
+            outputTracksFormat = outputTracksFormat.lower()
+            if outputTracksFormat == "same" and fileExtension.lower() != "aac":
+                formatString = fileExtension
+            elif outputTracksFormat == "same" and fileExtension.lower() == "aac":
+                formatString = "adts"
+            elif outputTracksFormat == "mp3":
+                formatString = "mp3"
+            elif outputTracksFormat == "wav":
+                formatString = "wav"
+            elif outputTracksFormat == "aac":
                 formatString = "adts"
             else:
                 formatString = fileExtension
-            combined.export(trackFilePath, format=formatString, bitrate="128k")
+            combined.export(trackFilePath, format=formatString, bitrate="192k")
         else:
             print("\n\nERROR: The script did not create a temporary file - cannot overwrite original file.")
             print("This should not happen and is a bug. Please report it here: https://github.com/ThioJoe/Auto-Synced-Translated-Dubs/issues")

@@ -679,25 +679,38 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                 entryListLocal[i-1]['duration_ms_buffered'] = int(entryListLocal[i]['end_ms_buffered']) - int(entryListLocal[i-1]['start_ms_buffered'])
                 entryListLocal[i-1]['srt_timestamps_line'] = entryListLocal[i-1]['srt_timestamps_line'].split(' --> ')[0] + ' --> ' + entryListLocal[i]['srt_timestamps_line'].split(' --> ')[1]
                 del entryListLocal[i]
+                
+            # If user has set option to increase maximum characters when speeds are extreme. Increase by various amounts depending on how extreme
+            if 'increase_max_chars_for_extreme_speeds' in config and config['increase_max_chars_for_extreme_speeds'] == True:
+                if data['char_rate'] > 28:
+                    tempMaxChars = maxCharacters + 100
+                elif data['char_rate'] > 27:
+                    tempMaxChars = maxCharacters + 85
+                elif data['char_rate'] > 26:
+                    tempMaxChars = maxCharacters + 70
+                elif data['char_rate'] > 25:
+                    tempMaxChars = maxCharacters + 50
+            else:
+                tempMaxChars = maxCharacters
 
             # Choose whether to consider next and previous entries, and if neither then continue to next loop
             if data['char_rate'] > charRateGoal:
                 # Check to ensure next/previous rates are lower than current rate, and the combined entry is not too long, and the gap between entries is not too large
                 # Need to add check for considerNext and considerPrev first, because if run other checks when there is no next/prev value to check, it will throw an error
-                if considerNext == False or nextDiff or nextDiff < 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > maxCharacters):
+                if considerNext == False or nextDiff or nextDiff < 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > tempMaxChars):
                     considerNext = False
                 try:
-                    if considerPrev == False or not prevDiff or prevDiff < 0 or (entryListLocal[i-1]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i-1]['translated_text']) + len(entryListLocal[i]['translated_text']) > maxCharacters):
+                    if considerPrev == False or not prevDiff or prevDiff < 0 or (entryListLocal[i-1]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i-1]['translated_text']) + len(entryListLocal[i]['translated_text']) > tempMaxChars):
                         considerPrev = False
                 except TypeError:
                     considerPrev = False
 
             elif data['char_rate'] < charRateGoal:
                 # Check to ensure next/previous rates are higher than current rate
-                if considerNext == False or not nextDiff or nextDiff > 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > maxCharacters):
+                if considerNext == False or not nextDiff or nextDiff > 0 or (entryListLocal[i]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i]['translated_text']) + len(entryListLocal[i+1]['translated_text']) > tempMaxChars):
                     considerNext = False
                 try:
-                    if considerPrev == False or not prevDiff or prevDiff > 0 or (entryListLocal[i-1]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i-1]['translated_text']) + len(entryListLocal[i]['translated_text']) > maxCharacters):
+                    if considerPrev == False or not prevDiff or prevDiff > 0 or (entryListLocal[i-1]['break_until_next'] >= gapThreshold) or (len(entryListLocal[i-1]['translated_text']) + len(entryListLocal[i]['translated_text']) > tempMaxChars):
                         considerPrev = False
                 except TypeError:
                     considerPrev = False

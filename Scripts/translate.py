@@ -28,14 +28,15 @@ urlList = utils.txt_to_list(urlListFile)
 # Add span tags around certain words to exclude them from being translated
 def add_notranslate_tags_from_notranslate_file(text, phraseList, customNoTranslateTag=None):
     for word in phraseList:
-        findWordRegex = rf'(\p{{Z}}|^)(["\'()]?{word}[.,!?()]?["\']?)(\p{{Z}}|$)' #\p ensures it works with unicode characters
+        findWordRegex = rf'\b{word}\b'
         findWordRegexCompiled = regex.compile(findWordRegex, flags=re.IGNORECASE | re.UNICODE)
-        # Find the word, with optional punctuation after, and optional quotes before or after
+
         if not customNoTranslateTag:
-            text = findWordRegexCompiled.sub(r'\1<span class="notranslate">\2</span>\3', text)
+            # Directly replace the word with a span tag
+            text = findWordRegexCompiled.sub(rf'<span class="notranslate">{word}</span>', text)
         else:
-            # Add custom XML tag
-            text = findWordRegexCompiled.sub(rf'\1<{customNoTranslateTag}>\2</{customNoTranslateTag}>\3', text)
+            # Replace the word with a custom XML tag
+            text = findWordRegexCompiled.sub(rf'<{customNoTranslateTag}>{word}</{customNoTranslateTag}>', text)
     return text
 
 def remove_notranslate_tags(text, customNoTranslateTag=None):
@@ -50,12 +51,16 @@ def add_notranslate_tags_for_manual_translations(text, langcode, customTag=None)
         # Only replace text if the language matches the entry in the manual translations file
         if manualTranslatedText['Language Code'] == langcode: 
             originalText = manualTranslatedText['Original Text']
-            findWordRegex = rf'(\p{{Z}}|^)(["\'()]?{originalText}[.,!?()]?["\']?)(\p{{Z}}|$)'
+            findWordRegex = rf'\b{originalText}\b'
             findWordRegexCompiled = regex.compile(findWordRegex, flags=re.IGNORECASE | re.UNICODE)
-            if customTag == None:
-                text = findWordRegexCompiled.sub(r'\1<span class="notranslate">\2</span>\3', text)
+
+            if customTag is None:
+                replacement = rf'<span class="notranslate">{originalText}</span>'
             else:
-                text = findWordRegexCompiled.sub(rf'\1<{customTag}>\2</{customTag}>\3', text)
+                replacement = rf'<{customTag}>{originalText}</{customTag}>'
+
+            text = findWordRegexCompiled.sub(replacement, text)
+
     return text
 
 # Replace certain words or phrases with their manual translation
@@ -65,10 +70,11 @@ def replace_manual_translations(text, langcode):
         if manualTranslatedText['Language Code'] == langcode: 
             originalText = manualTranslatedText['Original Text']
             translatedText = manualTranslatedText['Translated Text']
-            findWordRegex = rf'(\p{{Z}}|^)(["\'()]?{originalText}[.,!?()]?["\']?)(\p{{Z}}|$)'
+            findWordRegex = rf'\b{originalText}\b'
             findWordRegexCompiled = regex.compile(findWordRegex, flags=re.IGNORECASE | re.UNICODE)
             # Substitute the matched word with the translated text
-            text = findWordRegexCompiled.sub(rf'\1{translatedText}\3', text)
+            text = findWordRegexCompiled.sub(translatedText, text)
+
     return text
 
 
@@ -153,12 +159,37 @@ def add_marker_and_convert_to_string(textList, customMarkerTag):
         if i == len(textList) - 1:
             combinedString += text
         else:
-            combinedString += text + f" {customMarkerTag} "
+            combinedString += text + f" {customMarkerTag}"
     return combinedString
 
 def split_and_clean_marked_combined_string(originalCombinedString, customMarkerTag, removeExtraAddedTag=None):
+    # Fix issue where sometimes double commas or punctuation are added near tags
+    punctuation = ",、.。"  # Add more comma types if needed
+    escapedPunctuationChars = re.escape(punctuation)
+    doublePunctuationPattern = rf"([.{escapedPunctuationChars}]\s*(?:<[^>]+>\s*)*[.{escapedPunctuationChars}]?\s*{customMarkerTag}\s*)[.{escapedPunctuationChars}]"
+    # Replace the entire match with the captured group (excluding the redundant period)
+    fixedCombinedString = re.sub(doublePunctuationPattern, r'\1', originalCombinedString)
+    
+    # Fix issue where a comma is placed after the marker tag, which causes comma to be at the beginning of a line
+    fixMisplacedCommaPattern = rf"({customMarkerTag}\s?)([{escapedPunctuationChars}])"
+    fixedCombinedString = re.sub(fixMisplacedCommaPattern, r"\2\1", fixedCombinedString)
+    
+    # Fix issue where after a custom  marker tag, an extra space is added between the next punctuation. This matches any ending html tag, then a space, then a punctuation character
+    fixExtraSpaceAfterTagPattern = rf"(</[^>]+>)\s+([{escapedPunctuationChars}])"
+    fixedCombinedString = re.sub(fixExtraSpaceAfterTagPattern, r"\1\2", fixedCombinedString)
+    
+    # # Fix resulting comma appearing directly after period after correcting other issues
+    # escaped_periods = re.escape(".。")  # Standard and Japanese periods
+    # escaped_commas = re.escape(",、")  # Standard and Japanese commas
+    # commaAfterPeriodPattern = rf"([{escaped_periods}])([{escaped_commas}])"
+    # # Use re.sub to remove the comma in such cases (replace with just the period)
+    # fixedCombinedString = re.sub(commaAfterPeriodPattern, r"\1", fixedCombinedString)
+    
+    # Fix issue where hyphen is placed in addition to comma resulting in -,
+    fixedCombinedString = fixedCombinedString.replace(f' -,', f',')
+
     # Split the translated text into chunks based on the custom marker tags, and remove the tags
-    textList = originalCombinedString.split(f'{customMarkerTag}')
+    textList = fixedCombinedString.split(f'{customMarkerTag}')
     # Strip spaces off ends of lines, then remove tag, and strip spaces again to remove any leftover
     textList = [text.strip() for text in textList]
     textList = [text.replace(f'{customMarkerTag}', '') for text in textList]
@@ -230,7 +261,7 @@ def translate_with_deepl_and_process(textList, targetLanguage, formality=None, c
     # Handle weird quirk of DeepL where it adds parenthesis around the tag sometimes
     # Pattern to find parentheses around the custom tag with potential spaces. Also handles full width parenthesis
     pattern = r'[（(]\s*<xxx>\s*[）)]'
-    translatedText = re.sub(pattern, ' <xxx> ', translatedText)
+    translatedText = re.sub(pattern, ' <xxx>', translatedText)
     
     # Split the translated text into chunks based on the custom marker tags, and remove the tags
     translatedTextsList = split_and_clean_marked_combined_string(translatedText, customMarkerTag='<xxx>')

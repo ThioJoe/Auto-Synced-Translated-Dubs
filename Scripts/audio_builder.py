@@ -203,6 +203,17 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             virtualTrimmedFileDict[key].seek(0) # Not 100% sure if this is necessary but it was in the other place it is used
 
         canvas = insert_audio(canvas, stretchedClip, value['start_ms'])
+        
+        # Print warning if audio clip is longer than expected and would overlap next clip
+        currentClipExpectedDuration = int(value['duration_ms'])
+        currentClipTrueDuration = stretchedClip.duration_seconds * 1000
+        difference = str(round(currentClipTrueDuration - currentClipExpectedDuration))
+        if key < len(subsDict) and (currentClipTrueDuration + int(value['start_ms']) > int(subsDict[key+1]['start_ms'])):
+            print(f"WARNING: Audio clip {str(key)} for language {langDict['languageCode']} is {difference}ms longer than expected and may overlap the next clip. Inspect the audio file after completion.")
+        elif key == len(subsDict) and (currentClipTrueDuration + int(value['start_ms']) > totalAudioLength):
+            print(f"WARNING: Audio clip {str(key)} for language {langDict['languageCode']} is {difference}ms longer than expected and may cut off at the end of the file. Inspect the audio file after completion.")
+            
+            
         keyIndex = list(subsDict.keys()).index(key)
         print(f" Final Audio Processed: {keyIndex+1} of {len(subsDict)}", end="\r")
     print("\n")

@@ -562,12 +562,12 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                 with open(filePath, "wb") as out:
                     out.write(audio)
                 
-                # If debug mode, write to files after Google TTS
-                if config['debug_mode'] and secondPass == False:
-                    with open(filePathStem+"_p1.mp3", "wb") as out:
-                        out.write(audio)
-                elif config['debug_mode'] and secondPass == True:
-                    with open(filePathStem+"_p2.mp3", "wb") as out:
+                # If debug mode, write to files TTS - Doesn't write for 1st pass because it's already written as [number].mp3
+                # if config['debug_mode'] and secondPass == False:
+                #     with open(filePathStem+"_pass1.mp3", "wb") as out:
+                #         out.write(audio)
+                if config['debug_mode'] and secondPass == True:
+                    with open(filePathStem+"_pass2.mp3", "wb") as out:
                         out.write(audio)
 
             # If Azure TTS, use Azure API
@@ -577,12 +577,12 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                 # Save to file using save_to_wav_file method of audio object
                 audio.save_to_wav_file(filePath)
                 
-                # If debug mode, write to files after Google TTS
-                if config['debug_mode'] and secondPass == False:
-                    audio.save_to_wav_file(filePathStem+"_p1.mp3")
-                elif config['debug_mode'] and secondPass == True:
-                    audio.save_to_wav_file(filePathStem+"_p2.mp3")
-                    
+                # If debug mode, write to files TTS - Doesn't write for 1st pass because it's already written as [number].mp3
+                # if config['debug_mode'] and secondPass == False:
+                #     audio.save_to_wav_file(filePathStem+"_pass1.mp3")
+                if config['debug_mode'] and secondPass == True:
+                    audio.save_to_wav_file(filePathStem+"_pass2.mp3")
+
         subsDict[key]['TTS_FilePath'] = filePath
 
         # Get key index

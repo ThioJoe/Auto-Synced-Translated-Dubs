@@ -102,12 +102,17 @@ def stretch_audio_clip(audioFileToStretch, speedFactor, num):
     if config['local_audio_stretch_method'] == 'ffmpeg':
         stretched_audio = stretch_with_ffmpeg(audioFileToStretch, speedFactor)
         virtualTempAudioFile.write(stretched_audio)
+        if config['debug_mode']:
+            # For debugging, save the stretched audio file using soundfile
+            debug_file_path = os.path.join(workingFolder, f'{num}_stretched_ffmpeg.wav')
+            with open(debug_file_path, 'wb') as f:
+                f.write(stretched_audio)
     elif config['local_audio_stretch_method'] == 'rubberband':
         stretched_audio = stretch_with_rubberband(audioObj, sampleRate, speedFactor)
         #soundfile.write(f'{workingFolder}\\temp_stretched.wav', streched_audio, sampleRate)
         soundfile.write(virtualTempAudioFile, stretched_audio, sampleRate, format='wav')
         if config['debug_mode']:
-            soundfile.write(os.path.join(workingFolder, f'{num}_s.wav'), stretched_audio, sampleRate) # For debugging, saves the stretched audio files
+            soundfile.write(os.path.join(workingFolder, f'{num}_stretched.wav'), stretched_audio, sampleRate) # For debugging, saves the stretched audio files
     #return AudioSegment.from_file(f'{workingFolder}\\temp_stretched.wav', format="wav")
     return AudioSegment.from_file(virtualTempAudioFile, format="wav")
 
@@ -116,7 +121,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     virtualTrimmedFileDict = {}
     # First trim silence off the audio files
     for key, value in subsDict.items():
-        filePathTrimmed = os.path.join(workingFolder,  str(key)) + "_t.wav"
+        filePathTrimmed = os.path.join(workingFolder,  str(key)) + "_trimmed.wav"
         subsDict[key]['TTS_FilePath_Trimmed'] = filePathTrimmed
 
         # Trim the clip and re-write file
@@ -144,7 +149,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     print("\n")
 
     # Calculates speed factor if necessary. Azure doesn't need this, so skip it
-    if not cloudConfig['tts_service'] == 'azure':
+    if not cloudConfig['tts_service'] == 'azure' or config['force_always_stretch'] == True:
         # Calculate speed factors for each clip, aka how much to stretch the audio
         for key, value in subsDict.items():
             #subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
@@ -175,7 +180,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             trimmedClip = trim_clip(rawClip)
             if config['debug_mode']:
                 # Remove '.wav' from the end of the file path
-                secondPassTrimmedFile = value['TTS_FilePath_Trimmed'][:-4] + "_p2_t.wav"
+                secondPassTrimmedFile = value['TTS_FilePath_Trimmed'][:-4] + "_p2_trimmed.wav"
                 trimmedClip.export(secondPassTrimmedFile, format="wav")
             trimmedClip.export(virtualTrimmedFileDict[key], format="wav")
             keyIndex = list(subsDict.keys()).index(key)
@@ -194,7 +199,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
 
     # Stretch audio and insert into canvas
     for key, value in subsDict.items():
-        if (not twoPassVoiceSynth or config['force_stretch_with_twopass'] == True) and cloudConfig['tts_service'] not in servicesSupportingExactDuration: # Don't stretch if azure is used
+        if ((not twoPassVoiceSynth or config['force_stretch_with_twopass'] == True) and (cloudConfig['tts_service'] not in servicesSupportingExactDuration)) or config['force_always_stretch'] == True: # Don't stretch if azure is used unless forced
             #stretchedClip = stretch_audio_clip(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'], num=key)
             stretchedClip = stretch_audio_clip(virtualTrimmedFileDict[key], speedFactor=subsDict[key]['speed_factor'], num=key)
         else:

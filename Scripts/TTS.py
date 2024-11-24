@@ -170,7 +170,7 @@ def synthesize_text_google(text, speedFactor, voiceName, voiceGender, languageCo
             print("Waiting 65 seconds to try again")
             time.sleep(65)
             print("Trying again...")
-            response = send_request()
+            response = send_request(speedFactor)
         else:
             input("Press Enter to continue...")
     except Exception as ex:
@@ -405,12 +405,19 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
             while True: # Must use break to exit loop
                 # Get status
                 response = azure_batch.get_synthesis(job_id)
-                status = response.json()['status']
-                if status == 'Succeeded':
+                if response:
+                    status = response.json()['status']
+                else:
+                    if utils.choice("Failed to get status of Azure batch synthesis job. Would you like to retry?") == True:
+                        continue
+                    else:
+                        break
+                    
+                if status and status == 'Succeeded':
                     print('Batch synthesis job succeeded')
-                    resultDownloadLink = azure_batch.get_synthesis(job_id).json()['outputs']['result']
+                    resultDownloadLink = response.json()['outputs']['result']
                     break
-                elif status == 'Failed':
+                elif status and status == 'Failed':
                     errorCode = response.json()['properties']['error']['code']
                     errorMessage = response.json()['properties']['error']['message']
                     print('ERROR: Batch synthesis job failed!')
@@ -421,7 +428,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                     break
                 else:
                     print(f'Waiting for Azure batch synthesis job to finish. Status: [{status}]')
-                    time.sleep(5)
+                    time.sleep(5) # 5 Seconds
             
             # Download resultig zip file
             if resultDownloadLink is not None:

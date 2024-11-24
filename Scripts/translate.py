@@ -256,7 +256,11 @@ def translate_with_deepl_and_process(textList, targetLanguage, formality=None, c
     
     # Send the Request, then extract translated text as string from the response
     result = auth.DEEPL_API.translate_text(textListToSend, target_lang=targetLanguage, formality=formality, tag_handling='xml', ignore_tags=[customNoTranslateTag, 'xxx'])
-    translatedText = result[0].text
+    # Check if result is a list or a single TextResult
+    if isinstance(result, list):
+        translatedText = result[0].text
+    else:
+        translatedText = result.text
     
     # Handle weird quirk of DeepL where it adds parenthesis around the tag sometimes
     # Pattern to find parentheses around the custom tag with potential spaces. Also handles full width parenthesis
@@ -280,7 +284,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
     textToTranslate = []
     
     # Set Custom Tag if supported by the translation service
-    if translateService == 'deepl':
+    if translateService == TranslateService.DEEPL:
         customNoTranslateTag = 'zzz'
     else:
         customNoTranslateTag = None
@@ -301,16 +305,16 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
     #     codepoints += len(text.encode("utf-8"))
       
     if skipTranslation == False:
-        maxLines = None
+        maxLines = 999 
         # Set maxCodePoints based on translate service. This will determine the chunk size
         # Google's API limit is 30000 Utf-8 codepoints per request, while DeepL's is 130000, but we leave some room just in case
-        if translateService == 'google':
+        if translateService == TranslateService.GOOGLE:
             # maxCodePoints = 27000
             maxCodePoints = 5000 # Not the hard limit, but recommended
             # For the workaround to get it to keep HTML markers in place, can't do more than 50 subtitle lines worth, so set 40 for buffer
             # This isn't a limit for the request, but how many lines can be combined into a single string for the workaround
             maxLines = 40
-        elif translateService == 'deepl':
+        elif translateService == TranslateService.DEEPL:
             maxCodePoints = 100000
             maxLines = 999999 # No such needed limit for DeepL, but set to a high number just in case
             
@@ -322,7 +326,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
         for text in textToTranslate:
             textCodePoints = len(text.encode("utf-8")) + 7 # Add 7 to account for custom tag to be added later
             
-            if currentChunk and translateService == 'deepl':
+            if currentChunk and translateService == TranslateService.DEEPL:
                 # Check if adding the current text will exceed the limit and if it ends with a period or period followed by a space
                 if (currentCodePoints + textCodePoints > maxCodePoints) and text.endswith(('.', '. ','!','! ','?','? ', '."','." ')):
                     chunkedTexts.append(currentChunk)
@@ -330,7 +334,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
                     currentCodePoints = 0
                     
             # For google need to additionally check for maxLines
-            elif currentChunk and translateService == 'google':
+            elif currentChunk and translateService == TranslateService.GOOGLE:
                 # Set soft limit of 40 lines or 5000 code points, where only splits chunk if ending sentence
                 if (len(currentChunk) >= maxLines or currentCodePoints + textCodePoints > maxCodePoints) and text.endswith(('.', '. ','!','! ','?','? ', '."','." ')):
                     chunkedTexts.append(currentChunk)
@@ -369,18 +373,20 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
         for j,chunk in enumerate(chunkedTexts):
                       
             # Send the request
-            if translateService == 'google':
+            if translateService == TranslateService.GOOGLE:
                 serviceName = "Google"
                 print(f'[Google] Translating text group {j+1} of {len(chunkedTexts)}')
                 translatedTexts = translate_with_google_and_process(chunk, targetLanguage)
 
-            elif translateService == 'deepl':
+            elif translateService == TranslateService.DEEPL:
                 serviceName = "DeepL"
                 print(f'[DeepL] Translating text group {j+1} of {len(chunkedTexts)}')
-                translatedTexts = translate_with_deepl_and_process(chunk, targetLanguage, formality=formality, customNoTranslateTag=customNoTranslateTag)
+                translatedTexts = translate_with_deepl_and_process(chunk, targetLanguage, formality=formality, customNoTranslateTag=customNoTranslateTag or 'zzz')
                 
             else:
-                print("Error: Invalid translate_service setting. Only 'google' and 'deepl' are supported.")
+                print("Error: Invalid translate_service setting. The following are allowed: ")
+                print(*(f"{service}" for service in TranslateService), sep=', ')
+                    
                 sys.exit()
                 
             # Add the translated texts to the dictionary
@@ -464,7 +470,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
 def download_youtube_auto_translations(languageCodeList, videoID):
     
     def get_captions_list(videoID):
-        results = auth.YOUTUBE_API.captions().list(
+        results = auth.YOUTUBE_API.captions().list( # type: ignore[reportAttributeAccessIssue]
             part="snippet",
             videoId=videoID
         ).execute()
@@ -490,7 +496,7 @@ def download_youtube_auto_translations(languageCodeList, videoID):
         return captionID
       
     def download_yt_translated_captions_track(captionID, desiredLanguageCode=None, tfmt='srt'):
-        results = auth.YOUTUBE_API.captions().download(
+        results = auth.YOUTUBE_API.captions().download( # type: ignore[reportAttributeAccessIssue]
             id=captionID,
             tlang=desiredLanguageCode,
             tfmt=tfmt
@@ -536,7 +542,7 @@ def set_translation_info(languageBatchDict):
         return newBatchSettingsDict
         
     # Set the translation service for each language
-    if cloudConfig['translate_service'] == 'deepl':
+    if cloudConfig['translate_service'] == TranslateService.DEEPL:
         langSupportResponse = auth.DEEPL_API.get_target_languages()
         supportedLanguagesList = list(map(lambda x: str(x.code).upper(), langSupportResponse))
 
@@ -562,7 +568,7 @@ def set_translation_info(languageBatchDict):
                     newBatchSettingsDict[langNum]['translation_target_language'] = deepL_code_override[lang]
                     lang = deepL_code_override[lang]
                 # Set translation service to DeepL
-                newBatchSettingsDict[langNum]['translate_service'] = 'deepl'
+                newBatchSettingsDict[langNum]['translate_service'] = TranslateService.DEEPL
                 # Setting to 'prefer_more' or 'prefer_less' will it will default to 'default' if formality not supported             
                 if config['formality_preference'] == 'more':
                     newBatchSettingsDict[langNum]['formality'] = 'prefer_more'
@@ -574,13 +580,13 @@ def set_translation_info(languageBatchDict):
 
             # If language is not supported, add dictionary entry to use Google
             else:
-                newBatchSettingsDict[langNum]['translate_service'] = 'google'
+                newBatchSettingsDict[langNum]['translate_service'] = TranslateService.GOOGLE
                 newBatchSettingsDict[langNum]['formality'] = None
 
     # If using Google, set all languages to use Google in dictionary
-    elif cloudConfig['translate_service'] == 'google':
+    elif cloudConfig['translate_service'] == TranslateService.GOOGLE:
         for langNum, langInfo in languageBatchDict.items():
-            newBatchSettingsDict[langNum]['translate_service'] = 'google'
+            newBatchSettingsDict[langNum]['translate_service'] = TranslateService.GOOGLE
             newBatchSettingsDict[langNum]['formality'] = None
 
     else:
@@ -785,7 +791,7 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                 # If both are to be considered, then choose the one with the lower char_rate.
                 if considerNext and considerPrev:
                     # Choose lower char rate
-                    if nextDiff < prevDiff:
+                    if nextDiff and (nextDiff < prevDiff):
                         combine_with_next()
                         noMorePossibleCombines = False
                         break
@@ -812,7 +818,7 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                 # If both are to be considered, then choose the one with the higher char_rate.
                 if considerNext and considerPrev:                  
                     # Choose higher char rate
-                    if nextDiff > prevDiff:
+                    if nextDiff and (nextDiff > prevDiff):
                         combine_with_next()
                         noMorePossibleCombines = False
                         break

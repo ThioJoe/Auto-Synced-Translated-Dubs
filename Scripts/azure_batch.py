@@ -54,7 +54,7 @@ def get_synthesis(job_id):
     header = {
         'Ocp-Apim-Subscription-Key': AZURE_SPEECH_KEY
     }
-    response = requests.get(url, headers=header)
+    response:requests.Response = requests.get(url, headers=header)
     if response.status_code < 400:
         logger.info('Get batch synthesis job successfully')
         logger.info(response.json())

@@ -55,3 +55,23 @@ def txt_to_list(txtFilePath):
             if line.strip() != '' and line.strip()[0] != '#':
                 entriesList.append(line.strip())
     return entriesList
+
+
+# User inputs Y/N for choice, returns True or False. Takes in message to display
+# 
+def choice(message="", bypass=False, allowNone=False):  
+  if bypass == True:
+    return True
+
+  # While loop until valid input
+  valid = False
+  while valid == False:
+    response = input("\n" + message + f" (y/n): ").strip()
+    if response == "Y" or response == "y":
+      return True
+    elif response == "N" or response == "n":
+      return False
+    elif (response == "X" or response == "x") and allowNone == True:
+      return None
+    else:
+      print("\nInvalid Input. Enter Y or N  --  Or enter X to return to main menu.")  

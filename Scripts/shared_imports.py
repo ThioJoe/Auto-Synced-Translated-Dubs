@@ -6,6 +6,7 @@ import re
 import regex
 
 from Scripts.utils import parseBool, parseConfigSetting
+import Scripts.enums as enums
 
 # Get Config Values
 configRaw = configparser.ConfigParser()
@@ -49,6 +50,37 @@ if config['debug_mode'] and (ORIGINAL_VIDEO_PATH == '' or ORIGINAL_VIDEO_PATH.lo
     ORIGINAL_VIDEO_PATH = 'Debug.test'
 else:
     ORIGINAL_VIDEO_PATH = os.path.abspath(ORIGINAL_VIDEO_PATH.strip("\""))
+    
+# ------ Enums -------
+TranslateService = enums.TranslateService
 
 # ---------------------------------------------------------------------------------------
-__all__ = ['os', 'sys', 'traceback', 'config', 'cloudConfig', 'batchConfig', 'ORIGINAL_VIDEO_PATH', 'ORIGINAL_VIDEO_NAME', 'OUTPUT_DIRECTORY', 'OUTPUT_YTSYNCED_DIRECTORY', 'OUTPUT_FOLDER', 'OUTPUT_YTSYNCED_FOLDER', 're', 'regex', 'parseBool']
+
+# List of objects to export
+exportObjects:list = [
+    os,
+    sys,
+    traceback,
+    config,
+    cloudConfig,
+    batchConfig,
+    ORIGINAL_VIDEO_PATH,
+    ORIGINAL_VIDEO_NAME,
+    OUTPUT_DIRECTORY,
+    OUTPUT_YTSYNCED_DIRECTORY,
+    OUTPUT_FOLDER,
+    OUTPUT_YTSYNCED_FOLDER,
+    re,
+    regex,
+    parseBool,
+    enums,
+    TranslateService
+]
+
+# Export all objects
+objNameList:list = []
+for obj in exportObjects:
+    strName = [name for name in globals() if globals()[name] is obj][0]
+    objNameList.append(strName)
+
+__all__ = objNameList # type: ignore[reportUnsupportedDunderAll]

@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 # Your Speech resource key and region
 # This example requires environment variables named "SPEECH_KEY" and "SPEECH_REGION"
 
-AZURE_SPEECH_KEY = cloudConfig['azure_speech_key']
-AZURE_SPEECH_REGION = cloudConfig['azure_speech_region']
+AZURE_SPEECH_KEY = cloudConfig.azure_speech_key
+AZURE_SPEECH_REGION = cloudConfig.azure_speech_region
 
 NAME = "Simple synthesis"
 DESCRIPTION = "Simple synthesis description"

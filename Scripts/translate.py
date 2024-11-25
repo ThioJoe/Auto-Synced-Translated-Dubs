@@ -229,10 +229,10 @@ def translate_with_google_and_process(textList, targetLanguage):
     combinedChunkTextString = add_marker_and_convert_to_string(textList, customMarkerTag=customMarkerTag)
     
     response = auth.GOOGLE_TRANSLATE_API.projects().translateText(
-        parent='projects/' + cloudConfig['google_project_id'],
+        parent='projects/' + cloudConfig.google_project_id,
         body={
             'contents': combinedChunkTextString,
-            'sourceLanguageCode': config['original_language'],
+            'sourceLanguageCode': config.original_language,
             'targetLanguageCode': targetLanguage,
             'mimeType': 'text/html',
             #'model': 'nmt',
@@ -416,9 +416,9 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
     # with open('inputSubsDict.json', 'r') as f:
     #     inputSubsDict = json.load(f)
 
-    combinedProcessedDict = combine_subtitles_advanced(inputSubsDict, int(config['combine_subtitles_max_chars']))
+    combinedProcessedDict = combine_subtitles_advanced(inputSubsDict, int(config.combine_subtitles_max_chars))
 
-    if skipTranslation == False or config['debug_mode'] == True or forceNativeSRTOutput == True:
+    if skipTranslation == False or config.debug_mode == True or forceNativeSRTOutput == True:
         # Use video file name to use in the name of the translate srt file, also display regular language name
         lang = langcodes.get(targetLanguage).display_name()
 
@@ -438,7 +438,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
                 f.write('\n')
         
         # Write debug version if applicable
-        if config['debug_mode']:
+        if config.debug_mode:
             if os.path.isfile(ORIGINAL_VIDEO_PATH):
                 DebugSrtFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f" - {lang} - {targetLanguage}.DEBUG.txt"
             else:
@@ -518,7 +518,7 @@ def download_youtube_auto_translations(languageCodeList, videoID):
         return True
     
     # Get native language caption ID
-    nativeCaptionID = get_caption_id(captionsTracksResponse, config['original_language'])
+    nativeCaptionID = get_caption_id(captionsTracksResponse, config.original_language)
     
     # Download the captions for each language
     for langCode in languageCodeList:
@@ -535,14 +535,14 @@ def download_youtube_auto_translations(languageCodeList, videoID):
 def set_translation_info(languageBatchDict):
     newBatchSettingsDict = copy.deepcopy(languageBatchDict)
 
-    if config['skip_translation'] == True:
+    if config.skip_translation == True:
         for langNum, langInfo in languageBatchDict.items():
             newBatchSettingsDict[langNum]['translate_service'] = None
             newBatchSettingsDict[langNum]['formality'] = None
         return newBatchSettingsDict
         
     # Set the translation service for each language
-    if cloudConfig['translate_service'] == TranslateService.DEEPL:
+    if cloudConfig.translate_service == TranslateService.DEEPL:
         langSupportResponse = auth.DEEPL_API.get_target_languages()
         supportedLanguagesList = list(map(lambda x: str(x.code).upper(), langSupportResponse))
 
@@ -570,9 +570,9 @@ def set_translation_info(languageBatchDict):
                 # Set translation service to DeepL
                 newBatchSettingsDict[langNum]['translate_service'] = TranslateService.DEEPL
                 # Setting to 'prefer_more' or 'prefer_less' will it will default to 'default' if formality not supported             
-                if config['formality_preference'] == 'more':
+                if config.formality_preference == 'more':
                     newBatchSettingsDict[langNum]['formality'] = 'prefer_more'
-                elif config['formality_preference'] == 'less':
+                elif config.formality_preference == 'less':
                     newBatchSettingsDict[langNum]['formality'] = 'prefer_less'
                 else:
                     # Set formality to None if not supported for that language
@@ -584,7 +584,7 @@ def set_translation_info(languageBatchDict):
                 newBatchSettingsDict[langNum]['formality'] = None
 
     # If using Google, set all languages to use Google in dictionary
-    elif cloudConfig['translate_service'] == TranslateService.GOOGLE:
+    elif cloudConfig.translate_service == TranslateService.GOOGLE:
         for langNum, langInfo in languageBatchDict.items():
             newBatchSettingsDict[langNum]['translate_service'] = TranslateService.GOOGLE
             newBatchSettingsDict[langNum]['formality'] = None
@@ -599,12 +599,9 @@ def set_translation_info(languageBatchDict):
 #======================================== Combine Subtitle Lines ================================================
 def combine_subtitles_advanced(inputDict, maxCharacters=200):
     # Set gap threshold, the maximum gap between subtitles to combine
-    if 'subtitle_gap_threshold_milliseconds' in config:
-        gapThreshold = int(config['subtitle_gap_threshold_milliseconds'])
-    else:
-        gapThreshold = 200
+    gapThreshold = config.subtitle_gap_threshold_milliseconds
     
-    if ('speech_rate_goal' in config and config['speech_rate_goal'] == 'auto') or ('speech_rate_goal' not in config):
+    if (config.speech_rate_goal == 'auto'):
         # Calculate average char rate goal by dividing the total number of characters by the total duration in seconds from the last subtitle timetsamp
         totalCharacters = 0
         totalDuration = 0
@@ -614,7 +611,7 @@ def combine_subtitles_advanced(inputDict, maxCharacters=200):
         charRateGoal = totalCharacters / totalDuration
         charRateGoal = round(charRateGoal, 2)
     else:
-        charRateGoal = config['speech_rate_goal']
+        charRateGoal = config.speech_rate_goal
     
     # Don't change this, it is not an option, it is for keeping track
     noMorePossibleCombines = False
@@ -718,7 +715,7 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                 del entryListLocal[i]
                 
             # If user has set option to increase maximum characters when speeds are extreme. Increase by various amounts depending on how extreme
-            if 'increase_max_chars_for_extreme_speeds' in config and config['increase_max_chars_for_extreme_speeds'] == True:
+            if config.increase_max_chars_for_extreme_speeds == True:
                 if data['char_rate'] > 28:
                     tempMaxChars = maxCharacters + 100
                 elif data['char_rate'] > 27:
@@ -763,12 +760,8 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
             #### Should only reach this point if two entries are to be combined ####
             
             # If either direction of combining is possible, then prefer the one that will combine partial sentence fragments - !!!EXPERIMENTAL!!!
-            # Also will prefer to not combine such that it adds a line after a sentence terminator
-            if 'prioritize_avoiding_fragmented_speech' in config: # In case user didn't update config file
-                preferSentenceEnd = config['prioritize_avoiding_fragmented_speech']
-            else:
-                preferSentenceEnd = True
-            if considerNext and considerPrev and preferSentenceEnd == True:
+            # Also will prefer to not combine such that it adds a line after a sentence terminator               
+            if considerNext and considerPrev and config.prioritize_avoiding_fragmented_speech == True:
                 # If current doesn't end a sentence and next ends a sentence, combine with next
                 if not ends_with_sentence_terminator(entryListLocal[i]['translated_text']) and ends_with_sentence_terminator(entryListLocal[i+1]['translated_text']):
                     combine_with_next()

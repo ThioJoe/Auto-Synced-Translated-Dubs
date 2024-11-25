@@ -6,7 +6,7 @@
 # License: GPLv3
 # NOTE: By contributing to this project, you agree to the terms of the GPLv3 license, and agree to grant the project owner the right to also provide or sell this software, including your contribution, to anyone under any other license, with no compensation to you.
 
-version = '0.20.1'
+version = '0.21.0'
 print(f"------- 'Auto Synced Translated Dubs' script by ThioJoe - Release version {version} -------")
 
 # Import other files
@@ -69,9 +69,9 @@ for num in languageNums:
     else:
         model = batchConfig[f'LANGUAGE-{num}']['model']
         
-    if cloudConfig['tts_service'] == 'elevenlabs':
+    if cloudConfig.tts_service == 'elevenlabs':
         if model == "default":
-            model = cloudConfig['elevenlabs_default_model']
+            model = cloudConfig.elevenlabs_default_model
     else:
         model = "default"
 
@@ -95,7 +95,7 @@ def parse_srt_file(srtFileLines, preTranslated=False):
     subsDict = {}
 
     # Will add this many milliseconds of extra silence before and after each audio clip / spoken subtitle line
-    addBufferMilliseconds = int(config['add_line_buffer_milliseconds'])
+    addBufferMilliseconds = int(config.add_line_buffer_milliseconds)
 
     # Enumerate lines, and if a line in lines contains only an integer, put that number in the key, and a dictionary in the value
     # The dictionary contains the start, ending, and duration of the subtitles as well as the text
@@ -183,7 +183,7 @@ def get_duration(filename):
     return durationMS
 
 # Get the duration of the original video file
-if config['debug_mode'] and ORIGINAL_VIDEO_PATH.lower() == "debug.test":
+if config.debug_mode and ORIGINAL_VIDEO_PATH.lower() == "debug.test":
     # Copy the duration based on the last timestamp of the subtitles
     totalAudioLength = int(originalLanguageSubsDict[str(len(originalLanguageSubsDict))]['end_ms'])
 else:
@@ -271,20 +271,20 @@ def process_language(langData, processedCount, totalLanguages):
     print(f"\n----- Beginning Processing of Language ({processedCount}/{totalLanguages}): {langDict['languageCode']} -----")
 
     # Check for special case where original language is the same as the target language
-    if langDict['languageCode'].lower() == config['original_language'].lower():
+    if langDict['languageCode'].lower() == config.original_language.lower():
         print("Original language is the same as the target language. Skipping translation.")
         # individualLanguageSubsDict = manually_prepare_dictionary(individualLanguageSubsDict)
         # Runs through translation function and skips translation process, but still combines subtitles and prints srt file for native language
         individualLanguageSubsDict = translate.translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=True, forceNativeSRTOutput=True)
 
-    elif config['skip_translation'] == False:
+    elif config.skip_translation == False:
         # Translate
-        individualLanguageSubsDict = translate.translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=config['skip_translation'])
-        if config['stop_after_translation']:
+        individualLanguageSubsDict = translate.translate_dictionary(individualLanguageSubsDict, langDict, skipTranslation=config.skip_translation)
+        if config.stop_after_translation:
             print("Stopping at translation is enabled. Skipping TTS and building audio.")
             return
         
-    elif config['skip_translation'] == True:
+    elif config.skip_translation == True:
         print("Skip translation enabled. Checking for pre-translated subtitles...")
         # Check if pre-translated subtitles exist
         pretranslatedSubsDict = get_pretranslated_subs_dict(langData)
@@ -296,15 +296,15 @@ def process_language(langData, processedCount, totalLanguages):
             return
 
     # Synthesize
-    if cloudConfig['batch_tts_synthesize'] == True and cloudConfig['tts_service'] == 'azure':
-        individualLanguageSubsDict = TTS.synthesize_dictionary_batch(individualLanguageSubsDict, langDict, skipSynthesize=config['skip_synthesize'])
-    elif cloudConfig['tts_service'] == 'elevenlabs':
-        individualLanguageSubsDict = asyncio.run(TTS.synthesize_dictionary_async(individualLanguageSubsDict, langDict, skipSynthesize=config['skip_synthesize'], max_concurrent_jobs=cloudConfig['elevenlabs_max_concurrent']))
+    if cloudConfig.batch_tts_synthesize == True and cloudConfig.tts_service == TTSService.AZURE:
+        individualLanguageSubsDict = TTS.synthesize_dictionary_batch(individualLanguageSubsDict, langDict, skipSynthesize=config.skip_synthesize)
+    elif cloudConfig.tts_service == 'elevenlabs':
+        individualLanguageSubsDict = asyncio.run(TTS.synthesize_dictionary_async(individualLanguageSubsDict, langDict, skipSynthesize=config.skip_synthesize, max_concurrent_jobs=cloudConfig.elevenlabs_max_concurrent))
     else:
-        individualLanguageSubsDict = TTS.synthesize_dictionary(individualLanguageSubsDict, langDict, skipSynthesize=config['skip_synthesize'])
+        individualLanguageSubsDict = TTS.synthesize_dictionary(individualLanguageSubsDict, langDict, skipSynthesize=config.skip_synthesize)
 
     # Build audio
-    individualLanguageSubsDict = audio_builder.build_audio(individualLanguageSubsDict, langDict, totalAudioLength, config['two_pass_voice_synth'])    
+    individualLanguageSubsDict = audio_builder.build_audio(individualLanguageSubsDict, langDict, totalAudioLength, config.two_pass_voice_synth)    
 
 
 #======================================== Main Program ================================================

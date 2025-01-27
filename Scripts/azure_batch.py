@@ -9,6 +9,8 @@
 import json
 import logging
 import sys
+import uuid
+from typing import Optional
 
 import requests
 import configparser
@@ -24,33 +26,40 @@ logger = logging.getLogger(__name__)
 
 AZURE_SPEECH_KEY = cloudConfig.azure_speech_key
 AZURE_SPEECH_REGION = cloudConfig.azure_speech_region
+API_VERSION = "2024-04-01"
 
 NAME = "Simple synthesis"
 DESCRIPTION = "Simple synthesis description"
 
 # The service host suffix.
-# For azure.cn the host suffix is "customvoice.api.speech.azure.cn"
-SERVICE_HOST = "customvoice.api.speech.microsoft.com"
+SERVICE_HOST = "api.cognitive.microsoft.com"
 
+def _create_job_id():
+    # the job ID must be unique in current speech resource
+    # you can use a GUID or a self-increasing number
+    return uuid.uuid4()
 
-def submit_synthesis(payload):
-    url = f'https://{AZURE_SPEECH_REGION}.{SERVICE_HOST}/api/texttospeech/3.1-preview1/batchsynthesis'
+def submit_synthesis(payload) -> Optional[str]:
+    newJobID = _create_job_id()
+    
+    url = f'https://{AZURE_SPEECH_REGION}.{SERVICE_HOST}/texttospeech/batchsyntheses/{newJobID}?api-version={API_VERSION}'
     header = {
         'Ocp-Apim-Subscription-Key': AZURE_SPEECH_KEY,
         'Content-Type': 'application/json'
     }
 
-    response = requests.post(url, json.dumps(payload), headers=header)
+    response = requests.put(url, json.dumps(payload), headers=header)
     if response.status_code < 400:
         logger.info('Batch synthesis job submitted successfully')
         logger.info(f'Job ID: {response.json()["id"]}')
         return response.json()["id"]
     else:
         logger.error(f'Failed to submit batch synthesis job: {response.text}')
+        return None
 
 
-def get_synthesis(job_id):
-    url = f'https://{AZURE_SPEECH_REGION}.{SERVICE_HOST}/api/texttospeech/3.1-preview1/batchsynthesis/{job_id}'
+def get_synthesis(job_id) -> Optional[requests.Response]:
+    url = f'https://{AZURE_SPEECH_REGION}.{SERVICE_HOST}/texttospeech/batchsyntheses/{job_id}?api-version={API_VERSION}'
     header = {
         'Ocp-Apim-Subscription-Key': AZURE_SPEECH_KEY
     }
@@ -62,11 +71,11 @@ def get_synthesis(job_id):
         return response
     else:
         logger.error(f'Failed to get batch synthesis job: {response.text}')
+        return None
 
-
-def list_synthesis_jobs(skip: int = 0, top: int = 100):
+def list_synthesis_jobs(skip: int = 0, top: int = 100) -> None:
     """List all batch synthesis jobs in the subscription"""
-    url = f'https://{AZURE_SPEECH_REGION}.{SERVICE_HOST}/api/texttospeech/3.1-preview1/batchsynthesis?skip={skip}&top={top}'
+    url = f'https://{AZURE_SPEECH_REGION}.{SERVICE_HOST}/texttospeech/batchsyntheses?skip={skip}&top={top}?api-version={API_VERSION}'
     header = {
         'Ocp-Apim-Subscription-Key': AZURE_SPEECH_KEY
     }

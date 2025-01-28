@@ -469,7 +469,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                         #file.filename = file.filename.lstrip('0')
 
                         # Add file path to subsDict then remove from remainingDownloadedEntriesList
-                        subsDict[currentFileNum]['TTS_FilePath'] = os.path.join('workingFolder', str(currentFileNum)) + '.mp3'
+                        subsDict[currentFileNum][SubsDictKeys.TTS_FilePath] = os.path.join('workingFolder', str(currentFileNum)) + '.mp3'
                         # Extract file
                         zipdata.extract(file, 'workingFolder')
                         # Remove entry from remainingDownloadedEntriesList
@@ -511,11 +511,11 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
                 filePath = os.path.join('workingFolder', f'{str(key)}.mp3')
                 with open(filePath, "wb") as out:
                     out.write(audio)
-                subsDict[key]['TTS_FilePath'] = filePath
+                subsDict[key][SubsDictKeys.TTS_FilePath] = filePath
             else:
                 nonlocal errorsOccured
                 errorsOccured = True
-                subsDict[key]['TTS_FilePath'] = "Failed"
+                subsDict[key][SubsDictKeys.TTS_FilePath] = "Failed"
 
         # Update and display progress after task completion
         async with lock:
@@ -553,7 +553,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
 
             if secondPass:
                 # Get speed factor from subsDict
-                speedFactor = subsDict[key]['speed_factor']
+                speedFactor = subsDict[key][SubsDictKeys.speed_factor]
             else:
                 speedFactor = float(1.0)
 
@@ -591,7 +591,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
                 if config.debug_mode and secondPass == True:
                     audio.save_to_wav_file(filePathStem+"_pass2.mp3")
 
-        subsDict[key]['TTS_FilePath'] = filePath
+        subsDict[key][SubsDictKeys.TTS_FilePath] = filePath
 
         # Get key index
         keyIndex = list(subsDict.keys()).index(key)

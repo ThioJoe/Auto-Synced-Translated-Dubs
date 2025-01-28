@@ -84,6 +84,12 @@ class SubsDictKeys(str, Enum):
     end_ms_buffered = "end_ms_buffered"
     duration_ms_buffered = "duration_ms_buffered"
     translated_text = "translated_text"
+    originalIndex = "originalIndex"
+    char_rate = "char_rate"
+    char_rate_diff = "char_rate_diff"
+    TTS_FilePath = "TTS_FilePath"
+    TTS_FilePath_Trimmed = "TTS_FilePath_Trimmed"
+    speed_factor = "speed_factor"
 
     def __str__(self):
         return self.value

@@ -51,7 +51,7 @@ def get_speed_factor(subsDict, trimmedAudio, desiredDuration, num):
     # Calculate the speed factor, put into dictionary
     desiredDuration = float(desiredDuration)
     speedFactor = (rawDuration*1000) / desiredDuration
-    subsDict[num]['speed_factor'] = speedFactor
+    subsDict[num][SubsDictKeys.speed_factor] = speedFactor
     return subsDict
 
 def stretch_with_rubberband(y, sampleRate, speedFactor):
@@ -121,16 +121,16 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     # First trim silence off the audio files
     for key, value in subsDict.items():
         filePathTrimmed = os.path.join(workingFolder,  str(key)) + "_trimmed.wav"
-        subsDict[key]['TTS_FilePath_Trimmed'] = filePathTrimmed
+        subsDict[key][SubsDictKeys.TTS_FilePath_Trimmed] = filePathTrimmed
 
         # Trim the clip and re-write file
         try:
-            rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3")
+            rawClip = AudioSegment.from_file(value[SubsDictKeys.TTS_FilePath], format="mp3")
         except KeyError:
             print("\nERROR: An expected file was not found. This is likely because the TTS service failed to synthesize the audio. Refer to any error messages above.")
             sys.exit()
         except FileNotFoundError:
-            if value['TTS_FilePath'] == "Failed":
+            if value[SubsDictKeys.TTS_FilePath] == "Failed":
                 print("\nProgram failed because some audio was not synthesized. Refer to any error messages above.")
             else:
                 print("\nERROR: An expected file was not found. This is likely because the TTS service failed to synthesize the audio. Refer to any error messages above.")
@@ -151,7 +151,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     if not cloudConfig.tts_service == TTSService.AZURE or config.force_always_stretch == True:
         # Calculate speed factors for each clip, aka how much to stretch the audio
         for key, value in subsDict.items():
-            #subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value[SubsDictKeys.duration_ms], num=key)
+            #subsDict = get_speed_factor(subsDict, value[SubsDictKeys.TTS_FilePath_Trimmed], value[SubsDictKeys.duration_ms], num=key)
             subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value[SubsDictKeys.duration_ms], num=key)
             keyIndex = list(subsDict.keys()).index(key)
             print(f" Calculated Speed Factor: {keyIndex+1} of {len(subsDict)}", end="\r")
@@ -175,11 +175,11 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             
         for key, value in subsDict.items():
             # Trim the clip and re-write file
-            rawClip = AudioSegment.from_file(value['TTS_FilePath'], format="mp3")
+            rawClip = AudioSegment.from_file(value[SubsDictKeys.TTS_FilePath], format="mp3")
             trimmedClip = trim_clip(rawClip)
             if config.debug_mode:
                 # Remove '.wav' from the end of the file path
-                secondPassTrimmedFile = value['TTS_FilePath_Trimmed'][:-4] + "_p2_trimmed.wav"
+                secondPassTrimmedFile = value[SubsDictKeys.TTS_FilePath_Trimmed][:-4] + "_p2_trimmed.wav"
                 trimmedClip.export(secondPassTrimmedFile, format="wav")
             trimmedClip.export(virtualTrimmedFileDict[key], format="wav")
             keyIndex = list(subsDict.keys()).index(key)
@@ -199,10 +199,10 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     # Stretch audio and insert into canvas
     for key, value in subsDict.items():
         if ((not twoPassVoiceSynth or config.force_stretch_with_twopass == True) and (cloudConfig.tts_service not in servicesSupportingExactDuration)) or config.force_always_stretch == True: # Don't stretch if azure is used unless forced
-            #stretchedClip = stretch_audio_clip(value['TTS_FilePath_Trimmed'], speedFactor=subsDict[key]['speed_factor'], num=key)
-            stretchedClip = stretch_audio_clip(virtualTrimmedFileDict[key], speedFactor=subsDict[key]['speed_factor'], num=key)
+            #stretchedClip = stretch_audio_clip(value[SubsDictKeys.TTS_FilePath_Trimmed], speedFactor=subsDict[key][SubsDictKeys.speed_factor], num=key)
+            stretchedClip = stretch_audio_clip(virtualTrimmedFileDict[key], speedFactor=subsDict[key][SubsDictKeys.speed_factor], num=key)
         else:
-            #stretchedClip = AudioSegment.from_file(value['TTS_FilePath_Trimmed'], format="wav")
+            #stretchedClip = AudioSegment.from_file(value[SubsDictKeys.TTS_FilePath_Trimmed], format="wav")
             stretchedClip = AudioSegment.from_file(virtualTrimmedFileDict[key], format="wav")
             virtualTrimmedFileDict[key].seek(0) # Not 100% sure if this is necessary but it was in the other place it is used
 

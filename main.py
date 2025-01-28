@@ -118,7 +118,7 @@ def parse_srt_file(srtFileLines, preTranslated=False):
                     break
 
             # Create empty dictionary with keys for start and end times and subtitle text
-            subsDict[line] = {'start_ms': '', 'end_ms': '', 'duration_ms': '', 'text': '', 'break_until_next': '', 'srt_timestamps_line': lineWithTimestamps}
+            subsDict[line] = {SubsDictKeys.start_ms: '', SubsDictKeys.end_ms: '', SubsDictKeys.duration_ms: '', SubsDictKeys.text: '', SubsDictKeys.break_until_next: '', SubsDictKeys.srt_timestamps_line: lineWithTimestamps}
 
             time = lineWithTimestamps.split(' --> ')
             time1 = time[0].split(':')

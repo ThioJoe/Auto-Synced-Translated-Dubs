@@ -452,7 +452,7 @@ def translate_dictionary(inputSubsDict, langDict, skipTranslation=False, transcr
                     f.write(combinedProcessedDict[key][SubsDictKeys.srt_timestamps_line] + '\n')
                     f.write(combinedProcessedDict[key][SubsDictKeys.translated_text] + '\n')
                     f.write(f"DEBUG: duration_ms = {combinedProcessedDict[key][SubsDictKeys.duration_ms]}" + '\n')
-                    f.write(f"DEBUG: char_rate = {combinedProcessedDict[key]['char_rate']}" + '\n')
+                    f.write(f"DEBUG: char_rate = {combinedProcessedDict[key][SubsDictKeys.char_rate]}" + '\n')
                     f.write(f"DEBUG: start_ms = {combinedProcessedDict[key][SubsDictKeys.start_ms]}" + '\n')
                     f.write(f"DEBUG: end_ms = {combinedProcessedDict[key][SubsDictKeys.end_ms]}" + '\n')
                     f.write(f"DEBUG: start_ms_buffered = {combinedProcessedDict[key][SubsDictKeys.start_ms_buffered]}" + '\n')
@@ -619,7 +619,7 @@ def combine_subtitles_advanced(inputDict, maxCharacters=200):
     entryList = []
 
     for key, value in inputDict.items():
-        value['originalIndex'] = int(key)-1
+        value[SubsDictKeys.originalIndex] = int(key)-1
         entryList.append(value)
 
     while not noMorePossibleCombines:
@@ -639,7 +639,7 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
 
         # Need to update original index in here
         for entry in entryListLocal:
-            entry['originalIndex'] = entryListLocal.index(entry)
+            entry[SubsDictKeys.originalIndex] = entryListLocal.index(entry)
 
         # Will use later to check if an entry is the last one in the list, because the last entry will have originalIndex equal to the length of the list - 1
         originalNumberOfEntries = len(entryListLocal)
@@ -648,27 +648,27 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
         entryListLocal = calc_list_speaking_rates(entryListLocal, charRateGoal)
 
         # Sort the list by the difference in speaking speed from charRateGoal, this will ensure the most extreme fast or slow segments are combined first
-        priorityOrderedList = sorted(entryListLocal, key=itemgetter('char_rate_diff'), reverse=True) 
+        priorityOrderedList = sorted(entryListLocal, key=itemgetter(SubsDictKeys.char_rate_diff), reverse=True) 
 
         # Iterates through the list in order of priority, and uses that index to operate on entryListLocal
         # For loop is broken after a combination is made, so that the list can be re-sorted and re-iterated
         for progress, data in enumerate(priorityOrderedList):
-            i = data['originalIndex']
+            i = data[SubsDictKeys.originalIndex]
             # Check if last entry, and therefore will end loop when done with this iteration
             if progress == len(priorityOrderedList) - 1:
                 reachedEndOfList = True
 
             # Check if the current entry is outside the upper and lower bounds
-            if (data['char_rate'] > charRateGoal or data['char_rate'] < charRateGoal):
+            if (data[SubsDictKeys.char_rate] > charRateGoal or data[SubsDictKeys.char_rate] < charRateGoal):
 
                 # Check if the entry is the first in entryListLocal, if so do not consider the previous entry
-                if data['originalIndex'] == 0:
+                if data[SubsDictKeys.originalIndex] == 0:
                     considerPrev = False
                 else:
                     considerPrev = True
 
                 # Check if the entry is the last in entryListLocal, if so do not consider the next entry
-                if data['originalIndex'] == originalNumberOfEntries - 1:
+                if data[SubsDictKeys.originalIndex] == originalNumberOfEntries - 1:
                     considerNext = False
                 else:
                     considerNext = True
@@ -676,15 +676,15 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                 # Get the char_rate of the next and previous entries, if they exist, and calculate the difference
                 # If the diff is positive, then it is lower than the current char_rate
                 try:
-                    nextCharRate = entryListLocal[i+1]['char_rate']
-                    nextDiff = data['char_rate'] - nextCharRate
+                    nextCharRate = entryListLocal[i+1][SubsDictKeys.char_rate]
+                    nextDiff = data[SubsDictKeys.char_rate] - nextCharRate
                 except IndexError:
                     considerNext = False
                     nextCharRate = None
                     nextDiff = None
                 try:
-                    prevCharRate = entryListLocal[i-1]['char_rate']
-                    prevDiff = data['char_rate'] - prevCharRate
+                    prevCharRate = entryListLocal[i-1][SubsDictKeys.char_rate]
+                    prevDiff = data[SubsDictKeys.char_rate] - prevCharRate
                 except IndexError:
                     considerPrev = False
                     prevCharRate = None
@@ -716,13 +716,13 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                 
             # If user has set option to increase maximum characters when speeds are extreme. Increase by various amounts depending on how extreme
             if config.increase_max_chars_for_extreme_speeds == True:
-                if data['char_rate'] > 28:
+                if data[SubsDictKeys.char_rate] > 28:
                     tempMaxChars = maxCharacters + 100
-                elif data['char_rate'] > 27:
+                elif data[SubsDictKeys.char_rate] > 27:
                     tempMaxChars = maxCharacters + 85
-                elif data['char_rate'] > 26:
+                elif data[SubsDictKeys.char_rate] > 26:
                     tempMaxChars = maxCharacters + 70
-                elif data['char_rate'] > 25:
+                elif data[SubsDictKeys.char_rate] > 25:
                     tempMaxChars = maxCharacters + 50
                 else:
                     tempMaxChars = maxCharacters
@@ -730,7 +730,7 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                 tempMaxChars = maxCharacters
 
             # Choose whether to consider next and previous entries, and if neither then continue to next loop
-            if data['char_rate'] > charRateGoal:
+            if data[SubsDictKeys.char_rate] > charRateGoal:
                 # Check to ensure next/previous rates are lower than current rate, and the combined entry is not too long, and the gap between entries is not too large
                 # Need to add check for considerNext and considerPrev first, because if run other checks when there is no next/prev value to check, it will throw an error
                 if considerNext == False or not nextDiff or nextDiff < 0 or (entryListLocal[i][SubsDictKeys.break_until_next] >= gapThreshold) or (len(entryListLocal[i][SubsDictKeys.translated_text]) + len(entryListLocal[i+1][SubsDictKeys.translated_text]) > tempMaxChars):
@@ -741,7 +741,7 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                 except TypeError:
                     considerPrev = False
 
-            elif data['char_rate'] < charRateGoal:
+            elif data[SubsDictKeys.char_rate] < charRateGoal:
                 # Check to ensure next/previous rates are higher than current rate
                 if considerNext == False or not nextDiff or nextDiff > 0 or (entryListLocal[i][SubsDictKeys.break_until_next] >= gapThreshold) or (len(entryListLocal[i][SubsDictKeys.translated_text]) + len(entryListLocal[i+1][SubsDictKeys.translated_text]) > tempMaxChars):
                     considerNext = False
@@ -780,7 +780,7 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
 
             
             # Case where char_rate is lower than goal
-            if data['char_rate'] > charRateGoal:
+            if data[SubsDictKeys.char_rate] > charRateGoal:
                 # If both are to be considered, then choose the one with the lower char_rate.
                 if considerNext and considerPrev:
                     # Choose lower char rate
@@ -807,7 +807,7 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
                     continue
             
             # Case where char_rate is lower than goal
-            elif data['char_rate'] < charRateGoal:
+            elif data[SubsDictKeys.char_rate] < charRateGoal:
                 # If both are to be considered, then choose the one with the higher char_rate.
                 if considerNext and considerPrev:                  
                     # Choose higher char rate
@@ -839,17 +839,17 @@ def combine_single_pass(entryListLocal, charRateGoal, gapThreshold, maxCharacter
 #----------------------------------------------------------------------
 
 # Calculate the number of characters per second for each subtitle entry
-def calc_dict_speaking_rates(inputDict, dictKey='translated_text'):  
+def calc_dict_speaking_rates(inputDict, dictKey=SubsDictKeys.translated_text):  
     tempDict = copy.deepcopy(inputDict)
     for key, value in tempDict.items():
-        tempDict[key]['char_rate'] = round(len(value[dictKey]) / (int(value[SubsDictKeys.duration_ms]) / 1000), 2)
+        tempDict[key][SubsDictKeys.char_rate] = round(len(value[dictKey]) / (int(value[SubsDictKeys.duration_ms]) / 1000), 2)
     return tempDict
 
-def calc_list_speaking_rates(inputList, charRateGoal, dictKey='translated_text'): 
+def calc_list_speaking_rates(inputList, charRateGoal, dictKey=SubsDictKeys.translated_text): 
     tempList = copy.deepcopy(inputList)
     for i in range(len(tempList)):
         # Calculate the number of characters per second based on the duration of the entry
-        tempList[i]['char_rate'] = round(len(tempList[i][dictKey]) / (int(tempList[i][SubsDictKeys.duration_ms]) / 1000), 2)
+        tempList[i][SubsDictKeys.char_rate] = round(len(tempList[i][dictKey]) / (int(tempList[i][SubsDictKeys.duration_ms]) / 1000), 2)
         # Calculate the difference between the current char_rate and the goal char_rate - Absolute Value
-        tempList[i]['char_rate_diff'] = abs(round(tempList[i]['char_rate'] - charRateGoal, 2))
+        tempList[i][SubsDictKeys.char_rate_diff] = abs(round(tempList[i][SubsDictKeys.char_rate] - charRateGoal, 2))
     return tempList

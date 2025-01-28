@@ -302,10 +302,10 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
         tempDict = dict(remainingEntriesDict) # Need to do this to avoid changing the original dict which would mess with the loop
 
         for key, value in tempDict.items():
-            text = tempDict[key]['translated_text']
-            duration = tempDict[key]['duration_ms_buffered']
-            language = langDict['languageCode']
-            voice = langDict['voiceName']
+            text = tempDict[key][SubsDictKeys.translated_text]
+            duration = tempDict[key][SubsDictKeys.duration_ms_buffered]
+            language = langDict[LangDictKeys.languageCode]
+            voice = langDict[LangDictKeys.voiceName]
 
             # Create tag for desired duration of clip
             durationTag = f'<mstts:audioduration value="{str(duration)}ms"/>'
@@ -340,8 +340,8 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
             # Reconstruct payload with every loop with new SSML so that the payload size is accurate
             now = datetime.datetime.now()
             pendingPayload:dict = {
-                'displayName': langDict['languageCode'] + '-' + now.strftime("%Y-%m-%d %H:%M:%S"),
-                'description': 'Batch synthesis of ' + langDict['languageCode'] + ' subtitles',
+                'displayName': langDict[LangDictKeys.languageCode] + '-' + now.strftime("%Y-%m-%d %H:%M:%S"),
+                'description': 'Batch synthesis of ' + langDict[LangDictKeys.languageCode] + ' subtitles',
                 "inputKind": "SSML",
                 # To use custom voice, see original example code script linked from azure_batch.py
                 "inputs": ssmlJson,
@@ -502,9 +502,9 @@ async def synthesize_dictionary_async(subsDict, langDict, skipSynthesize=False, 
         # Use this to set max concurrent jobs
         async with semaphore:
             audio = await synthesize_text_elevenlabs_async_http(
-                value['translated_text'], 
-                langDict['voiceName'], 
-                langDict['voiceModel']
+                value[SubsDictKeys.translated_text], 
+                langDict[LangDictKeys.voiceName], 
+                langDict[LangDictKeys.voiceModel]
             )
 
             if audio:
@@ -549,7 +549,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
         filePathStem = os.path.join('workingFolder', f'{str(key)}')
         if not skipSynthesize:
 
-            duration = value['duration_ms_buffered']
+            duration = value[SubsDictKeys.duration_ms_buffered]
 
             if secondPass:
                 # Get speed factor from subsDict
@@ -566,7 +566,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
 
             # If Google TTS, use Google API
             if cloudConfig.tts_service == TTSService.GOOGLE:
-                audio = synthesize_text_google(value['translated_text'], speedFactor, langDict['voiceName'], langDict['voiceGender'], langDict['languageCode'])
+                audio = synthesize_text_google(value[SubsDictKeys.translated_text], speedFactor, langDict[LangDictKeys.voiceName], langDict[LangDictKeys.voiceGender], langDict[LangDictKeys.languageCode])
                 with open(filePath, "wb") as out:
                     out.write(audio)
                 
@@ -581,7 +581,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
             # If Azure TTS, use Azure API
             elif cloudConfig.tts_service == TTSService.AZURE:
                 # Audio variable is an AudioDataStream object
-                audio = synthesize_text_azure(value['translated_text'], duration, langDict['voiceName'], langDict['languageCode'])
+                audio = synthesize_text_azure(value[SubsDictKeys.translated_text], duration, langDict[LangDictKeys.voiceName], langDict[LangDictKeys.languageCode])
                 # Save to file using save_to_wav_file method of audio object
                 audio.save_to_wav_file(filePath)
                 

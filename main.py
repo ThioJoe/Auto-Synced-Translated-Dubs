@@ -79,7 +79,7 @@ for num in languageNums:
     batchSettings[num] = {
         'synth_language_code': batchConfig[f'LANGUAGE-{num}']['synth_language_code'],
         'synth_voice_name': batchConfig[f'LANGUAGE-{num}']['synth_voice_name'],
-        'translation_target_language': batchConfig[f'LANGUAGE-{num}']['translation_target_language'],
+        'translation_target_language': batchConfig[f'LANGUAGE-{num}'][LangDataKeys.translation_target_language],
         'synth_voice_gender': batchConfig[f'LANGUAGE-{num}']['synth_voice_gender'],
         'synth_voice_model': model,
     }
@@ -131,32 +131,32 @@ def parse_srt_file(srtFileLines, preTranslated=False):
 
             # Adjust times with buffer
             if addBufferMilliseconds > 0 and not preTranslated:
-                subsDict[line]['start_ms_buffered'] = str(processedTime1 + addBufferMilliseconds)
-                subsDict[line]['end_ms_buffered'] = str(processedTime2 - addBufferMilliseconds)
-                subsDict[line]['duration_ms_buffered'] = str((processedTime2 - addBufferMilliseconds) - (processedTime1 + addBufferMilliseconds))
+                subsDict[line][SubsDictKeys.start_ms_buffered] = str(processedTime1 + addBufferMilliseconds)
+                subsDict[line][SubsDictKeys.end_ms_buffered] = str(processedTime2 - addBufferMilliseconds)
+                subsDict[line][SubsDictKeys.duration_ms_buffered] = str((processedTime2 - addBufferMilliseconds) - (processedTime1 + addBufferMilliseconds))
             else:
-                subsDict[line]['start_ms_buffered'] = str(processedTime1)
-                subsDict[line]['end_ms_buffered'] = str(processedTime2)
-                subsDict[line]['duration_ms_buffered'] = str(processedTime2 - processedTime1)
+                subsDict[line][SubsDictKeys.start_ms_buffered] = str(processedTime1)
+                subsDict[line][SubsDictKeys.end_ms_buffered] = str(processedTime2)
+                subsDict[line][SubsDictKeys.duration_ms_buffered] = str(processedTime2 - processedTime1)
             
             # Set the keys in the dictionary to the values
-            subsDict[line]['start_ms'] = str(processedTime1)
-            subsDict[line]['end_ms'] = str(processedTime2)
-            subsDict[line]['duration_ms'] = timeDifferenceMs
-            subsDict[line]['text'] = lineWithSubtitleText
+            subsDict[line][SubsDictKeys.start_ms] = str(processedTime1)
+            subsDict[line][SubsDictKeys.end_ms] = str(processedTime2)
+            subsDict[line][SubsDictKeys.duration_ms] = timeDifferenceMs
+            subsDict[line][SubsDictKeys.text] = lineWithSubtitleText
             if lineNum > 0:
                 # Goes back to previous line's dictionary and writes difference in time to current line
-                subsDict[str(int(line)-1)]['break_until_next'] = processedTime1 - int(subsDict[str(int(line) - 1)]['end_ms'])
+                subsDict[str(int(line)-1)][SubsDictKeys.break_until_next] = processedTime1 - int(subsDict[str(int(line) - 1)][SubsDictKeys.end_ms])
             else:
-                subsDict[line]['break_until_next'] = 0
+                subsDict[line][SubsDictKeys.break_until_next] = 0
 
 
     # Apply the buffer to the start and end times by setting copying over the buffer values to main values
     if addBufferMilliseconds > 0 and not preTranslated:
         for key, value in subsDict.items():
-            subsDict[key]['start_ms'] = value['start_ms_buffered']
-            subsDict[key]['end_ms'] = value['end_ms_buffered']
-            subsDict[key]['duration_ms'] = value['duration_ms_buffered']
+            subsDict[key][SubsDictKeys.start_ms] = value[SubsDictKeys.start_ms_buffered]
+            subsDict[key][SubsDictKeys.end_ms] = value[SubsDictKeys.end_ms_buffered]
+            subsDict[key][SubsDictKeys.duration_ms] = value[SubsDictKeys.duration_ms_buffered]
 
     return subsDict
 
@@ -185,7 +185,7 @@ def get_duration(filename):
 # Get the duration of the original video file
 if config.debug_mode and ORIGINAL_VIDEO_PATH.lower() == "debug.test":
     # Copy the duration based on the last timestamp of the subtitles
-    totalAudioLength = int(originalLanguageSubsDict[str(len(originalLanguageSubsDict))]['end_ms'])
+    totalAudioLength = int(originalLanguageSubsDict[str(len(originalLanguageSubsDict))][SubsDictKeys.end_ms])
 else:
     totalAudioLength = get_duration(ORIGINAL_VIDEO_PATH)
 
@@ -208,7 +208,7 @@ def manually_prepare_dictionary(dictionaryToPrep):
     ### Do additional Processing to match the format produced by translation function
     # Create new key 'translated_text' and set it to the value of 'text'
     for key, value in dictionaryToPrep.items():
-        dictionaryToPrep[key]['translated_text'] = value['text']
+        dictionaryToPrep[key][SubsDictKeys.translated_text] = value[SubsDictKeys.text]
     
     # Convert the keys to integers and return the dictionary
     return {int(k): v for k, v in dictionaryToPrep.items()}
@@ -235,7 +235,7 @@ def get_pretranslated_subs_dict(langData):
     
     # Check if any files ends with the specific language code and srt file extension
     for file in files:
-        if file.replace(' ', '').endswith(f"-{langData['translation_target_language']}.srt"):
+        if file.replace(' ', '').endswith(f"-{langData[LangDataKeys.translation_target_language]}.srt"):
             # If so, open the file and read the lines into a list
             with open(f"{OUTPUT_FOLDER}/{file}", 'r', encoding='utf-8-sig') as f:
                 pretranslatedSubLines = f.readlines()
@@ -256,22 +256,22 @@ def get_pretranslated_subs_dict(langData):
 # Process a language: Translate, Synthesize, and Build Audio
 def process_language(langData, processedCount, totalLanguages):
     langDict = {
-        'targetLanguage': langData['translation_target_language'], 
-        'voiceName': langData['synth_voice_name'], 
-        'languageCode': langData['synth_language_code'], 
-        'voiceGender': langData['synth_voice_gender'],
-        'translateService': langData['translate_service'],
-        'formality': langData['formality'],
-        'voiceModel': langData['synth_voice_model'],
+        LangDictKeys.targetLanguage: langData[LangDataKeys.translation_target_language], 
+        LangDictKeys.voiceName: langData[LangDataKeys.synth_voice_name], 
+        LangDictKeys.languageCode: langData[LangDataKeys.synth_language_code], 
+        LangDictKeys.voiceGender: langData[LangDataKeys.synth_voice_gender],
+        LangDictKeys.translateService: langData[LangDataKeys.translate_service],
+        LangDictKeys.formality: langData[LangDataKeys.formality],
+        LangDictKeys.voiceModel: langData[LangDataKeys.synth_voice_model],
         }
 
     individualLanguageSubsDict = copy.deepcopy(originalLanguageSubsDict)
 
     # Print language being processed
-    print(f"\n----- Beginning Processing of Language ({processedCount}/{totalLanguages}): {langDict['languageCode']} -----")
+    print(f"\n----- Beginning Processing of Language ({processedCount}/{totalLanguages}): {langDict[LangDictKeys.languageCode]} -----")
 
     # Check for special case where original language is the same as the target language
-    if langDict['languageCode'].lower() == config.original_language.lower():
+    if langDict[LangDictKeys.languageCode].lower() == config.original_language.lower():
         print("Original language is the same as the target language. Skipping translation.")
         # individualLanguageSubsDict = manually_prepare_dictionary(individualLanguageSubsDict)
         # Runs through translation function and skips translation process, but still combines subtitles and prints srt file for native language
@@ -291,8 +291,8 @@ def process_language(langData, processedCount, totalLanguages):
         if pretranslatedSubsDict != None:
             individualLanguageSubsDict = pretranslatedSubsDict
         else:
-            print(f"\nPre-translated subtitles not found for language '{langDict['languageCode']}' in folder '{OUTPUT_FOLDER}'. Skipping.")
-            print(f"Note: Ensure the subtitle filename for this language ends with: ' - {langData['translation_target_language']}.srt'\n")
+            print(f"\nPre-translated subtitles not found for language '{langDict[LangDictKeys.languageCode]}' in folder '{OUTPUT_FOLDER}'. Skipping.")
+            print(f"Note: Ensure the subtitle filename for this language ends with: ' - {langData[LangDataKeys.translation_target_language]}.srt'\n")
             return
 
     # Synthesize

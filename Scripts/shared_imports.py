@@ -40,6 +40,9 @@ AudioFormat = enums.AudioFormat
 AudioStretchMethod = enums.AudioStretchMethod
 ElevenLabsModel = enums.ElevenLabsModel
 FormalityPreference = enums.FormalityPreference
+LangDataKeys = enums.LangDataKeys
+LangDictKeys = enums.LangDictKeys
+SubsDictKeys = enums.SubsDictKeys
 
 # ---------------------------------------------------------------------------------------
 
@@ -66,7 +69,10 @@ exportObjects:list = [
     AudioFormat,
     AudioStretchMethod,
     ElevenLabsModel,
-    FormalityPreference
+    FormalityPreference,
+    LangDataKeys,
+    LangDictKeys,
+    SubsDictKeys
 ]
 
 # Export all objects

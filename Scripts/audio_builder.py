@@ -151,8 +151,8 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     if not cloudConfig.tts_service == TTSService.AZURE or config.force_always_stretch == True:
         # Calculate speed factors for each clip, aka how much to stretch the audio
         for key, value in subsDict.items():
-            #subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value['duration_ms'], num=key)
-            subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
+            #subsDict = get_speed_factor(subsDict, value['TTS_FilePath_Trimmed'], value[SubsDictKeys.duration_ms], num=key)
+            subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value[SubsDictKeys.duration_ms], num=key)
             keyIndex = list(subsDict.keys()).index(key)
             print(f" Calculated Speed Factor: {keyIndex+1} of {len(subsDict)}", end="\r")
         print("\n")
@@ -188,7 +188,7 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
 
         if config.force_stretch_with_twopass == True:
             for key, value in subsDict.items():
-                subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value['duration_ms'], num=key)
+                subsDict = get_speed_factor(subsDict, virtualTrimmedFileDict[key], value[SubsDictKeys.duration_ms], num=key)
                 keyIndex = list(subsDict.keys()).index(key)
                 print(f" Calculated Speed Factor (2nd Pass): {keyIndex+1} of {len(subsDict)}", end="\r")
             print("\n")
@@ -206,16 +206,16 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
             stretchedClip = AudioSegment.from_file(virtualTrimmedFileDict[key], format="wav")
             virtualTrimmedFileDict[key].seek(0) # Not 100% sure if this is necessary but it was in the other place it is used
 
-        canvas = insert_audio(canvas, stretchedClip, value['start_ms'])
+        canvas = insert_audio(canvas, stretchedClip, value[SubsDictKeys.start_ms])
         
         # Print warning if audio clip is longer than expected and would overlap next clip
-        currentClipExpectedDuration = int(value['duration_ms'])
+        currentClipExpectedDuration = int(value[SubsDictKeys.duration_ms])
         currentClipTrueDuration = stretchedClip.duration_seconds * 1000
         difference = str(round(currentClipTrueDuration - currentClipExpectedDuration))
-        if key < len(subsDict) and (currentClipTrueDuration + int(value['start_ms']) > int(subsDict[key+1]['start_ms'])):
-            print(f"WARNING: Audio clip {str(key)} for language {langDict['languageCode']} is {difference}ms longer than expected and may overlap the next clip. Inspect the audio file after completion.")
-        elif key == len(subsDict) and (currentClipTrueDuration + int(value['start_ms']) > totalAudioLength):
-            print(f"WARNING: Audio clip {str(key)} for language {langDict['languageCode']} is {difference}ms longer than expected and may cut off at the end of the file. Inspect the audio file after completion.")
+        if key < len(subsDict) and (currentClipTrueDuration + int(value[SubsDictKeys.start_ms]) > int(subsDict[key+1][SubsDictKeys.start_ms])):
+            print(f"WARNING: Audio clip {str(key)} for language {langDict[LangDictKeys.languageCode]} is {difference}ms longer than expected and may overlap the next clip. Inspect the audio file after completion.")
+        elif key == len(subsDict) and (currentClipTrueDuration + int(value[SubsDictKeys.start_ms]) > totalAudioLength):
+            print(f"WARNING: Audio clip {str(key)} for language {langDict[LangDictKeys.languageCode]} is {difference}ms longer than expected and may cut off at the end of the file. Inspect the audio file after completion.")
             
             
         keyIndex = list(subsDict.keys()).index(key)
@@ -223,12 +223,12 @@ def build_audio(subsDict, langDict, totalAudioLength, twoPassVoiceSynth=False):
     print("\n")
 
     # Use video file name to use in the name of the output file. Add language name and language code
-    lang = langcodes.get(langDict['languageCode'])
-    langName = langcodes.get(langDict['languageCode']).get(lang.to_alpha3()).display_name()
+    lang = langcodes.get(langDict[LangDictKeys.languageCode])
+    langName = langcodes.get(langDict[LangDictKeys.languageCode]).get(lang.to_alpha3()).display_name()
     if config.debug_mode and not os.path.isfile(ORIGINAL_VIDEO_PATH):
-        outputFileName = "debug" + f" - {langName} - {langDict['languageCode']}."
+        outputFileName = "debug" + f" - {langName} - {langDict[LangDictKeys.languageCode]}."
     else:
-        outputFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f" - {langName} - {langDict['languageCode']}."
+        outputFileName = pathlib.Path(ORIGINAL_VIDEO_PATH).stem + f" - {langName} - {langDict[LangDictKeys.languageCode]}."
     # Set output path
     outputFileName = os.path.join(OUTPUT_FOLDER, outputFileName)
 

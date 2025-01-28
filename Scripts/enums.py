@@ -48,3 +48,42 @@ class FormalityPreference(str, Enum):
     
     def __str__(self):
         return self.value
+    
+class LangDataKeys(str, Enum):
+    translation_target_language = "translation_target_language"
+    synth_voice_name = "synth_voice_name"
+    synth_language_code = "synth_language_code"
+    synth_voice_gender = "synth_voice_gender"
+    translate_service = "translate_service"
+    formality = "formality"
+    synth_voice_model = "synth_voice_model"
+    
+    def __str__(self):
+        return self.value
+    
+class LangDictKeys(str, Enum):
+    targetLanguage = "targetLanguage"
+    voiceName = "voiceName"
+    languageCode = "languageCode"
+    voiceGender = "voiceGender"
+    translateService = "translateService"
+    formality = "formality"
+    voiceModel = "voiceModel"
+    
+    def __str__(self):
+        return self.value
+    
+class SubsDictKeys(str, Enum):
+    start_ms = "start_ms"
+    end_ms = "end_ms"
+    duration_ms = "duration_ms"
+    text = "text"
+    break_until_next = "break_until_next"
+    srt_timestamps_line = "srt_timestamps_line"
+    start_ms_buffered = "start_ms_buffered"
+    end_ms_buffered = "end_ms_buffered"
+    duration_ms_buffered = "duration_ms_buffered"
+    translated_text = "translated_text"
+
+    def __str__(self):
+        return self.value

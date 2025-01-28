@@ -35,7 +35,7 @@ for num in languageNums:
     batchSettings[num] = {
         'synth_language_code': batchConfig[f'LANGUAGE-{num}']['synth_language_code'],
         'synth_voice_name': batchConfig[f'LANGUAGE-{num}']['synth_voice_name'],
-        'translation_target_language': batchConfig[f'LANGUAGE-{num}']['translation_target_language'],
+        'translation_target_language': batchConfig[f'LANGUAGE-{num}'][LangDataKeys.translation_target_language],
         'synth_voice_gender': batchConfig[f'LANGUAGE-{num}']['synth_voice_gender']
     }
 
@@ -108,7 +108,7 @@ elif userChoice == "batch":
     languageCodeList = []
     # Create list of languages to translate to
     for langNum, langData in batchSettings.items():
-        langCode = langData['translation_target_language']
+        langCode = langData[LangDataKeys.translation_target_language]
         languageCodeList.append(langCode)
         
     # List languages to download

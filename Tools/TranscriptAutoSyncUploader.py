@@ -18,7 +18,7 @@ else:
 sys.path.insert(1, os.getcwd())
 # ---------------------------------------------------------------------------------------
 from Scripts.shared_imports import *
-from Tools.SubtitleTrackRemover import main as remove_tracks
+from Tools.SubtitlesTitleDescriptionRemover import main as remove_tracks
 import Scripts.auth as auth
 
 from googleapiclient.errors import HttpError

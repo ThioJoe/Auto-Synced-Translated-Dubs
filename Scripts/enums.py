@@ -93,3 +93,7 @@ class SubsDictKeys(str, Enum):
 
     def __str__(self):
         return self.value
+    
+class VariousDefaults():
+    defaultSpeechRateGoal:float = 20
+

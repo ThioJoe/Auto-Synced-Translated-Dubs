@@ -74,7 +74,7 @@ class Config:
     increase_max_chars_for_extreme_speeds: bool
     subtitle_gap_threshold_milliseconds: int
     prioritize_avoiding_fragmented_speech: bool
-    speech_rate_goal: Union[str, int] # 'Auto' or int
+    speech_rate_goal: Union[str, int, float] # 'Auto' or int
     debug_mode: bool
     youtube_autosync_languages: list[str]
 

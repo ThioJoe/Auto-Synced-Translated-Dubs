@@ -43,6 +43,7 @@ FormalityPreference = enums.FormalityPreference
 LangDataKeys = enums.LangDataKeys
 LangDictKeys = enums.LangDictKeys
 SubsDictKeys = enums.SubsDictKeys
+VariousDefaults = enums.VariousDefaults
 
 # ---------------------------------------------------------------------------------------
 
@@ -72,7 +73,8 @@ exportObjects:list = [
     FormalityPreference,
     LangDataKeys,
     LangDictKeys,
-    SubsDictKeys
+    SubsDictKeys,
+    VariousDefaults
 ]
 
 # Export all objects

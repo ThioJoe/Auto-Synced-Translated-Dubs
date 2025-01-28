@@ -600,6 +600,7 @@ def set_translation_info(languageBatchDict):
 def combine_subtitles_advanced(inputDict, maxCharacters=200):
     # Set gap threshold, the maximum gap between subtitles to combine
     gapThreshold = config.subtitle_gap_threshold_milliseconds
+    charRateGoal:float
     
     if (config.speech_rate_goal == 'auto'):
         # Calculate average char rate goal by dividing the total number of characters by the total duration in seconds from the last subtitle timetsamp
@@ -608,10 +609,21 @@ def combine_subtitles_advanced(inputDict, maxCharacters=200):
         for key, value in inputDict.items():
             totalCharacters += len(value[SubsDictKeys.translated_text])
             totalDuration = int(value[SubsDictKeys.end_ms]) / 1000 # Just ends up staying as last subtitle timestamp
-        charRateGoal = totalCharacters / totalDuration
-        charRateGoal = round(charRateGoal, 2)
+        
+        # If the duration is zero there's a problem. Print a warning and try to continue
+        if totalDuration == 0:
+            print("ERROR: Total duration of subtitles is zero. Something may be wrong with your subtitles file or it's empty. The script will try to continue but don't expect good results.")
+            charRateGoal = VariousDefaults.defaultSpeechRateGoal
+        else:
+            charRateGoal = totalCharacters / totalDuration
+            charRateGoal = round(charRateGoal, 2)
     else:
-        charRateGoal = config.speech_rate_goal
+        # Check if it can be converted to a float, if not set to default
+        try:
+            charRateGoal = float(config.speech_rate_goal)
+        except ValueError:
+            print(f"WARNING: Invalid value for 'speech_rate_goal' in config. Setting to default value of {VariousDefaults.defaultSpeechRateGoal}")
+            charRateGoal = VariousDefaults.defaultSpeechRateGoal
     
     # Don't change this, it is not an option, it is for keeping track
     noMorePossibleCombines = False

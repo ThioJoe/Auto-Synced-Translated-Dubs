@@ -22,8 +22,9 @@ from typing import Any
 # Google Cloud Globals
 token_file_name = 'token.pickle'
 youtube_token_filename = 'yt_token.pickle'
-GOOGLE_TTS_API = None
-GOOGLE_TRANSLATE_API = None
+GOOGLE_TTS_API:Any = None
+GOOGLE_TRANSLATE_API:Any = None
+YOUTUBE_API:Any = None
 
 # deepl Globals
 DEEPL_API = None
@@ -125,7 +126,7 @@ def get_authenticated_service(youtubeAuth = False):
 def youtube_authentication():
   global YOUTUBE_API
   try:
-    YOUTUBE_API: Any = get_authenticated_service(youtubeAuth = True) # Create authentication object
+    YOUTUBE_API = get_authenticated_service(youtubeAuth = True) # Create authentication object
   except JSONDecodeError as jx:
     print(f" [!!!] Error: " + str(jx))
     print(f"\nDid you make the client_secrets.json file yourself by copying and pasting into it, instead of downloading it?")

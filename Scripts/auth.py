@@ -17,7 +17,7 @@ import traceback
 from json import JSONDecodeError
 import configparser
 import deepl
-
+from typing import Any
 
 # Google Cloud Globals
 token_file_name = 'token.pickle'
@@ -125,7 +125,7 @@ def get_authenticated_service(youtubeAuth = False):
 def youtube_authentication():
   global YOUTUBE_API
   try:
-    YOUTUBE_API = get_authenticated_service(youtubeAuth = True) # Create authentication object
+    YOUTUBE_API: Any = get_authenticated_service(youtubeAuth = True) # Create authentication object
   except JSONDecodeError as jx:
     print(f" [!!!] Error: " + str(jx))
     print(f"\nDid you make the client_secrets.json file yourself by copying and pasting into it, instead of downloading it?")

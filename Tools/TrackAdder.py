@@ -20,6 +20,7 @@
     # The folder (or path relative to this script file) containing the audio track files to add to the video
     # Note: ALL audio tracks in the folder will be added, so ensure only the tracks you want are in there
     # A resulting copy of the original video, now with all tracks added, will also be placed in this folder
+tracksFolder = r"C:Example\Path\Auto Translate Dub App Demo\Audio Tracks"
 
     # Whether to merge a sound effect track into each audio track, and before adding to the video if applicable
     # The original audio track files will remain unchanged
@@ -40,7 +41,7 @@ outputTracksFormat = "mp3" # mp3, wav, aac, or 'same' to keep the same format as
     # If applicable, the filename of the sound effects or music track to add to each audio track before adding to the video
     # If "useSoundEffectsTrack" is set to False, this will be ignored
     # Must be in the same folder as the audio tracks!
-effectsTrackFileName = r"B:\Dropbox\Youtube\Video Dubs\Auto Translate Dub App Demo\Sound Effects Track.wav"
+effectsTrackFileName = r"C:Example\Path\Auto Translate Dub App Demo\Sound Effects Track.wav"
 
 # ------------------------------------ Track Video Embedding Options ------------------------------------
 
@@ -106,7 +107,7 @@ for file in os.listdir(tracksFolder):
             languageDisplayName = langcodes.get(threeLetterCode).display_name()
 
             if threeLetterCode in tracksToAddDict.keys():
-                print(f"\ERROR while checking {file}: Language '{languageDisplayName}' is already in use by file: {tracksToAddDict[threeLetterCode]}")
+                print(f"ERROR while checking {file}: Language '{languageDisplayName}' is already in use by file: {tracksToAddDict[threeLetterCode]}")
                 userInput = input("\nPress Enter to exit... ")
                 sys.exit()
 

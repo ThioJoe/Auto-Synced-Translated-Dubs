@@ -240,7 +240,7 @@ elif userChoice == "uploadMultipleTranscripts":
                     sys.exit()
     
     # Get list of supported auto-sync languages for YouTube
-    supportedLanguages = config['youtube_autosync_languages'].replace(' ','').split(',')
+    supportedLanguages = config.youtube_autosync_languages
     unsupportedList = []
     for langCode in transcriptFilesDict.keys():
         if langCode not in supportedLanguages:

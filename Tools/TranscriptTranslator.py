@@ -30,8 +30,8 @@ import json
 import langcodes
 
 # Check to ensure the translated language isn't the same as the original. If it is, warn the user and ask if they want to continue
-originalLanguage = config['original_language']
-originalLanguage2Letter = langcodes.get(config['original_language']).language
+originalLanguage = config.original_language
+originalLanguage2Letter = langcodes.get(config.original_language).language
 for num in batchConfig['SETTINGS']['enabled_languages'].replace(' ','').split(','):
     # Need to convert original language BPC-47 code to 2-letter code
     targetLanguage = batchConfig[f'LANGUAGE-{num}'][LangDataKeys.translation_target_language]

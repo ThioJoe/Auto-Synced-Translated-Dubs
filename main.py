@@ -69,6 +69,11 @@ for num in languageNums:
     else:
         model = batchConfig[f'LANGUAGE-{num}']['model']
         
+    if not batchConfig.has_option(f'LANGUAGE-{num}', 'synth_voice_style') or batchConfig[f'LANGUAGE-{num}']['synth_voice_style'] == "":
+        style = "default"
+    else:
+        style = batchConfig[f'LANGUAGE-{num}']['synth_voice_style']
+        
     if cloudConfig.tts_service == 'elevenlabs':
         if model == "default":
             model = cloudConfig.elevenlabs_default_model
@@ -82,6 +87,7 @@ for num in languageNums:
         'translation_target_language': batchConfig[f'LANGUAGE-{num}'][LangDataKeys.translation_target_language],
         'synth_voice_gender': batchConfig[f'LANGUAGE-{num}']['synth_voice_gender'],
         'synth_voice_model': model,
+        'synth_voice_style': style,
     }
 
 
@@ -263,7 +269,8 @@ def process_language(langData, processedCount, totalLanguages):
         LangDictKeys.translateService: langData[LangDataKeys.translate_service],
         LangDictKeys.formality: langData[LangDataKeys.formality],
         LangDictKeys.voiceModel: langData[LangDataKeys.synth_voice_model],
-        }
+        LangDictKeys.voiceStyle: langData[LangDataKeys.synth_voice_style]
+    }
 
     individualLanguageSubsDict = copy.deepcopy(originalLanguageSubsDict)
 

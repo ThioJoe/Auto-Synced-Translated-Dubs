@@ -57,6 +57,7 @@ class LangDataKeys(str, Enum):
     translate_service = "translate_service"
     formality = "formality"
     synth_voice_model = "synth_voice_model"
+    synth_voice_style = "synth_voice_style"
     
     def __str__(self):
         return self.value
@@ -69,6 +70,7 @@ class LangDictKeys(str, Enum):
     translateService = "translateService"
     formality = "formality"
     voiceModel = "voiceModel"
+    voiceStyle = "voiceStyle"
     
     def __str__(self):
         return self.value

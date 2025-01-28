@@ -236,7 +236,7 @@ async def synthesize_text_elevenlabs_async_http(text:str, voiceID:str, modelID:s
 
     return audio_bytes
 
-def synthesize_text_azure(text:str, duration, voiceName, languageCode) -> speechsdk.AudioDataStream:
+def synthesize_text_azure(text:str, duration, voiceName, languageCode, style) -> speechsdk.AudioDataStream:
 
     # Create tag for desired duration of clip
     durationTag = f'<mstts:audioduration value="{str(duration)}ms"/>'
@@ -252,6 +252,14 @@ def synthesize_text_azure(text:str, duration, voiceName, languageCode) -> speech
         commaPauseTag = f'<mstts:silence type="Comma-exact" value="{str(config.azure_comma_pause)}ms"/>'
     else:
         commaPauseTag = ''
+        
+    # Create string for style, if not default
+    if not style == 'default':
+        styleTagStart = f'<mstts:express-as style="{style}">'
+        styleTagEnd = f'</mstts:express-as>'
+    else:
+        styleTagStart = ''
+        styleTagEnd = ''
 
     # Set string for tag to set leading and trailing silence times to zero
     leadSilenceTag = '<mstts:silence  type="Leading-exact" value="0ms"/>'
@@ -263,8 +271,8 @@ def synthesize_text_azure(text:str, duration, voiceName, languageCode) -> speech
     # Create SSML syntax for Azure TTS
     ssml = f"<speak version='1.0' xml:lang='{languageCode}' xmlns='http://www.w3.org/2001/10/synthesis' " \
         "xmlns:mstts='http://www.w3.org/2001/mstts'>" \
-        f"<voice name='{voiceName}'>{sentencePauseTag}{commaPauseTag}{durationTag}{leadSilenceTag}{tailSilenceTag}" \
-        f"{text}</voice></speak>"
+        f"<voice name='{voiceName}'>{sentencePauseTag}{commaPauseTag}{durationTag}{leadSilenceTag}{tailSilenceTag}{styleTagStart}" \
+        f"{text}{styleTagEnd}</voice></speak>"
 
     speech_config = speechsdk.SpeechConfig(subscription=AZURE_SPEECH_KEY, region=AZURE_SPEECH_REGION)
     # For Azure voices, see: https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support?tabs=stt-tts
@@ -306,6 +314,7 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
             duration = tempDict[key][SubsDictKeys.duration_ms_buffered]
             language = langDict[LangDictKeys.languageCode]
             voice = langDict[LangDictKeys.voiceName]
+            style = langDict[LangDictKeys.voiceStyle]
 
             # Create tag for desired duration of clip
             durationTag = f'<mstts:audioduration value="{str(duration)}ms"/>'
@@ -321,6 +330,14 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
                 commaPauseTag = f'<mstts:silence type="Comma-exact" value="{str(config.azure_comma_pause)}ms"/>'
             else:
                 commaPauseTag = ''
+                
+                # Create string for style, if not default
+            if not style == 'default':
+                styleTagStart = f'<mstts:express-as style="{style}">'
+                styleTagEnd = f'</mstts:express-as>'
+            else:
+                styleTagStart = ''
+                styleTagEnd = ''
 
             # Set string for tag to set leading and trailing silence times to zero
             leadSilenceTag = '<mstts:silence  type="Leading-exact" value="0ms"/>'
@@ -332,8 +349,8 @@ def synthesize_text_azure_batch(subsDict, langDict, skipSynthesize=False, second
             # Create the SSML for each subtitle
             ssml = f"<speak version='1.0' xml:lang='{language}' xmlns='http://www.w3.org/2001/10/synthesis' " \
             "xmlns:mstts='http://www.w3.org/2001/mstts'>" \
-            f"<voice name='{voice}'>{sentencePauseTag}{commaPauseTag}{durationTag}{leadSilenceTag}{tailSilenceTag}" \
-            f"{text}</voice></speak>"
+            f"<voice name='{voice}'>{sentencePauseTag}{commaPauseTag}{durationTag}{leadSilenceTag}{tailSilenceTag}{styleTagStart}" \
+            f"{text}{styleTagEnd}</voice></speak>"
             ssmlJson.append({"content": ssml})
 
             # Construct request payload with SSML
@@ -581,7 +598,7 @@ def synthesize_dictionary(subsDict, langDict, skipSynthesize=False, secondPass=F
             # If Azure TTS, use Azure API
             elif cloudConfig.tts_service == TTSService.AZURE:
                 # Audio variable is an AudioDataStream object
-                audio = synthesize_text_azure(value[SubsDictKeys.translated_text], duration, langDict[LangDictKeys.voiceName], langDict[LangDictKeys.languageCode])
+                audio = synthesize_text_azure(value[SubsDictKeys.translated_text], duration, langDict[LangDictKeys.voiceName], langDict[LangDictKeys.languageCode], langDict[LangDictKeys.voiceStyle])
                 # Save to file using save_to_wav_file method of audio object
                 audio.save_to_wav_file(filePath)
                 
